@@ -1,17 +1,37 @@
 'Generate helper functions for data storage'
 # Import system modules
-import random
 import os
+import random
 import cPickle as pickle
 import cStringIO as StringIO
 
 
-# Expand
+# File
 
 basePath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def expandBasePath(relativePath):
     return os.path.join(basePath, relativePath)
+
+def makeFolderSafely(folderPath):
+    'Make a directory at the given folderPath' 
+    # For each parentPath, 
+    for parentPath in reversed(traceParentPaths(os.path.abspath(folderPath))): 
+        # If the parentPath folder does not exist, 
+        if not os.path.exists(parentPath): 
+            # Make the parentPath folder 
+            os.mkdir(parentPath) 
+    # Return 
+    return folderPath 
+ 
+def traceParentPaths(folderPath): 
+    'Return a list of parentPaths containing the given folderPath' 
+    parentPaths = [] 
+    parentPath = folderPath 
+    while parentPath not in parentPaths: 
+        parentPaths.append(parentPath) 
+        parentPath = os.path.dirname(parentPath) 
+    return parentPaths 
 
 
 # Random
@@ -47,29 +67,6 @@ def makeRandomUniqueTicket(length, query):
         # If our randomID is unique, return it
         if not query.filter_by(ticket=randomID).first(): 
             return randomID
-
-
-# Folders
-
-def makeFolderSafely(folderPath):
-    'Make a directory at the given folderPath' 
-    # For each parentPath, 
-    for parentPath in reversed(traceParentPaths(os.path.abspath(folderPath))): 
-        # If the parentPath folder does not exist, 
-        if not os.path.exists(parentPath): 
-            # Make the parentPath folder 
-            os.mkdir(parentPath) 
-    # Return 
-    return folderPath 
- 
-def traceParentPaths(folderPath): 
-    'Return a list of parentPaths containing the given folderPath' 
-    parentPaths = [] 
-    parentPath = folderPath 
-    while parentPath not in parentPaths: 
-        parentPaths.append(parentPath) 
-        parentPath = os.path.dirname(parentPath) 
-    return parentPaths 
 
 
 # Reduce
