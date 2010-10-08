@@ -7,15 +7,14 @@ except ImportError:
 
 
 setup(
-    name='InvisibleRoadsTemplate',
-    version="1.6",
-    description="Pylons template with authentication",
-    author="Roy Hyunjin Han",
+    name='PylonsAuthentication',
+    version='1.6',
+    description='Pylons authentication application template',
+    author='Roy Hyunjin Han',
     packages=find_packages(),
     include_package_data=True,
-    install_requires=["PasteScript>=1.3"],
+    install_requires=['PasteScript>=1.3'],
     entry_points="""
     [paste.paster_create_template]
-    invisibleroads=invisibleroads.pylons.util:InvisibleRoadsTemplate
-    """,
-)
+    pylons_authentication=invisibleroads.pylons.util:PylonsAuthentication
+    """)
