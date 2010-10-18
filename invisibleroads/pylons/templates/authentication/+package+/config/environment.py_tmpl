@@ -12,6 +12,7 @@ from {{package}}.lib import app_globals, helpers, store
 from {{package}}.config.routing import make_map
 from {{package}}.model import init_model
 
+
 def load_environment(global_conf, app_conf):
     'Configure the Pylons environment via the ``pylons.config`` object'
     # Set paths
