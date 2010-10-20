@@ -82,7 +82,7 @@ class PeopleController(BaseController):
         'Show login form'
         c.messageCode = request.GET.get('messageCode')
         c.targetURL = h.decodeURL(targetURL)
-        c.publicKey = config['safe']['recaptcha']['public']
+        c.recaptchaPublicKey = config.get('recaptcha.public', '')
         return render('/people/login.mako')
 
     @jsonify
@@ -107,9 +107,9 @@ class PeopleController(BaseController):
             # Expect recaptcha response
             recaptchaChallenge = request.POST.get('recaptcha_challenge_field', '')
             recaptchaResponse = request.POST.get('recaptcha_response_field', '')
-            recaptchaKey = config['safe']['recaptcha']['private']
+            recaptchaPrivateKey = config.get('recaptcha.private', '')
             # Validate
-            result = captcha.submit(recaptchaChallenge, recaptchaResponse, recaptchaKey, h.getRemoteIP())
+            result = captcha.submit(recaptchaChallenge, recaptchaResponse, recaptchaPrivateKey, h.getRemoteIP())
             # If the response is not valid,
             if not result.is_valid:
                 return dict(isOk=0, rejection_count=person.rejection_count)
@@ -257,7 +257,7 @@ def changeAccount(valueByName, action, templatePath, person=None):
         body = render(templatePath)
         # Send
         try:
-            smtp.sendMessage(config['safe']['mail support'], toByValue, subject, body)
+            smtp.sendMessage(dict(email=config['error_email_from'], smtp=config['smtp_server'], username=config.get('smtp_username', ''), password=config.get('smtp_password', ''), nickname=parameter.SITE_NAME + ' Support'), toByValue, subject, body)
         except smtp.SMTPError:
             return dict(isOk=0, errorByID={'status': 'Unable to send confirmation; please try again later.'})
         # Return

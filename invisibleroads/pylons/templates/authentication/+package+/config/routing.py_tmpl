@@ -27,5 +27,7 @@ def make_map(config):
     map.connect('person_logout_plain', '/people/logout', controller='people', action='logout') 
     map.connect('person_logout', '/people/logout/{targetURL}', controller='people', action='logout')
     map.connect('person_reset', '/people/reset', controller='people', action='reset')
+    # Redirect index
+    map.redirect('/', '/people')
     # Return
     return map

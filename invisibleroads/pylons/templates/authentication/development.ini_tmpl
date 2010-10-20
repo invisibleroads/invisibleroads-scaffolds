@@ -1,5 +1,5 @@
 #
-# {{project}} - Pylons configuration
+# {{project}} - Pylons development environment configuration
 #
 # The %(here)s variable will be replaced with the parent directory of this file
 #
@@ -14,7 +14,7 @@ smtp_server = localhost
 
 [server:main]
 use = egg:Paste#http
-host = 0.0.0.0
+host = 127.0.0.1
 port = 5000
 
 [app:main]
@@ -22,26 +22,38 @@ use = egg:{{project}}
 full_stack = true
 static_files = true
 cache_dir = %(here)s/data
-app_instance_uuid = ${app_instance_uuid}
 beaker.session.key = {{package}}
-beaker.session.secret = ${app_instance_secret}
-sqlalchemy.url = sqlite:///production.db
+beaker.session.secret = somesecret
+sqlalchemy.url = sqlite:///%(here)s/development.db
 # recaptcha.public =
 # recaptcha.private =
 
 [loggers]
-keys = root
+keys = root, routes, {{package_logger}}{{if sqlalchemy}}, sqlalchemy{{endif}}
 [handlers]
 keys = console
 [formatters]
 keys = generic
 [logger_root]
-level = WARN
+level = INFO
 handlers = console
+[logger_routes]
+level = INFO
+handlers =
+qualname = routes.middleware
+[logger_{{package_logger}}]
+level = DEBUG
+handlers =
+qualname = {{package}}
+[logger_sqlalchemy]
+level = INFO
+handlers =
+qualname = sqlalchemy.engine
 [handler_console]
 class = StreamHandler
 args = (sys.stderr,)
 level = NOTSET
 formatter = generic
 [formatter_generic]
-format = %(asctime)s %(levelname)-5.5s [%(name)s] [%(threadName)s] %(message)s
+format = %(asctime)s,%(msecs)03d %(levelname)-5.5s [%(name)s] [%(threadName)s] %(message)s
+datefmt = %H:%M:%S
