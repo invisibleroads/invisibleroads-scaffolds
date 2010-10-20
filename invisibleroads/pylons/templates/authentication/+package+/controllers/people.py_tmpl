@@ -32,7 +32,7 @@ class PeopleController(BaseController):
     @jsonify
     def register_(self):
         'Store proposed changes and send confirmation email'
-        return changeAccount(dict(request.POST), 'registration', '/people/confirm.mako')
+        return changePerson(dict(request.POST), 'registration', '/people/confirm.mako')
 
     def confirm(self, ticket):
         'Confirm changes'
@@ -76,7 +76,7 @@ class PeopleController(BaseController):
         # Prepare
         person = Session.query(model.Person).get(personID)
         # Return
-        return changeAccount(dict(request.POST), 'update', '/people/confirm.mako', person)
+        return changePerson(dict(request.POST), 'update', '/people/confirm.mako', person)
 
     def login(self, targetURL=h.encodeURL('/')):
         'Show login form'
@@ -150,118 +150,43 @@ class PeopleController(BaseController):
             return dict(isOk=0)
         # Reset account
         c.password = store.makeRandomAlphaNumericString(parameter.PASSWORD_LENGTH_AVERAGE)
-        return changeAccount(dict(
-            username=person.username,
-            password=c.password,
-            nickname=person.nickname,
-            email=person.email,
-            email_sms=person.email_sms,
-        ), 'reset', '/people/confirm.mako', person)
-
-
-# Validators
-
-class Unique(formencode.validators.FancyValidator):
-    'Validator to ensure unique values in a field'
-
-    def __init__(self, fieldName, errorMessage):
-        'Store fieldName and errorMessage'
-        super(Unique, self).__init__()
-        self.fieldName = fieldName
-        self.errorMessage = errorMessage
-
-    def _to_python(self, value, person):
-        'Check whether the value is unique'
-        # If the person is new or the value changed,
-        if not person or getattr(person, self.fieldName) != value:
-            # Make sure the value is unique
-            if Session.query(model.Person).filter(getattr(model.Person, self.fieldName)==value).first():
-                # Raise
-                raise formencode.Invalid(self.errorMessage, value, person)
-        # Return
-        return value
-
-
-class SecurePassword(formencode.validators.FancyValidator):
-    'Validator to prevent weak passwords'
-
-    def _to_python(self, value, person):
-        'Check whether a password is strong enough'
-        if len(set(value)) < 4:
-            raise formencode.Invalid('That password needs more variety', value, person)
-        return value
-
-
-class PersonForm(formencode.Schema):
-    'Validate user credentials'
-
-    username = formencode.All(
-        formencode.validators.String(
-            min=parameter.USERNAME_LENGTH_MINIMUM,
-            max=parameter.USERNAME_LENGTH_MAXIMUM,
-        ),
-        Unique('username', 'That username already exists'),
-    )
-    password = formencode.All(
-        formencode.validators.MinLength(
-            parameter.PASSWORD_LENGTH_MINIMUM, 
-            not_empty=True,
-        ), 
-        SecurePassword(),
-    )
-    nickname = formencode.All(
-        formencode.validators.PlainText(), 
-        formencode.validators.UnicodeString(
-            min=parameter.NICKNAME_LENGTH_MINIMUM, 
-            max=parameter.NICKNAME_LENGTH_MAXIMUM,
-        ),
-        Unique('nickname', 'That nickname already exists'),
-    )
-    email = formencode.All(
-        formencode.validators.Email(not_empty=True),
-        Unique('email', 'That email is reserved for another account'),
-    )
-    email_sms = formencode.All(
-        formencode.validators.Email(),
-        Unique('email_sms', 'That SMS address is reserved for another account'),
-    )
+        return changePerson(dict(username=person.username, password=c.password, nickname=person.nickname, email=person.email, email_sms=person.email_sms), 'reset', '/people/confirm.mako', person)
 
 
 # Helpers
 
-def changeAccount(valueByName, action, templatePath, person=None):
+def changePerson(valueByName, action, templatePath, person=None):
     'Validate values and send confirmation email if values are okay'
     try:
         # Validate form
         form = PersonForm().to_python(valueByName, person)
     except formencode.Invalid, error:
         return dict(isOk=0, errorByID=error.unpack_errors())
-    else:
-        # Purge expired candidates
-        purgeExpiredPersonCandidates()
-        # Prepare candidate
-        candidate = model.PersonCandidate(form['username'], model.hashString(form['password']), form['nickname'], form['email'], form['email_sms'])
-        candidate.person_id = person.id if person else None
-        candidate.ticket = store.makeRandomUniqueTicket(parameter.TICKET_LENGTH, Session.query(model.PersonCandidate))
-        candidate.when_expired = datetime.datetime.utcnow() + datetime.timedelta(days=parameter.TICKET_LIFESPAN_IN_DAYS)
-        Session.add(candidate) 
-        Session.commit()
-        # Prepare recipient
-        toByValue = dict(nickname=form['nickname'], email=form['email'])
-        # Prepare subject
-        subject = '[%s] Confirm %s' % (parameter.SITE_NAME, action)
-        # Prepare body
-        c.candidate = candidate
-        c.username = form['username']
-        c.action = action
-        body = render(templatePath)
-        # Send
-        try:
-            smtp.sendMessage(dict(email=config['error_email_from'], smtp=config['smtp_server'], username=config.get('smtp_username', ''), password=config.get('smtp_password', ''), nickname=parameter.SITE_NAME + ' Support'), toByValue, subject, body)
-        except smtp.SMTPError:
-            return dict(isOk=0, errorByID={'status': 'Unable to send confirmation; please try again later.'})
-        # Return
-        return dict(isOk=1)
+    # Purge expired candidates
+    purgeExpiredPersonCandidates()
+    # Prepare candidate
+    candidate = model.PersonCandidate(form['username'], model.hashString(form['password']), form['nickname'], form['email'], form['email_sms'])
+    candidate.person_id = person.id if person else None
+    candidate.ticket = store.makeRandomUniqueTicket(parameter.TICKET_LENGTH, Session.query(model.PersonCandidate))
+    candidate.when_expired = datetime.datetime.utcnow() + datetime.timedelta(days=parameter.TICKET_LIFESPAN_IN_DAYS)
+    Session.add(candidate) 
+    Session.commit()
+    # Prepare recipient
+    toByValue = dict(nickname=form['nickname'], email=form['email'])
+    # Prepare subject
+    subject = '[%s] Confirm %s' % (parameter.SITE_NAME, action)
+    # Prepare body
+    c.candidate = candidate
+    c.username = form['username']
+    c.action = action
+    body = render(templatePath)
+    # Send
+    try:
+        smtp.sendMessage(dict(email=config['error_email_from'], smtp=config['smtp_server'], username=config.get('smtp_username', ''), password=config.get('smtp_password', ''), nickname=parameter.SITE_NAME + ' Support'), toByValue, subject, body)
+    except smtp.SMTPError:
+        return dict(isOk=0, errorByID={'status': 'Unable to send confirmation; please try again later.'})
+    # Return
+    return dict(isOk=1)
 
 def purgeExpiredPersonCandidates():
     'Delete candidates that have expired'
@@ -294,3 +219,69 @@ def confirmPersonCandidate(ticket):
         Session.commit()
     # Return
     return candidate
+
+
+# Validators
+
+class Unique(formencode.validators.FancyValidator):
+    'Validator to ensure unique values in a field'
+
+    def __init__(self, fieldName, errorMessage):
+        'Store fieldName and errorMessage'
+        super(Unique, self).__init__()
+        self.fieldName = fieldName
+        self.errorMessage = errorMessage
+
+    def _to_python(self, value, person):
+        'Check whether the value is unique'
+        # If the person is new or the value changed,
+        if not person or getattr(person, self.fieldName) != value:
+            # Make sure the value is unique
+            if Session.query(model.Person).filter(getattr(model.Person, self.fieldName)==value).first():
+                # Raise
+                raise formencode.Invalid(self.errorMessage, value, person)
+        # Return
+        return value
+
+class SecurePassword(formencode.validators.FancyValidator):
+    'Validator to prevent weak passwords'
+
+    def _to_python(self, value, person):
+        'Check whether a password is strong enough'
+        if len(set(value)) < 4:
+            raise formencode.Invalid('That password needs more variety', value, person)
+        return value
+
+class PersonForm(formencode.Schema):
+    'Validate person credentials'
+
+    username = formencode.All(
+        formencode.validators.String(
+            min=parameter.USERNAME_LENGTH_MINIMUM,
+            max=parameter.USERNAME_LENGTH_MAXIMUM,
+        ),
+        Unique('username', 'That username already exists'),
+    )
+    password = formencode.All(
+        formencode.validators.MinLength(
+            parameter.PASSWORD_LENGTH_MINIMUM, 
+            not_empty=True,
+        ), 
+        SecurePassword(),
+    )
+    nickname = formencode.All(
+        formencode.validators.PlainText(), 
+        formencode.validators.UnicodeString(
+            min=parameter.NICKNAME_LENGTH_MINIMUM, 
+            max=parameter.NICKNAME_LENGTH_MAXIMUM,
+        ),
+        Unique('nickname', 'That nickname already exists'),
+    )
+    email = formencode.All(
+        formencode.validators.Email(not_empty=True),
+        Unique('email', 'That email is reserved for another account'),
+    )
+    email_sms = formencode.All(
+        formencode.validators.Email(),
+        Unique('email_sms', 'That SMS address is reserved for another account'),
+    )
