@@ -4,7 +4,7 @@
 # The %(here)s variable will be replaced with the parent directory of this file
 #
 [DEFAULT]
-debug = false
+debug = true
 email_to =
 error_email_from = support@localhost
 smtp_server = localhost
