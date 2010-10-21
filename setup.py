@@ -8,7 +8,7 @@ except ImportError:
 
 setup(
     name='PylonsAuthentication',
-    version='1.6',
+    version='1.6.1',
     description='Pylons authentication application template',
     author='Roy Hyunjin Han',
     packages=find_packages(),
