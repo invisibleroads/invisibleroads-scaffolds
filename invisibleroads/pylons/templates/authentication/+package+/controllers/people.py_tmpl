@@ -119,6 +119,7 @@ class PeopleController(BaseController):
         session['minutesOffset'] = minutesOffset
         session['personID'] = person.id
         session['nickname'] = person.nickname
+        session['is_super'] = person.is_super
         session.save()
         # Save person
         person.minutes_offset = minutesOffset
@@ -134,6 +135,7 @@ class PeopleController(BaseController):
             del session['minutesOffset']
             del session['personID']
             del session['nickname']
+            del session['is_super']
             session.save()
         # Redirect
         return redirect(url(h.decodeURL(targetURL)))
