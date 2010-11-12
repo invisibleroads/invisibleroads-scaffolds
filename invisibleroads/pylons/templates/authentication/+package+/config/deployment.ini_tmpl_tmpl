@@ -6,7 +6,7 @@
 [DEFAULT]
 debug = false
 email_to =
-error_email_from = support@localhost
+error_email_from = support@example.com
 smtp_server = localhost
 # smtp_username = 
 # smtp_password = 
