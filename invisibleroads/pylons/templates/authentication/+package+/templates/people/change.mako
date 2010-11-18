@@ -8,7 +8,7 @@
 
 <%def name="js()">
 function getMessageObj(id) { return $('#m_' + id); }
-var ids = ['nickname', 'username', 'password', 'password2', 'email', 'email_sms', 'status'];
+var ids = ['nickname', 'username', 'password', 'email', 'email_sms', 'status'];
 var defaultByID = {};
 for (var i=0; i<ids.length; i++) {
     var id = ids[i];
@@ -29,40 +29,27 @@ $('#buttonSave').click(function() {
     // Get
     var username = $('#username').val(),
         password = $('#password').val(), 
-        password2 = $('#password2').val(), 
         nickname = $('#nickname').val(), 
         email = $('#email').val(), 
         email_sms = $('#email_sms').val();
-    // Validate password
-    var messageByID = {}, hasError = false;
-    if (password != password2) {
-        messageByID['password'] = 'Passwords must match';
-        messageByID['password2'] = 'Passwords must match';
-        hasError = true;
-    }
-    // Send feedback
-    if (hasError) {
+    // Lock
+    $('.lockOnSave').attr('disabled', 'disabled');
+    // Post
+    $.post("${h.url('person_register_' if c.isNew else 'person_update_')}", {
+        username: username,
+        password: password,
+        nickname: nickname,
+        email: email,
+        email_sms: email_sms
+    }, function(data) {
+        if (data.isOk) {
+            messageByID['status'] = "Please check your email to ${'create' if c.isNew else 'finalize changes to'} your account.";
+        } else {
+            $('.lockOnSave').removeAttr('disabled');
+            messageByID = data.errorByID;
+        }
         showFeedback(messageByID);
-    } else {
-        // Lock
-        $('.lockOnSave').attr('disabled', 'disabled');
-        // Post
-        $.post("${h.url('person_register_' if c.isNew else 'person_update_')}", {
-            username: username,
-            password: password,
-            nickname: nickname,
-            email: email,
-            email_sms: email_sms
-        }, function(data) {
-            if (data.isOk) {
-                messageByID['status'] = "Please check your email to ${'create' if c.isNew else 'finalize changes to'} your account.";
-            } else {
-                $('.lockOnSave').removeAttr('disabled');
-                messageByID = data.errorByID;
-            }
-            showFeedback(messageByID);
-        }, 'json');
-    }
+    }, 'json');
 });
 $('#username').focus();
 </%def>
@@ -81,11 +68,6 @@ ${'Register for an account' if c.isNew else 'Update your account'}
         <td class=label><label for=password>Password</label></td>
         <td class=field><input id=password name=password class="lockOnSave maximumWidth" type=password autocomplete=off></td>
         <td id=m_password>So you have some privacy</td>
-    </tr>
-    <tr>
-        <td class=label><label for=password2>Password again</label></td>
-        <td class=field><input id=password2 name=password2 class="lockOnSave maximumWidth" type=password autocomplete=off></td>
-        <td id=m_password2>To make sure you typed it right</td>
     </tr>
     <tr>
         <td class=label><label for=nickname>Nickname</label></td>
