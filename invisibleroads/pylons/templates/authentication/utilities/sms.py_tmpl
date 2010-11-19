@@ -1,0 +1,42 @@
+#!/usr/bin/env python2.6
+'Command-line script to check and send text messages'
+# Import pylons modules
+from pylons import config
+# Import system modules
+import sqlalchemy as sa
+# Import custom modules
+import script_process
+from {{package}} import model
+from {{package}}.lib import imap
+from {{package}}.model import Session
+
+
+def run():
+    'Check and send text messages'
+    # Initialize
+    processedCount = 0
+    sentCount = 0
+    # Connect
+    imapStore = imap.Store(config['sms.smtp_server'], config['sms.smtp_username'], config['sms.smtp_password'])
+    # For each message,
+    for message in imapBox.read(excludes=parameter.EXCLUDED_TAGS, includes=includes):
+        # If the message contains a single number,
+            # Load person
+            # If the person exists,
+                # Store address
+            # Delete the message
+            # Increment count
+            processedCount += 1
+    # Return
+    return 'Messages processed: %s\nMessages sent: %s' % (processedCount, sentCount)
+
+
+# If we are running standalone,
+if __name__ == '__main__':
+    # Parse
+    optionParser = script_process.buildOptionParser()
+    options = optionParser.parse_args()[0]
+    # Initialize
+    script_process.initialize(options)
+    # Run
+    print run()
