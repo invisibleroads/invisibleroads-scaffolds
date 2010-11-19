@@ -23,51 +23,56 @@ def hashString(string):
 
 people_table = sa.Table('people', Base.metadata,
     sa.Column('id', sa.Integer, primary_key=True),
-    sa.Column('username', sa.String(parameter.USERNAME_LENGTH_MAXIMUM), unique=True, nullable=False),
+    sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), unique=True, nullable=False),
     sa.Column('password_hash', sa.LargeBinary(32), nullable=False),
     sa.Column('nickname', sa.Unicode(parameter.NICKNAME_LENGTH_MAXIMUM), unique=True, nullable=False),
-    sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), unique=True, nullable=False),
     sa.Column('minutes_offset', sa.Integer, default=0),
     sa.Column('rejection_count', sa.Integer, default=0),
     sa.Column('is_super', sa.Boolean, default=False),
 )
 person_candidates_table = sa.Table('person_candidates', Base.metadata,
     sa.Column('id', sa.Integer, primary_key=True),
-    sa.Column('username', sa.String(parameter.USERNAME_LENGTH_MAXIMUM), nullable=False),
+    sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), nullable=False),
     sa.Column('password_hash', sa.LargeBinary(32), nullable=False),
     sa.Column('nickname', sa.Unicode(parameter.NICKNAME_LENGTH_MAXIMUM), nullable=False),
-    sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), nullable=False),
     sa.Column('ticket', sa.String(parameter.TICKET_LENGTH), unique=True, nullable=False),
     sa.Column('when_expired', sa.DateTime, nullable=False),
     sa.Column('person_id', sa.ForeignKey('people.id')),
 )
-# person_phones_table
-# person_listeners_table = sa.Table('person_listeners', Base.metadata,
-    # sa.Column('id', sa.Integer, primary_key=True),
-    # sa.Column('sms_address', sa.String(parameter.EMAIL_LENGTH_MAXIMUM)),
-    # sa.Column('person_id', sa.ForeignKey('people.id')),
-# )
+person_satellites_table = sa.Table('person_satellites', Base.metadata,
+    sa.Column('id', sa.Integer, primary_key=True),
+    sa.Column('email_sms', sa.String(parameter.EMAIL_LENGTH_MAXIMUM)),
+    sa.Column('is_confirmed', sa.Boolean, default=False),
+    sa.Column('person_id', sa.ForeignKey('people.id')),
+)
 
 
 # Classes
 
 class Person(object):
 
-    def __init__(self, username, password_hash, nickname, email, email_sms=''):
-        self.username = username
+    def __init__(self, email, password_hash, nickname):
+        self.email = email
         self.password_hash = password_hash
         self.nickname = nickname
-        self.email = email
-        self.email_sms = email_sms
 
     def __repr__(self):
-        return "<Person('%s')>" % self.username
+        return "<Person('%s')>" % self.email
 
 
 class PersonCandidate(Person):
 
     def __repr__(self):
-        return "<PersonCandidate('%s')>" % self.username
+        return "<PersonCandidate('%s')>" % self.email
+
+
+class PersonSatellite(object):
+
+    def __init__(self, email_sms):
+        self.email_sms = email_sms
+
+    def __repr__(self):
+        return "<PersonSatellite('%s')>" % self.email_sms
 
 
 class CaseInsensitiveComparator(orm.properties.ColumnProperty.Comparator):
@@ -79,9 +84,10 @@ class CaseInsensitiveComparator(orm.properties.ColumnProperty.Comparator):
 # Links
 
 orm.mapper(Person, people_table, properties={
-    'username': orm.column_property(people_table.c.username, comparator_factory=CaseInsensitiveComparator),
-    'nickname': orm.column_property(people_table.c.nickname, comparator_factory=CaseInsensitiveComparator),
     'email': orm.column_property(people_table.c.email, comparator_factory=CaseInsensitiveComparator),
-    'email_sms': orm.column_property(people_table.c.email_sms, comparator_factory=CaseInsensitiveComparator),
+    'nickname': orm.column_property(people_table.c.nickname, comparator_factory=CaseInsensitiveComparator),
 })
 orm.mapper(PersonCandidate, person_candidates_table)
+orm.mapper(PersonSatellite, person_satellites_table, properties={
+    'email_sms': orm.column_property(person_satellites_table.c.email_sms, comparator_factory=CaseInsensitiveComparator),
+})

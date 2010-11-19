@@ -8,7 +8,7 @@
 
 <%def name="js()">
 function getMessageObj(id) { return $('#m_' + id); }
-var ids = ['nickname', 'username', 'password', 'email', 'email_sms', 'status'];
+var ids = ['email', 'password', 'nickname', 'status'];
 var defaultByID = {};
 for (var i=0; i<ids.length; i++) {
     var id = ids[i];
@@ -27,21 +27,18 @@ function showFeedback(messageByID) {
 }
 $('#buttonSave').click(function() {
     // Get
-    var username = $('#username').val(),
-        password = $('#password').val(), 
+    var password = $('#password').val(), 
         nickname = $('#nickname').val(), 
-        email = $('#email').val(), 
-        email_sms = $('#email_sms').val();
+        email = $('#email').val();
     // Lock
     $('.lockOnSave').attr('disabled', 'disabled');
     // Post
     $.post("${h.url('person_register_' if c.isNew else 'person_update_')}", {
-        username: username,
         password: password,
         nickname: nickname,
-        email: email,
-        email_sms: email_sms
+        email: email
     }, function(data) {
+        var messageByID = {};
         if (data.isOk) {
             messageByID['status'] = "Please check your email to ${'create' if c.isNew else 'finalize changes to'} your account.";
         } else {
@@ -51,7 +48,7 @@ $('#buttonSave').click(function() {
         showFeedback(messageByID);
     }, 'json');
 });
-$('#username').focus();
+$('#email').focus();
 </%def>
 
 <%def name="toolbar()">
@@ -60,9 +57,9 @@ ${'Register for an account' if c.isNew else 'Update your account'}
 
 <table>
     <tr>
-        <td class=label><label for=username>Username</label></td>
-        <td class=field><input id=username name=username class="lockOnSave maximumWidth" autocomplete=off></td>
-        <td id=m_username>What you use to login</td>
+        <td class=label><label for=email>Email</label></td>
+        <td class=field><input id=email name=email class="lockOnSave maximumWidth" autocomplete=off></td>
+        <td id=m_email>What you use to login</td>
     </tr>
     <tr>
         <td class=label><label for=password>Password</label></td>
@@ -75,17 +72,8 @@ ${'Register for an account' if c.isNew else 'Update your account'}
         <td id=m_nickname>How others see you</td>
     </tr>
     <tr>
-        <td class=label><label for=email>Email</label></td>
-        <td class=field><input id=email name=email class="lockOnSave maximumWidth" autocomplete=off></td>
-        <td id=m_email>To confirm changes to your account</td>
-    </tr>
-    <tr>
-        <td class=label><label for=email_sms>SMS address</label></td>
-        <td class=field><input id=email_sms name=email_sms class="lockOnSave maximumWidth" autocomplete=off></td>
-        <td id=m_email_sms>For text message alerts (optional)</td>
-    </tr>
-    <tr>
+        <td></td>
         <td><input id=buttonSave class=lockOnSave type=button value="${'Register' if c.isNew else 'Update'}"></td>
+        <td id=m_status></td>
     </tr>
 </table>
-<span id=m_status></span>
