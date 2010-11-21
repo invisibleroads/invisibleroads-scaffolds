@@ -1,3 +1,5 @@
+# Fix Person()
+    # Fix templates
 'Database objects'
 # Import system modules
 import sqlalchemy as sa
@@ -23,18 +25,20 @@ def hashString(string):
 
 people_table = sa.Table('people', Base.metadata,
     sa.Column('id', sa.Integer, primary_key=True),
-    sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), unique=True, nullable=False),
+    sa.Column('username', sa.String(parameter.USERNAME_LENGTH_MAXIMUM), unique=True, nullable=False),
     sa.Column('password_hash', sa.LargeBinary(32), nullable=False),
     sa.Column('nickname', sa.Unicode(parameter.NICKNAME_LENGTH_MAXIMUM), unique=True, nullable=False),
+    sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), unique=True, nullable=False),
     sa.Column('minutes_offset', sa.Integer, default=0),
     sa.Column('rejection_count', sa.Integer, default=0),
     sa.Column('is_super', sa.Boolean, default=False),
 )
 person_candidates_table = sa.Table('person_candidates', Base.metadata,
     sa.Column('id', sa.Integer, primary_key=True),
-    sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), nullable=False),
+    sa.Column('username', sa.String(parameter.USERNAME_LENGTH_MAXIMUM), nullable=False),
     sa.Column('password_hash', sa.LargeBinary(32), nullable=False),
     sa.Column('nickname', sa.Unicode(parameter.NICKNAME_LENGTH_MAXIMUM), nullable=False),
+    sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), nullable=False),
     sa.Column('ticket', sa.String(parameter.TICKET_LENGTH), unique=True, nullable=False),
     sa.Column('when_expired', sa.DateTime, nullable=False),
     sa.Column('person_id', sa.ForeignKey('people.id')),
@@ -51,10 +55,11 @@ person_satellites_table = sa.Table('person_satellites', Base.metadata,
 
 class Person(object):
 
-    def __init__(self, email, password_hash, nickname):
-        self.email = email
+    def __init__(self, username, password_hash, nickname, email):
+        self.username = username
         self.password_hash = password_hash
         self.nickname = nickname
+        self.email = email
 
     def __repr__(self):
         return "<Person('%s')>" % self.email
@@ -84,8 +89,9 @@ class CaseInsensitiveComparator(orm.properties.ColumnProperty.Comparator):
 # Links
 
 orm.mapper(Person, people_table, properties={
-    'email': orm.column_property(people_table.c.email, comparator_factory=CaseInsensitiveComparator),
+    'username': orm.column_property(people_table.c.username, comparator_factory=CaseInsensitiveComparator),
     'nickname': orm.column_property(people_table.c.nickname, comparator_factory=CaseInsensitiveComparator),
+    'email': orm.column_property(people_table.c.email, comparator_factory=CaseInsensitiveComparator),
 })
 orm.mapper(PersonCandidate, person_candidates_table)
 orm.mapper(PersonSatellite, person_satellites_table, properties={

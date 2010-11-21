@@ -56,8 +56,9 @@ class PeopleController(BaseController):
         person = Session.query(model.Person).get(h.getPersonID())
         # Return
         return formencode.htmlfill.render(render('/people/change.mako'), {
-            'email': person.email,
+            'username': person.username,
             'nickname': person.nickname,
+            'email': person.email,
         })
 
     @jsonify
@@ -76,10 +77,10 @@ class PeopleController(BaseController):
     @jsonify
     def login_(self):
         'Process login credentials'
-        # Load
-        email = str(request.POST.get('email', ''))
-        person = Session.query(model.Person).filter_by(email=email).first()
-        # If the person does not exist,
+        # Check username
+        username = str(request.POST.get('username', ''))
+        person = Session.query(model.Person).filter_by(username=username).first()
+        # If the username does not exist,
         if not person:
             return dict(isOk=0)
         # Check password
@@ -140,7 +141,7 @@ class PeopleController(BaseController):
             return dict(isOk=0)
         # Reset account
         c.password = store.makeRandomAlphaNumericString(parameter.PASSWORD_LENGTH_AVERAGE)
-        return changePerson(dict(password=c.password, nickname=person.nickname, email=person.email), 'reset', person)
+        return changePerson(dict(username=person.username, password=c.password, nickname=person.nickname, email=person.email), 'reset', person)
 
 
 # Helpers
@@ -153,7 +154,7 @@ def changePerson(valueByName, action, person=None):
     except formencode.Invalid, error:
         return dict(isOk=0, errorByID=error.unpack_errors())
     # Prepare candidate
-    candidate = model.PersonCandidate(form['email'], model.hashString(form['password']), form['nickname'])
+    candidate = model.PersonCandidate(form['username'], model.hashString(form['password']), form['nickname'], form['email'])
     candidate.person_id = person.id if person else None
     candidate.ticket = store.makeRandomUniqueTicket(parameter.TICKET_LENGTH, Session.query(model.PersonCandidate))
     candidate.when_expired = datetime.datetime.utcnow() + datetime.timedelta(days=parameter.TICKET_LIFESPAN_IN_DAYS)
@@ -163,6 +164,7 @@ def changePerson(valueByName, action, person=None):
     toByValue = dict(nickname=form['nickname'], email=form['email'])
     subject = '[%s] Confirm %s' % (parameter.SITE_NAME, action)
     c.candidate = candidate
+    c.username = form['username']
     c.action = action
     body = render('/people/confirm.mako')
     try:
@@ -181,13 +183,14 @@ def confirmPersonCandidate(ticket):
     # If the ticket exists,
     if candidate:
         # Prepare
-        similarFilter = (model.PersonCandidate.nickname == candidate.nickname) | (model.PersonCandidate.email == candidate.email)
+        similarFilter = (model.PersonCandidate.username == candidate.username) | (model.PersonCandidate.nickname == candidate.nickname) | (model.PersonCandidate.email == candidate.email)
         # Delete expired or similar candidates
         Session.query(model.PersonCandidate).filter(expiredFilter | similarFilter).delete()
         # If the person exists,
         if candidate.person_id:
             # Update
             person = Session.query(model.Person).get(candidate.person_id)
+            person.username = candidate.username
             person.password_hash = candidate.password_hash
             person.nickname = candidate.nickname
             person.email = candidate.email
@@ -196,7 +199,7 @@ def confirmPersonCandidate(ticket):
         # If the person does not exist,
         else:
             # Add person
-            Session.add(model.Person(candidate.email, candidate.password_hash, candidate.nickname))
+            Session.add(model.Person(candidate.username, candidate.password_hash, candidate.nickname, candidate.email))
         # Commit
         Session.commit()
     # Return
@@ -237,6 +240,13 @@ class SecurePassword(formencode.validators.FancyValidator):
 class PersonForm(formencode.Schema):
     'Validate person credentials'
 
+    username = formencode.All(
+        formencode.validators.String(
+            min=parameter.USERNAME_LENGTH_MINIMUM,
+            max=parameter.USERNAME_LENGTH_MAXIMUM,
+        ),
+        Unique('username', 'That username already exists'),
+    )
     password = formencode.All(
         formencode.validators.MinLength(
             parameter.PASSWORD_LENGTH_MINIMUM, 

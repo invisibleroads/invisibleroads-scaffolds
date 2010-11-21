@@ -17,7 +17,7 @@ var rejection_count = 0;
 function ajax_login() {
     // Validate
     var errorCount = 0;
-    errorCount = errorCount + isEmpty('email');
+    errorCount = errorCount + isEmpty('username');
     errorCount = errorCount + isEmpty('password');
     if (errorCount) {
         $('#reset').hide();
@@ -25,7 +25,7 @@ function ajax_login() {
     }
     // Initialize
     var loginData = {
-        'email': $('#email').val(),
+        'username': $('#username').val(),
         'password': $('#password').val(),
         'minutesOffset': $('#minutesOffset').val()
     }
@@ -103,7 +103,7 @@ function ajax_reset() {
 }
 
 // Configure
-$('#email').focus();
+$('#username').focus();
 $('#minutesOffset').val(new Date().getTimezoneOffset());
 </%def>
 
@@ -113,10 +113,10 @@ $('#minutesOffset').val(new Date().getTimezoneOffset());
 
 <table>
 <tr>
-<td><label for=email>Email</label></td>
-<td><input id=email></td>
+<td><label for=username>Username</label></td>
+<td><input id=username></td>
 <td>
-<span id=m_email>
+<span id=m_username>
 ${dict(updated='Account updated', created='Account created', expired='Ticket expired').get(c.messageCode, '')}
 </span>
 <span id=reset>

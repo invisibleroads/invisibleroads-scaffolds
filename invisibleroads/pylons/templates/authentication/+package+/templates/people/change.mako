@@ -8,7 +8,7 @@
 
 <%def name="js()">
 function getMessageObj(id) { return $('#m_' + id); }
-var ids = ['email', 'password', 'nickname', 'status'];
+var ids = [username, 'password', 'nickname', 'email', 'status'];
 var defaultByID = {};
 for (var i=0; i<ids.length; i++) {
     var id = ids[i];
@@ -27,13 +27,15 @@ function showFeedback(messageByID) {
 }
 $('#buttonSave').click(function() {
     // Get
-    var password = $('#password').val(), 
+    var username = $('#username').val(),
+        password = $('#password').val(), 
         nickname = $('#nickname').val(), 
         email = $('#email').val();
     // Lock
     $('.lockOnSave').attr('disabled', 'disabled');
     // Post
     $.post("${h.url('person_register_' if c.isNew else 'person_update_')}", {
+        username: username,
         password: password,
         nickname: nickname,
         email: email
@@ -48,7 +50,7 @@ $('#buttonSave').click(function() {
         showFeedback(messageByID);
     }, 'json');
 });
-$('#email').focus();
+$('#username').focus();
 </%def>
 
 <%def name="toolbar()">
@@ -57,9 +59,9 @@ ${'Register for an account' if c.isNew else 'Update your account'}
 
 <table>
     <tr>
-        <td class=label><label for=email>Email</label></td>
-        <td class=field><input id=email name=email class="lockOnSave maximumWidth" autocomplete=off></td>
-        <td id=m_email>What you use to login</td>
+        <td class=label><label for=username>Username</label></td>
+        <td class=field><input id=username name=username class="lockOnSave maximumWidth" autocomplete=off></td>
+        <td id=m_username>What you use to login</td>
     </tr>
     <tr>
         <td class=label><label for=password>Password</label></td>
@@ -70,6 +72,11 @@ ${'Register for an account' if c.isNew else 'Update your account'}
         <td class=label><label for=nickname>Nickname</label></td>
         <td class=field><input id=nickname name=nickname class="lockOnSave maximumWidth" autocomplete=off></td>
         <td id=m_nickname>How others see you</td>
+    </tr>
+    <tr>
+        <td class=label><label for=email>Email</label></td>
+        <td class=field><input id=email name=email class="lockOnSave maximumWidth" autocomplete=off></td>
+        <td id=m_email>To confirm changes to your account</td>
     </tr>
     <tr>
         <td></td>
