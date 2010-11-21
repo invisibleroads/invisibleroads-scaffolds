@@ -5,10 +5,11 @@ from pylons.controllers.util import redirect
 from pylons.decorators import jsonify
 import formencode
 # Import system modules
+import datetime
 import recaptcha.client.captcha as captcha
 import cStringIO as StringIO
 import sqlalchemy as sa
-import datetime
+from sqlalchemy import orm
 # Import custom modules
 from {{package}} import model
 from {{package}}.model import Session
@@ -42,8 +43,14 @@ class PeopleController(BaseController):
         candidate = confirmPersonCandidate(ticket)
         # If the candidate exists,
         if candidate:
+            # Set
             messageCode = 'updated' if candidate.person_id else 'created'
+            # Delete expired or similar candidates
+            Session.execute(model.person_candidates_table.delete().where((model.PersonCandidate.when_expired < datetime.datetime.utcnow()) | (model.PersonCandidate.username == candidate.username) | (model.PersonCandidate.nickname == candidate.nickname) | (model.PersonCandidate.email == candidate.email)))
+            Session.commit()
+        # If the candidate does not exist,
         else:
+            # Set
             messageCode = 'expired'
         # Return
         return redirect(url('person_login', targetURL=h.encodeURL('/'), messageCode=messageCode))
@@ -52,8 +59,9 @@ class PeopleController(BaseController):
     def update(self):
         'Show account update page'
         # Render
+        person = Session.query(model.Person).options(orm.eagerload(model.Person.sms_addresses)).get(h.getPersonID())
         c.isNew = False
-        person = Session.query(model.Person).get(h.getPersonID())
+        c.smsAddresses = person.sms_addresses
         # Return
         return formencode.htmlfill.render(render('/people/change.mako'), {
             'username': person.username,
@@ -64,8 +72,34 @@ class PeopleController(BaseController):
     @jsonify
     @requireLoginJSON
     def update_(self):
-        'Send update confirmation email'
-        return changePerson(dict(request.POST), 'update', Session.query(model.Person).get(h.getPersonID()))
+        'Update account'
+        # If the user is trying to update SMS information,
+        if 'smsAddressID' in request.POST:
+            # Load
+            action = request.POST.get('action')
+            smsAddressID = request.POST['smsAddressID']
+            smsAddress = Session.query(model.SMSAddress).get(smsAddressID)
+            if not smsAddress:
+                return dict(isOk=0, message='Could not find smsAddressID=%s' % smsAddressID)
+            # If the user is trying to activate an SMS address,
+            elif action == 'activate':
+                smsAddress.is_active = True
+            # If the user is trying to deactivate an SMS address,
+            elif action == 'deactivate':
+                smsAddress.is_active = False
+            # If the user is trying to remove an SMS address,
+            elif action == 'remove':
+                Session.delete(smsAddress)
+            # Otherwise,
+            else:
+                return dict(isOk=0, message='Command not recognized')
+            # Commit and return
+            Session.commit()
+            return dict(isOk=1)
+        # If the user is trying to update account information,
+        else:
+            # Send update confirmation email
+            return changePerson(dict(request.POST), 'update', Session.query(model.Person).get(h.getPersonID()))
 
     def login(self, targetURL=h.encodeURL('/')):
         'Show login form'
@@ -176,16 +210,10 @@ def changePerson(valueByName, action, person=None):
 
 def confirmPersonCandidate(ticket):
     'Move changes from the PersonCandidate table into the Person table'
-    # Initialize
-    matchedFilter = model.PersonCandidate.ticket==ticket
-    expiredFilter = model.PersonCandidate.when_expired < datetime.datetime.utcnow()
-    candidate = Session.query(model.PersonCandidate).filter(matchedFilter & sa.not_(expiredFilter)).first()
+    # Load
+    candidate = Session.query(model.PersonCandidate).filter(model.PersonCandidate.ticket==ticket).filter(model.PersonCandidate.when_expired>=datetime.datetime.utcnow()).first()
     # If the ticket exists,
     if candidate:
-        # Prepare
-        similarFilter = (model.PersonCandidate.username == candidate.username) | (model.PersonCandidate.nickname == candidate.nickname) | (model.PersonCandidate.email == candidate.email)
-        # Delete expired or similar candidates
-        Session.query(model.PersonCandidate).filter(expiredFilter | similarFilter).delete()
         # If the person exists,
         if candidate.person_id:
             # Update

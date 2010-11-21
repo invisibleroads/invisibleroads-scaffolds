@@ -68,9 +68,8 @@ function isEmpty(inputID) {
         return 0;
     }
 }
-$('#password').keydown(function(e) {
-    if (e.keyCode == 13) ajax_login();
-});
+$('#username').keydown(function(e) {if (e.keyCode == 13) $('#password').focus()});
+$('#password').keydown(function(e) {if (e.keyCode == 13) ajax_login()});
 
 // Prepare reset form
 $('#resetLink').click(function() {

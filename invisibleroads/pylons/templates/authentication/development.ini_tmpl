@@ -27,10 +27,10 @@ beaker.session.secret = somesecret
 sqlalchemy.url = sqlite:///%(here)s/development.db
 # recaptcha.public =
 # recaptcha.private =
-# sms.smtp_email = 
-# sms.smtp_server = 
-# sms.smtp_username = 
-# sms.smtp_password = 
+sms.email = support@example.com
+sms.imap_server = localhost
+# sms.imap_username = 
+# sms.imap_password = 
 
 [loggers]
 keys = root, routes, {{package_logger}}, sqlalchemy

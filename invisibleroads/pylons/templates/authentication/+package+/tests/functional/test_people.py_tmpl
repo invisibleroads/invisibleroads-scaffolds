@@ -46,14 +46,20 @@ class TestPeopleController(TestController):
         'Make sure that registration works'
         # Make sure the registration page appears properly
         self.assert_('Registration' in self.app.get(url('person_register')))
-        # Register the person
+        # Register
         self.app.post(url('person_register_'), dict(username=username, password=password, nickname=nickname, email=email))
-        # Make sure the personCandidate exists
-        self.assertEqual(meta.Session.query(model.PersonCandidate).filter_by(email=email).count(), 1)
+        # Register with the same username but with different case
+        self.app.post(url('person_register_'), dict(username=username.upper(), password=password, nickname=nickname + 'x', email=email + 'x'))
+        # Register with the same nickname but with different case
+        self.app.post(url('person_register_'), dict(username=username + 'x', password=password, nickname=nickname.upper(), email=email + 'x'))
+        # Register with the same email but with different case
+        self.app.post(url('person_register_'), dict(username=username + 'x', password=password, nickname=nickname + 'x', email=email.upper()))
         # Confirm registration
         self.app.get(url('person_confirm', ticket=meta.Session.query(model.PersonCandidate.ticket).filter_by(email=email).first()[0]))
         # Make sure the person exists
         self.assertEqual(meta.Session.query(model.Person).filter_by(email=email).count(), 1)
+        # Make sure that conflicting registrations have been deleted
+        self.assertEqual(meta.Session.query(model.PersonCandidate).filter_by(password_hash=model.hashString(password)).count(), 0)
 
     def test_reset(self):
         """
