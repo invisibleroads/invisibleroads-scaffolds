@@ -4,7 +4,6 @@ import pylons.test
 # Import system modules
 import logging; log = logging.getLogger(__name__)
 import getpass
-import random
 # Import custom modules
 from {{package}} import model
 from {{package}}.config import parameter

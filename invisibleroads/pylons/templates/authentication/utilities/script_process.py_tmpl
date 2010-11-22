@@ -9,7 +9,6 @@ import optparse
 # Import custom modules
 from {{package}} import model
 from {{package}}.lib import store
-from {{package}}.config import environment
 
 
 def buildOptionParser():
