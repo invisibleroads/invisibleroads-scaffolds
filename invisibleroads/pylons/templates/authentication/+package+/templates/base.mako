@@ -35,23 +35,25 @@ ${self.navigation()}
 linkPacks = [
     ('People', h.url('person_index')),
 ]
+if h.isPerson():
+    linkPacks.append((session['nickname'], h.url('person_update')))
 %>\
 % for linkName, linkURL in linkPacks:
-% if request.path != linkURL:
 &nbsp;
+% if request.path != linkURL:
 <a href="${linkURL}" class=linkOFF>${linkName}</a>
+% else:
+<b>${linkName}</b>
 % endif
 % endfor
 % if not h.isPerson():
 % if not request.path.startswith('/people/login'):
 &nbsp;
-<a id=person_login href="${h.url('person_login', targetURL=h.encodeURL(request.path))}" class=linkOFF>Login</a>
+<a href="${h.url('person_login', targetURL=h.encodeURL(request.path))}" class=linkOFF>Login</a>
 % endif
 % else:
 &nbsp;
-<a id=person_update href="${h.url('person_update')}" class=linkOFF>${session['nickname']}</a>
-&nbsp;
-<a id=person_logout href="${h.url('person_logout', targetURL=h.encodeURL(request.path))}" class=linkOFF>Logout</a>
+<a href="${h.url('person_logout', targetURL=h.encodeURL(request.path))}" class=linkOFF>Logout</a>
 % endif
 </div>
 </div>
