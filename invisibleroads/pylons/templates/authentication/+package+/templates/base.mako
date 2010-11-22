@@ -56,7 +56,6 @@ linkPacks = [
 </div>
 </div>
 <div id=main>${next.body()}</div>
-<div id=footer>${self.footer()}</div>
 </body>
 </html>\
 <%def name='title()'></%def>\
@@ -65,4 +64,3 @@ linkPacks = [
 <%def name='js()'></%def>\
 <%def name='toolbar()'></%def>\
 <%def name='navigation()'></%def>\
-<%def name='footer()'></%def>\
