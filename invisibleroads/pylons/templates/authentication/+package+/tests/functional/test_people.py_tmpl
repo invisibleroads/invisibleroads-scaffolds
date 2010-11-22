@@ -5,7 +5,7 @@ import urlparse
 import simplejson
 # Import custom modules
 from {{package}} import model
-from {{package}}.model import meta
+from {{package}}.model import Session
 from {{package}}.config import parameter
 from {{package}}.lib import store, helpers as h
 from {{package}}.tests import *
@@ -16,6 +16,7 @@ username = 'username'
 password = 'password'
 nickname = u'nickname'
 email = 'email@example.com'
+emailSMS = '1234567890@example.com'
 
 
 class TestPeopleController(TestController):
@@ -25,10 +26,13 @@ class TestPeopleController(TestController):
         # Logout
         self.app.get(url('person_logout_plain'))
         # Delete all people
-        meta.Session.rollback()
-        meta.Session.query(model.Person).delete()
-        meta.Session.query(model.PersonCandidate).delete()
-        meta.Session.commit()
+        Session.rollback()
+        Session.query(model.Person).delete()
+        Session.query(model.PersonCandidate).delete()
+        Session.commit()
+
+    def assertEqualJSON(self, response, isOk):
+        self.assertEqual(simplejson.loads(response.body)['isOk'], isOk)
 
     def test_index(self):
         'Assert that the index page shows how many accounts are on file'
@@ -37,8 +41,8 @@ class TestPeopleController(TestController):
         # Make sure that we begin with 0 people
         self.assert_('0 people' in self.app.get(url_test))
         # Add person
-        meta.Session.add(model.Person(username, model.hashString(password), nickname, email))
-        meta.Session.commit()
+        Session.add(model.Person(username, model.hashString(password), nickname, email))
+        Session.commit()
         # Make sure that we now have 1 person
         self.assert_('1 people' in self.app.get(url_test))
 
@@ -55,11 +59,11 @@ class TestPeopleController(TestController):
         # Register with the same email but with different case
         self.app.post(url('person_register_'), dict(username=username + 'x', password=password, nickname=nickname + 'x', email=email.upper()))
         # Confirm registration
-        self.app.get(url('person_confirm', ticket=meta.Session.query(model.PersonCandidate.ticket).filter_by(email=email).first()[0]))
+        self.app.get(url('person_confirm', ticket=Session.query(model.PersonCandidate.ticket).filter_by(email=email).first()[0]))
         # Make sure the person exists
-        self.assertEqual(meta.Session.query(model.Person).filter_by(email=email).count(), 1)
+        self.assertEqual(Session.query(model.Person).filter_by(email=email).count(), 1)
         # Make sure that conflicting registrations have been deleted
-        self.assertEqual(meta.Session.query(model.PersonCandidate).filter_by(password_hash=model.hashString(password)).count(), 0)
+        self.assertEqual(Session.query(model.PersonCandidate).filter_by(password_hash=model.hashString(password)).count(), 0)
 
     def test_reset(self):
         """
@@ -69,18 +73,18 @@ class TestPeopleController(TestController):
         Make sure that reset confirmation works
         """
         # Reset an unfamiliar email
-        self.assertEqual(simplejson.dumps({'isOk': 0}), self.app.post(url('person_reset'), dict(email=email)).body)
+        self.assertEqualJSON(self.app.post(url('person_reset'), dict(email=email)), 0)
         # Add person
-        meta.Session.add(model.Person(username, model.hashString(password), nickname, email))
-        meta.Session.commit()
+        Session.add(model.Person(username, model.hashString(password), nickname, email))
+        Session.commit()
         # Reset password
-        self.assertEqual(simplejson.dumps({'isOk': 1}), self.app.post(url('person_reset'), dict(email=email)).body)
+        self.assertEqualJSON(self.app.post(url('person_reset'), dict(email=email)), 1)
         # Make sure the candidate exists
-        self.assertEqual(meta.Session.query(model.PersonCandidate).filter_by(email=email).count(), 1)
+        self.assertEqual(Session.query(model.PersonCandidate).filter_by(email=email).count(), 1)
         # Activate candidate
-        self.app.get(url('person_confirm', ticket=meta.Session.query(model.PersonCandidate.ticket).filter_by(email=email).first()[0]))
+        self.app.get(url('person_confirm', ticket=Session.query(model.PersonCandidate.ticket).filter_by(email=email).first()[0]))
         # Make sure the password has changed
-        self.assertEqual(meta.Session.query(model.Person).filter_by(password_hash=model.hashString(password)).count(), 0)
+        self.assertEqual(Session.query(model.Person).filter_by(password_hash=model.hashString(password)).count(), 0)
 
     def test_update(self):
         """
@@ -89,15 +93,17 @@ class TestPeopleController(TestController):
         Make sure the update form is filled with the user's credentials
         Make sure that update_ only works when the user is logged in
         Make sure that update confirmation works
+        Make sure that update_ for SMS only works when the user is the owner
         """
         # Assert that we are redirected to the login page if the person is not logged in
         response = self.app.get(url('person_update'))
         self.assertEqual(urlparse.urlparse(response.response.location).path, url('person_login', targetURL=h.encodeURL(url('person_update'))))
         # Assert that we get rejected if we try to post without logging in
-        self.assertEqual(simplejson.dumps({'message': 'Login required', 'isOk': 0}), self.app.post(url('person_update_')).body)
-        # Add person
-        meta.Session.add(model.Person(username, model.hashString(password), nickname, email))
-        meta.Session.commit()
+        self.assertEqualJSON(self.app.post(url('person_update_')), 0)
+        # Add people
+        Session.add(model.Person(username, model.hashString(password), nickname, email))
+        Session.add(model.Person(username + 'x', model.hashString(password), nickname + 'x', email + 'x'))
+        Session.commit()
         # Log in
         self.app.post(url('person_login_'), dict(username=username, password=password))
         # Assert that the update form is filled with the user's credentials
@@ -110,13 +116,30 @@ class TestPeopleController(TestController):
         password_ = store.makeRandomAlphaNumericString(parameter.PASSWORD_LENGTH_AVERAGE)
         nickname_ = unicode(store.makeRandomString(parameter.NICKNAME_LENGTH_MAXIMUM))
         email_ = re.sub(r'.*@', store.makeRandomString(16) + '@', email)
-        self.assertEqual(simplejson.dumps({'isOk': 1}), self.app.post(url('person_update_'), dict(username=username_, password=password_, nickname=nickname_, email=email_)).body)
+        self.assertEqualJSON(self.app.post(url('person_update_'), dict(username=username_, password=password_, nickname=nickname_, email=email_)), 1)
         # Make sure the credentials have not changed yet
-        self.assertEqual(meta.Session.query(model.Person).filter_by(username=username_, password_hash=model.hashString(password_), nickname=nickname_, email=email_).count(), 0)
+        self.assertEqual(Session.query(model.Person).filter_by(username=username_, password_hash=model.hashString(password_), nickname=nickname_, email=email_).count(), 0)
         # Activate candidate
-        self.app.get(url('person_confirm', ticket=meta.Session.query(model.PersonCandidate.ticket).filter_by(email=email_).first()[0]))
+        self.app.get(url('person_confirm', ticket=Session.query(model.PersonCandidate.ticket).filter_by(email=email_).first()[0]))
         # Make sure the credentials have changed
-        self.assertEqual(meta.Session.query(model.Person).filter_by(username=username_, password_hash=model.hashString(password_), nickname=nickname_, email=email_).count(), 1)
+        self.assertEqual(Session.query(model.Person).filter_by(username=username_, password_hash=model.hashString(password_), nickname=nickname_, email=email_).count(), 1)
+        # Load people
+        person1 = Session.query(model.Person).filter_by(username=username_, password_hash=model.hashString(password_), nickname=nickname_, email=email_).first()
+        person2 = Session.query(model.Person).filter_by(username=username + 'x').first()
+        # Add SMSAddress
+        smsAddress = model.SMSAddress(emailSMS, person2.id)
+        Session.add(smsAddress)
+        Session.commit()
+        smsAddressID = smsAddress.id
+        # Make sure that only the owner can update SMS information
+        self.app.post(url('person_login_'), dict(username=username, password=password))
+        self.assertEqualJSON(self.app.post(url('person_update_'), dict(smsAddressID=smsAddressID, action='activate')), 0)
+        self.assertEqualJSON(self.app.post(url('person_update_'), dict(smsAddressID=smsAddressID, action='deactivate')), 0)
+        self.assertEqualJSON(self.app.post(url('person_update_'), dict(smsAddressID=smsAddressID, action='remove')), 0)
+        self.app.post(url('person_login_'), dict(username=username + 'x', password=password))
+        self.assertEqualJSON(self.app.post(url('person_update_'), dict(smsAddressID=smsAddressID, action='activate')), 1)
+        self.assertEqualJSON(self.app.post(url('person_update_'), dict(smsAddressID=smsAddressID, action='deactivate')), 1)
+        self.assertEqualJSON(self.app.post(url('person_update_'), dict(smsAddressID=smsAddressID, action='remove')), 1)
 
     def test_login(self):
         """
@@ -130,12 +153,12 @@ class TestPeopleController(TestController):
         # Assert that the login page shows and stores url
         self.assert_('Login' in self.app.get(url('person_login', targetURL=h.encodeURL(url_test))))
         # Add person
-        meta.Session.add(model.Person(username, model.hashString(password), nickname, email))
-        meta.Session.commit()
+        Session.add(model.Person(username, model.hashString(password), nickname, email))
+        Session.commit()
         # Log in using bad credentials
-        self.assertEqual(simplejson.dumps({'rejection_count': 1, 'isOk': 0}), self.app.post(url('person_login_'), dict(username=username, password=password + 'x')).body)
+        self.assertEqualJSON(self.app.post(url('person_login_'), dict(username=username, password=password + 'x')), 0)
         # Log in using good credentials
-        self.assertEqual(simplejson.dumps({'isOk': 1}), self.app.post(url('person_login_'), dict(username=username, password=password)).body)
+        self.assertEqualJSON(self.app.post(url('person_login_'), dict(username=username, password=password)), 1)
 
     def test_logout(self):
         """
@@ -147,12 +170,12 @@ class TestPeopleController(TestController):
         # Initialize
         url_test = url('person_index')
         # Add person
-        meta.Session.add(model.Person(username, model.hashString(password), nickname, email))
-        meta.Session.commit()
+        Session.add(model.Person(username, model.hashString(password), nickname, email))
+        Session.commit()
         # Logging out should redirect back
         self.assert_(url_test in self.app.get(url('person_logout', targetURL=h.encodeURL(url_test))))
         # Log in
         self.assert_('Login' in self.app.get(url('person_login', targetURL=h.encodeURL(url_test))))
-        self.assertEqual(simplejson.dumps({'isOk': 1}), self.app.post(url('person_login_'), dict(username=username, password=password)).body)
+        self.assertEqualJSON(self.app.post(url('person_login_'), dict(username=username, password=password)), 1)
         # Logging out should redirect back
         self.assert_(url_test in self.app.get(url('person_logout', targetURL=h.encodeURL(url_test))))
