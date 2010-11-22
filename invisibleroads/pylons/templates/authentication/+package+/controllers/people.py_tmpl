@@ -73,14 +73,16 @@ class PeopleController(BaseController):
     @requireLoginJSON
     def update_(self):
         'Update account'
+        # Initialize
+        personID = h.getPersonID()
         # If the user is trying to update SMS information,
         if 'smsAddressID' in request.POST:
             # Load
             action = request.POST.get('action')
             smsAddressID = request.POST['smsAddressID']
-            smsAddress = Session.query(model.SMSAddress).get(smsAddressID)
+            smsAddress = Session.query(model.SMSAddress).filter((model.SMSAddress.id==smsAddressID) & (model.SMSAddress.owner_id==personID)).first()
             if not smsAddress:
-                return dict(isOk=0, message='Could not find smsAddressID=%s' % smsAddressID)
+                return dict(isOk=0, message='Could not find smsAddressID=%s corresponding to personID=%s' % (smsAddressID, personID))
             # If the user is trying to activate an SMS address,
             elif action == 'activate':
                 smsAddress.is_active = True
@@ -99,7 +101,7 @@ class PeopleController(BaseController):
         # If the user is trying to update account information,
         else:
             # Send update confirmation email
-            return changePerson(dict(request.POST), 'update', Session.query(model.Person).get(h.getPersonID()))
+            return changePerson(dict(request.POST), 'update', Session.query(model.Person).get(personID))
 
     def login(self, targetURL=h.encodeURL('/')):
         'Show login form'

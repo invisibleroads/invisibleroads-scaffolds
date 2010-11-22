@@ -46,7 +46,7 @@ person_candidates_table = sa.Table('person_candidates', Base.metadata,
 sms_addresses_table = sa.Table('sms_addresses', Base.metadata,
     sa.Column('id', sa.Integer, primary_key=True),
     sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), unique=True, nullable=False),
-    sa.Column('person_id', sa.ForeignKey('people.id')),
+    sa.Column('owner_id', sa.ForeignKey('people.id')),
     sa.Column('is_active', sa.Boolean, default=False),
 )
 
@@ -73,9 +73,9 @@ class PersonCandidate(Person):
 
 class SMSAddress(object):
 
-    def __init__(self, email, person_id):
+    def __init__(self, email, owner_id):
         self.email = email
-        self.person_id = person_id
+        self.owner_id = owner_id
 
     def __repr__(self):
         return "<SMSAddress('%s')>" % self.email
