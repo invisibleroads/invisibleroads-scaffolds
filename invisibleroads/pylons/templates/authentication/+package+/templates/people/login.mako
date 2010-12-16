@@ -35,9 +35,9 @@ function ajax_login() {
         loginData['recaptcha_response_field'] = $('#recaptcha_response_field').val();
     }
     // Attempt login
-    $.post("${h.url('person_login_')}", loginData, function(data) {
+    $.post("${h.url('person_login')}", loginData, function(data) {
         if (data.isOk) {
-            window.location = "${c.targetURL}";
+            window.location = "${c.url}";
         } else {
             // Give feedback
             $('#reset').show();

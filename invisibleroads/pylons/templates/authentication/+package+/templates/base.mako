@@ -49,11 +49,11 @@ if h.isPerson():
 % if not h.isPerson():
 % if not request.path.startswith('/people/login'):
 &nbsp;
-<a href="${h.url('person_login', targetURL=h.encodeURL(request.path))}" class=linkOFF>Login</a>
+<a href="${h.url('person_login', url=request.path)}" class=linkOFF>Login</a>
 % endif
 % else:
 &nbsp;
-<a href="${h.url('person_logout', targetURL=h.encodeURL(request.path))}" class=linkOFF>Logout</a>
+<a href="${h.url('person_logout', url=request.path)}" class=linkOFF>Logout</a>
 % endif
 </div>
 </div>

@@ -39,7 +39,7 @@ function ajax_save() {
         nickname = $('#nickname').val(), 
         email = $('#email').val();
     $('.lockOnSave').attr('disabled', 'disabled');
-    $.post("${h.url('person_register_' if c.isNew else 'person_update_')}", {
+    $.post("${h.url('person_register' if c.isNew else 'person_update')}", {
         username: username,
         password: password,
         nickname: nickname,
@@ -71,7 +71,7 @@ $('.updateSMSAddress').click(function() {
             smsAddressRow.hide();
             break;
     }
-    $.post("${h.url('person_update_')}", {smsAddressID: smsAddressID, action: action}, function(data) {
+    $.post("${h.url('person_update')}", {smsAddressID: smsAddressID, action: action}, function(data) {
         if (!data.isOk) {
             switch (action) {
                 case 'activate':
