@@ -1,1 +1,1 @@
-su -c "rm /usr/lib/python2.6/site-packages/PylonsAuthentication*; python setup.py install; rm -Rf build dist *.egg-info"
+su -c "rm -Rf /usr/lib/python2.6/site-packages/PylonsAuthentication*; python setup.py install; rm -Rf build dist *.egg-info"
