@@ -30,9 +30,6 @@ class TestPeopleController(TestController):
         Session.query(model.PersonCandidate).delete()
         Session.commit()
 
-    def assertEqualJSON(self, response, isOk):
-        self.assertEqual(simplejson.loads(response.body)['isOk'], isOk)
-
     def test_index(self):
         'Assert that the index page shows how many accounts are on file'
         # Initialize

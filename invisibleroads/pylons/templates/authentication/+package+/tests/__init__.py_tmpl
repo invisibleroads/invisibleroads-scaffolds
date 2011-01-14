@@ -34,3 +34,11 @@ class TestController(TestCase):
         self.app = TestApp(wsgiapp)
         url._push_object(URLGenerator(config['routes.map'], environ))
         TestCase.__init__(self, *args, **kwargs)
+
+    def assertEqualJSON(self, response, isOk):
+        'Assert response as JSON'
+        responseData = simplejson.loads(response.body)
+        if responseData['isOk'] != isOk:
+            print responseData
+        self.assertEqual(responseData['isOk'], isOk)
+        return responseData
