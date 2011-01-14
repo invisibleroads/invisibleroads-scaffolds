@@ -1,7 +1,6 @@
 'Tests for people controller'
 # Import system modules
 import re
-import simplejson
 # Import custom modules
 from {{package}} import model
 from {{package}}.model import Session

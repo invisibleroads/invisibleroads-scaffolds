@@ -16,6 +16,7 @@ from routes.util import URLGenerator
 # Import system modules
 from unittest import TestCase
 from webtest import TestApp
+import simplejson
 # Import custom modules
 import pylons.test
 
