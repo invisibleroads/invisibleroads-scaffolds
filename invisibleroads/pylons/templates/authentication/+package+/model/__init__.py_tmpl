@@ -1,5 +1,3 @@
-# Fix Person()
-    # Fix templates
 'Database objects'
 # Import system modules
 import sqlalchemy as sa
