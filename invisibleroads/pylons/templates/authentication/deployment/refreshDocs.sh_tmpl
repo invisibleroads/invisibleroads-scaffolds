@@ -1,0 +1,7 @@
+pushd docs
+rm -Rf _build
+make html
+popd
+mkdir -p {{package}}/public/docs
+rm -Rf {{package}}/public/docs/*
+cp -R docs/_build/html/* {{package}}/public/docs
