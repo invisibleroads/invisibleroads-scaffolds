@@ -39,7 +39,6 @@ class TestController(TestCase):
     def assertEqualJSON(self, response, isOk):
         'Assert response JSON'
         responseData = simplejson.loads(response.body)
-        if responseData['isOk'] != isOk:
-            print responseData
+        print responseData
         self.assertEqual(responseData['isOk'], isOk)
         return responseData

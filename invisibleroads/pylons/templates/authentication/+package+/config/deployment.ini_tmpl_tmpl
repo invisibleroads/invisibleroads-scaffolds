@@ -28,8 +28,8 @@ beaker.session.secret = ${app_instance_secret}
 sqlalchemy.url = sqlite:///production.db
 # recaptcha.public =
 # recaptcha.private =
-sms.imap_email = 
-sms.imap_server = 
+sms.imap_email = support@example.com
+sms.imap_server = localhost
 # sms.imap_username = 
 # sms.imap_password = 
 

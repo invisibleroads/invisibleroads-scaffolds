@@ -1,4 +1,4 @@
 # Start server every twenty minutes
-15,35,55 * * * * cd /var/www/{{package}};/usr/bin/paster serve --daemon production.ini > /dev/null
+15,35,55 * * * * cd /var/www/{{package}};/usr/bin/paster serve --daemon production.ini >> /dev/null 2>&1
 # Check and send text messages every fifteen minutes
 10,25,40,55 * * * * cd /var/www/{{package}};/usr/bin/env python utilities/sms.py -c production.ini >> mail.log 2>&1
