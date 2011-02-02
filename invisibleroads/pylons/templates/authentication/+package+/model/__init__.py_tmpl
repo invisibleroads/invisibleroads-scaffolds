@@ -8,6 +8,11 @@ from {{package}}.model.meta import Session, Base
 from {{package}}.config import parameter
 
 
+# Constants
+
+personTypeRoot, personTypeUser = xrange(2)
+
+
 # Methods
 
 def init_model(engine):
@@ -29,7 +34,7 @@ people_table = sa.Table('people', Base.metadata,
     sa.Column('email', sa.String(parameter.EMAIL_LENGTH_MAXIMUM), unique=True, nullable=False),
     sa.Column('minutes_offset', sa.Integer, default=0),
     sa.Column('rejection_count', sa.Integer, default=0),
-    sa.Column('is_super', sa.Boolean, default=False),
+    sa.Column('type', sa.Integer, default=personTypeUser),
 )
 person_candidates_table = sa.Table('person_candidates', Base.metadata,
     sa.Column('id', sa.Integer, primary_key=True),

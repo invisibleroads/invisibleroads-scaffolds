@@ -34,7 +34,7 @@ linkPacks = [
     ('People', h.url('person_index')),
 ]
 if h.isPerson():
-    linkPacks.append((session['nickname'], h.url('person_update')))
+    linkPacks.append((session['person.nickname'], h.url('person_update')))
 %>\
 % for linkName, linkURL in linkPacks:
 &nbsp;
