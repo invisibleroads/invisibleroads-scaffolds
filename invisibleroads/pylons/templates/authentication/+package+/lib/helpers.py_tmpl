@@ -20,6 +20,9 @@ def isPersonRoot():
 def getPersonID():
     return session.get('person.id', 0)
 
+def getPersonType():
+    return session.get('person.type')
+
 def getMinutesOffset():
     try:
         return int(request.params.get('minutes_offset', session.get('person.minutes_offset', MINUTES_OFFSET_DEFAULT)))

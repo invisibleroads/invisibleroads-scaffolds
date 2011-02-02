@@ -59,7 +59,7 @@ class PeopleController(BaseController):
     def update(self):
         'Show account update page'
         # Render
-        person = Session.query(model.Person).options(orm.eagerload(model.Person.sms_addresses)).get(h.getPersonID())
+        person = Session.query(model.Person).options(orm.joinedload(model.Person.sms_addresses)).get(h.getPersonID())
         c.isNew = False
         c.smsAddresses = person.sms_addresses
         # Return
