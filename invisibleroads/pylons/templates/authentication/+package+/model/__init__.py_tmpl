@@ -51,6 +51,12 @@ sms_addresses_table = sa.Table('sms_addresses', Base.metadata,
 
 # Classes
 
+class LowerCaseComparator(orm.properties.ColumnProperty.Comparator):
+
+    def __eq__(self, other):
+        return sa.func.lower(self.__clause_element__()) == sa.func.lower(other)
+
+
 class Person(object):
 
     def __init__(self, username, password_hash, nickname, email):
@@ -77,12 +83,6 @@ class SMSAddress(object):
 
     def __repr__(self):
         return "<SMSAddress('%s')>" % self.email
-
-
-class LowerCaseComparator(orm.properties.ColumnProperty.Comparator):
-
-    def __eq__(self, other):
-        return sa.func.lower(self.__clause_element__()) == sa.func.lower(other)
 
 
 # Links
