@@ -27,7 +27,7 @@ function ajax_login() {
     var loginData = {
         'username': $('#username').val(),
         'password': $('#password').val(),
-        'minutesOffset': $('#minutesOffset').val()
+        'minutes_offset': $('#minutes_offset').val()
     }
     // Get recaptcha
     if ($('#recaptcha_challenge_field').length) {
@@ -103,7 +103,7 @@ function ajax_reset() {
 
 // Configure
 $('#username').focus();
-$('#minutesOffset').val(new Date().getTimezoneOffset());
+$('#minutes_offset').val(new Date().getTimezoneOffset());
 </%def>
 
 <%def name="toolbar()">
@@ -134,13 +134,13 @@ Email
 <td id=m_password></td>
 </tr>
 <tr>
-<td><label for=minutesOffset>Time</label</td>
+<td><label for=minutes_offset>Time</label</td>
 <td>
-<select id=minutesOffset>
+<select id=minutes_offset>
 <%include file='/people/offsets.mako'/>\
 </select>
 </td>
-<td id=m_minutesOffset></td>
+<td id=m_minutes_offset></td>
 </tr>
 </table>
 <div id=recaptcha></div>

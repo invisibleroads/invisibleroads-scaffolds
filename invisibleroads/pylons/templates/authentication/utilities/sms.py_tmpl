@@ -46,7 +46,7 @@ def isRegistrationAction(message):
         Session.query(model.SMSAddress).filter_by(email=messageFromWhom).delete()
         return True
     # Load
-    person = Session.query(model.Person).options(orm.eagerload(model.Person.sms_addresses)).get(personID)
+    person = Session.query(model.Person).options(orm.joinedload(model.Person.sms_addresses)).get(personID)
     # If the person doesn't exist or we have recorded the address already,
     if not person or messageFromWhom in (x.email.lower() for x in person.sms_addresses):
         return False

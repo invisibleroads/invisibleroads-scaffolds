@@ -27,6 +27,6 @@ def setup_app(command, conf, vars):
         passwordDefault = store.makeRandomString(parameter.PASSWORD_LENGTH_AVERAGE)
         # Create
         person = model.Person(raw_input('Username (administrator): ') or 'administrator', model.hashString(getpass.getpass('Password (%s): ' % passwordDefault) or passwordDefault), raw_input('Nickname (Administrator): ') or u'Administrator', raw_input('Email (support@invisibleroads.com): ') or 'support@invisibleroads.com')
-        person.is_super = True
+        person.type = model.personTypeRoot
         Session.add(person)
         Session.commit()

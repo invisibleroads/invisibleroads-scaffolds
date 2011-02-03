@@ -4,7 +4,7 @@
 <head>
 <meta name="author" content="Roy Hyunjin Han" />
 <link rel="shortcut icon" href="/files/favicon.ico">
-${h.javascript_link('/files/jquery-1.4.4.min.js')}
+${h.javascript_link('/files/jquery-1.5.min.js')}
 ${h.stylesheet_link('/files/style.css')}
 <title>${h.SITE_NAME} ${self.title()}</title>
 <style>${self.css()}</style>\
@@ -34,7 +34,7 @@ linkPacks = [
     ('People', h.url('person_index')),
 ]
 if h.isPerson():
-    linkPacks.append((session['nickname'], h.url('person_update')))
+    linkPacks.append((session['person.nickname'], h.url('person_update')))
 %>\
 % for linkName, linkURL in linkPacks:
 &nbsp;

@@ -59,7 +59,7 @@ class PeopleController(BaseController):
     def update(self):
         'Show account update page'
         # Render
-        person = Session.query(model.Person).options(orm.eagerload(model.Person.sms_addresses)).get(h.getPersonID())
+        person = Session.query(model.Person).options(orm.joinedload(model.Person.sms_addresses)).get(h.getPersonID())
         c.isNew = False
         c.smsAddresses = person.sms_addresses
         # Return
@@ -138,18 +138,16 @@ class PeopleController(BaseController):
             # If the response is not valid,
             if not result.is_valid:
                 return dict(isOk=0, rejection_count=person.rejection_count)
-        # Get minutesOffset from UTC
-        minutesOffset = h.getMinutesOffset()
-        # Save session
-        session['minutesOffset'] = minutesOffset
-        session['personID'] = person.id
-        session['nickname'] = person.nickname
-        session['is_super'] = person.is_super
-        session.save()
         # Save person
-        person.minutes_offset = minutesOffset
+        person.minutes_offset = h.getMinutesOffset()
         person.rejection_count = 0
         Session.commit()
+        # Save session
+        session['person.minutes_offset'] = person.minutes_offset
+        session['person.id'] = person.id
+        session['person.nickname'] = person.nickname
+        session['person.type'] = person.type
+        session.save()
         # Return
         return dict(isOk=1)
 
@@ -157,10 +155,10 @@ class PeopleController(BaseController):
         'Logout'
         # If the person is logged in,
         if h.isPerson():
-            del session['minutesOffset']
-            del session['personID']
-            del session['nickname']
-            del session['is_super']
+            del session['person.minutes_offset']
+            del session['person.id']
+            del session['person.nickname']
+            del session['person.type']
             session.save()
         # Redirect
         return redirect(request.GET.get('url', '/'))
