@@ -21,7 +21,7 @@ function showMessageByID(messageByID) {
         if (message) {
             messageObj.html('<b>' + message + '</b>');
             if (!focusSet) {
-                $('#' + id).focus();
+                $('#' + id).focus().select();
                 focusSet = true;
             }
         } else {
