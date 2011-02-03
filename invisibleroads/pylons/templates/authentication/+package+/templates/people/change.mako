@@ -9,30 +9,33 @@
 
 <%def name="js()">
 // Save descriptions
-function getMessageObj(id) { return $('#m_' + id); }
+function getMessageObj(id) {
+    return $('#m_' + id);
+}
+function showMessageByID(messageByID) {
+    var focusSet = false;
+    for (var i = 0; i < ids.length; i++) {
+        var id = ids[i];
+        var message = messageByID[id];
+        var messageObj = getMessageObj(id);
+        if (message) {
+            messageObj.html('<b>' + message + '</b>');
+            if (!focusSet) {
+                $('#' + id).focus();
+                focusSet = true;
+            }
+        } else {
+            messageObj.html(defaultByID[id]);
+        }
+    }
+}
 var ids = ['username', 'password', 'nickname', 'email', 'status'];
 var defaultByID = {};
-for (var i=0; i<ids.length; i++) {
+for (var i = 0; i < ids.length; i++) {
     var id = ids[i];
     defaultByID[id] = getMessageObj(id).html();
 }
 // Define button behavior
-function showFeedback(messageByID) {
-    var hasFocus = false;
-    for (var i = 0; i < ids.length; i++) {
-        var id = ids[i];
-        var o = getMessageObj(id);
-        if (messageByID[id]) {
-            o.html('<b>' + messageByID[id] + '</b>');
-            if (!hasFocus) {
-                $('#' + id).focus();
-                hasFocus = true;
-            }
-        } else {
-            o.html(defaultByID[id]);
-        }
-    }
-}
 function ajax_save() {
     var username = $('#username').val(),
         password = $('#password').val(), 
@@ -52,7 +55,7 @@ function ajax_save() {
             $('.lockOnSave').removeAttr('disabled');
             messageByID = data.errorByID;
         }
-        showFeedback(messageByID);
+        showMessageByID(messageByID);
     }, 'json');
 }
 $('#buttonSave').click(ajax_save);
