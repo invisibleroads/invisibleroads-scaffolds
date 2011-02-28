@@ -15,13 +15,15 @@ def buildOptionParser():
     'Return default optionParser'
     optionParser = optparse.OptionParser()
     optionParser.add_option('-c', '--configurationPath', dest='configurationPath', help='use the specified configuration file', metavar='PATH', default=store.expandBasePath('development.ini'))
+    optionParser.add_option('-q', '--quiet', action='store_false', dest='beVerbose', help='be verbose', default=True)
     return optionParser
 
 
 def initialize(options):
     'Initialize connection to database'
     # Show feedback
-    print 'Using %s' % options.configurationPath
+    if options.beVerbose:
+        print 'Using %s' % options.configurationPath
     # Load
     configuration = ConfigParser.ConfigParser({'here': basePath})
     configuration.read(options.configurationPath)

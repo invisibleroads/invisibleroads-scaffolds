@@ -64,4 +64,7 @@ if __name__ == '__main__':
     # Initialize
     configuration = script_process.initialize(options)
     # Run
-    print run()
+    message = run()
+    # Say
+    if options.beVerbose:
+        print message
