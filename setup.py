@@ -23,7 +23,7 @@ setup(
     license='MIT',
     classifiers=[
         'Intended Audience :: Developers',
-        'Framework :: Pyramid',
+        'Framework :: Pylons',
         'Programming Language :: Python',
         'License :: OSI Approved :: MIT License',
     ],
