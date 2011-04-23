@@ -1,6 +1,6 @@
 Pyramid application templates based on invisibleroads.com
 =========================================================
-The Pyramid templates in this package provide user account management and map visualization.
+The Pyramid templates in this package provide user account management.
 
 `Pyramid <http://docs.pylonsproject.org/docs/pyramid.html>`_ is a web application framework that is the successor to `Pylons <http://pylonshq.com/>`_ and `repoze.bfg <http://bfg.repoze.org/>`_.  Thanks to Chris McDonough, Mike Bayer, Mike Orr, Ben Bangert and other developers of Pyramid, Pylons and Python.
 

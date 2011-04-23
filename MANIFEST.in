@@ -1,1 +1,3 @@
 recursive-include invisibleroads *
+include *.rst
+global-exclude *.pyc
