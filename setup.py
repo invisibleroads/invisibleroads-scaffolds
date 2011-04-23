@@ -1,20 +1,38 @@
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    from ez_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup, find_packages
+'Setup script for invisibleroads_templates'
+import os
+
+from setuptools import setup, find_packages
+
+
+entry_points = """
+[paste.paster_create_template]
+ir_core = invisibleroads.paster_templates:CoreTemplate
+"""
+
+
+here = os.path.abspath(os.path.dirname(__file__))
+README = open(os.path.join(here, 'README.rst')).read()
+CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 
 setup(
-    name='PylonsAuthentication',
-    version='1.6.5',
-    description='Pylons authentication application template',
+    name='invisibleroads_templates',
+    version='1.7.0',
+    description='Pyramid application templates based on invisibleroads.com',
+    long_description=README + '\n\n' +  CHANGES,
+    license='MIT',
+    classifiers=[
+        'Intended Audience :: Developers',
+        'Framework :: Pyramid',
+        'Programming Language :: Python',
+        'License :: OSI Approved :: MIT License',
+    ],
+    keywords='web wsgi bfg pylons pyramid',
     author='Roy Hyunjin Han',
+    author_email='service@invisibleroads.com',
+    url='https://github.com/invisibleroads/invisibleroads_templates',
+    entry_points=entry_points,
+    install_requires=['pyramid'],
     packages=find_packages(),
     include_package_data=True,
-    install_requires=['PasteScript>=1.3'],
-    entry_points="""
-    [paste.paster_create_template]
-    pylons_authentication=invisibleroads.pylons.util:PylonsAuthentication
-    """)
+    zip_safe=False)

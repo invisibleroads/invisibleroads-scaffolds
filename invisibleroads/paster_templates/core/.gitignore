@@ -1,7 +1,8 @@
+build
+dist
 *.db
 *.swp
 *.pyc
 *.egg-info
 .*.ini
 .coverage
-data

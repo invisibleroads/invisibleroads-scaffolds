@@ -1,0 +1,86 @@
+[app:{{project}}]
+use = egg:{{project}}
+reload_templates = true
+debug_authorization = false
+debug_notfound = false
+debug_routematch = false
+debug_templates = true
+default_locale_name = en
+sqlalchemy.url = sqlite:///%(here)s/{{project}}.db
+cache.type = memory
+cache.minute.expire = 60
+cache.hour.expire = 3600
+cache.day.expire = 86400
+session.type = file
+session.key = {{project}}
+session.httponly = true
+session.data_dir = %(here)s/data/sessions/data
+session.lock_dir = %(here)s/data/sessions/lock
+mail.queue_path = %(here)s/data/mail
+mail.default_sender = {{project}} <support@example.com>
+
+# Store sensitive information in .development.ini
+; [app:{{project}}]
+; authtkt.secret = {{random_string}}
+; hashlib.secret = {{random_string}}
+; session.secret = {{random_string}}
+; recaptcha.public = 
+; recaptcha.private = 
+; 
+; [app:qp]
+; mail.default_sender = {{project}} <support@example.com>
+; mail.host = localhost
+; mail.port = 25
+; mail.username = 
+; mail.password = 
+; mail.tls = false
+; mail.ssl = false
+
+[pipeline:main]
+pipeline =
+    egg:WebError#evalerror
+    {{project}}
+
+[server:main]
+use = egg:Paste#http
+host = 0.0.0.0
+port = 6543
+
+# Begin logging configuration
+
+[loggers]
+keys = root, {{package_logger}}, sqlalchemy
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = INFO
+handlers = console
+
+[logger_{{package_logger}}]
+level = DEBUG
+handlers =
+qualname = {{package}}
+
+[logger_sqlalchemy]
+level = INFO
+handlers =
+qualname = sqlalchemy.engine
+# "level = INFO" logs SQL queries.
+# "level = DEBUG" logs SQL queries and results.
+# "level = WARN" logs neither.  (Recommended for production systems.)
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s
+
+# End logging configuration
