@@ -35,9 +35,9 @@ Usage
     # Run tests with coverage
     nosetests
     # Show URL routes
-    paster proutes development.ini auth
+    paster proutes development.ini xxx
     # Run shell
-    paster pshell development.ini auth
+    paster pshell development.ini xxx
 
     # Edit sensitive information
     vim .development.ini
