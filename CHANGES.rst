@@ -1,3 +1,9 @@
+1.7.1
+-----
+
+- Moved whenIO to a separate package in PyPI
+
+
 1.7.0
 -----
 

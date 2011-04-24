@@ -21,20 +21,20 @@ mail.default_sender = {{project}} <support@example.com>
 
 # Store sensitive information in .production.ini
 ; [app:{{project}}]
-; authtkt.secret = 
-; hashlib.secret = 
-; session.secret = 
+; authtkt.secret = {{random_string}}
+; hashlib.secret = {{random_string}}
+; session.secret = {{random_string}}
 ; recaptcha.public = 
 ; recaptcha.private = 
 ; 
 ; [app:qp]
-; mail.default_sender = 
-; mail.host = 
-; mail.port = 
+; mail.default_sender = {{project}} <support@example.com>
+; mail.host = localhost
+; mail.port = 25
 ; mail.username = 
 ; mail.password = 
-; mail.tls = 
-; mail.ssl = 
+; mail.tls = false
+; mail.ssl = false
 
 [filter:weberror]
 use = egg:WebError#error_catcher

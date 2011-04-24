@@ -21,9 +21,9 @@ mail.default_sender = {{project}} <support@example.com>
 
 # Store sensitive information in .development.ini
 ; [app:{{project}}]
-; authtkt.secret = {{random_string}}
-; hashlib.secret = {{random_string}}
-; session.secret = {{random_string}}
+; authtkt.secret =
+; hashlib.secret =
+; session.secret =
 ; recaptcha.public = 
 ; recaptcha.private = 
 ; 
