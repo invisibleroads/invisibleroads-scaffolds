@@ -12,7 +12,7 @@ Installation
     virtualenv --no-site-packages pyramid-env
     cd pyramid-env
     source bin/activate
-    pip install pyramid ipython ipdb nose coverage invisibleroads_templates
+    pip install pyramid ipython ipdb nose coverage invisibleroads-templates
 
 
 Usage
