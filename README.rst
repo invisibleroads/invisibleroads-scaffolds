@@ -9,9 +9,12 @@ Installation
 ------------
 ::
 
-    virtualenv --no-site-packages pyramid-env
-    cd pyramid-env
-    source bin/activate
+    # Prepare isolated environment
+    PYRAMID_ENV=$HOME/pyramid-env
+    virtualenv --no-site-packages $PYRAMID_ENV 
+    # Activate isolated environment
+    source $PYRAMID_ENV/bin/activate
+    # Install packages
     pip install pyramid ipython ipdb nose coverage invisibleroads-templates
 
 
@@ -20,7 +23,7 @@ Usage
 ::
 
     # Activate isolated environment
-    source bin/activate
+    source $PYRAMID_ENV/bin/activate
 
     # List available templates
     paster create --list-templates
