@@ -10,7 +10,7 @@ import os
 
 from {{package}}.libraries import tools
 from {{package}}.models import initialize_sql
-from {{package}}.views import pages, users
+from {{package}}.views import users, pages
 from {{package}}.parameters import *
 
 
