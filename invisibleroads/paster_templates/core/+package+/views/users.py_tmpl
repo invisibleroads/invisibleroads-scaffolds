@@ -213,7 +213,7 @@ def reset(request):
     # Reset account
     return save_user_(request, dict(
         username=user.username, 
-        password=make_random_string(PASSWORD_LEN),
+        password=make_random_string(PASSWORD_LEN_MAX),
         nickname=user.nickname,
         email=user.email), 'reset', user)
 

@@ -60,7 +60,7 @@ import whenIO
 				localWhenIO = whenIO.WhenIO(user.offset)
 				%>
 				<span title="${when_login.strftime('%Y%m%d%H%M%S')}"></span>
-				${localWhenIO.format(when_login)} ${whenIO.format_offset(user.offset)}
+				${localWhenIO.format(when_login)} ${localWhenIO.format_offset()}
 			% else:
 				<span title=''></span>
 			% endif
