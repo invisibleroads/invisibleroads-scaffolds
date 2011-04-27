@@ -7,6 +7,7 @@ from {{package}}.parameters import SITE_VERSION
 
 requires = [
     'formencode',
+    'pycrypto',
     'pyramid',
     'pyramid_beaker',
     'pyramid_mailer',

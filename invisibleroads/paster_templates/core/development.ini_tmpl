@@ -24,6 +24,7 @@ mail.default_sender = {{project}} <support@example.com>
 ; authtkt.secret =
 ; hashlib.secret =
 ; session.secret =
+; ciphers.secret =
 ; recaptcha.public = 
 ; recaptcha.private = 
 ; 

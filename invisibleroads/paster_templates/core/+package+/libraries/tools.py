@@ -1,15 +1,27 @@
 'General purpose tools'
 import hashlib
 import random
+from Crypto.Cipher import AES as Cipher
 
 
 alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-secret = ''
+secret1 = ''
+secret2 = alphabet[:32]
 
 
 def hash_string(string): 
     'Compute the hash of the string'
-    return hashlib.sha256(string + secret).digest()
+    return hashlib.sha256(string + secret1).digest()
+
+
+def encrypt(string):
+    'Encrypt the string'
+    return Cipher.new(secret2).encrypt(string)
+
+
+def decrypt(string):
+    'Decrypt the string'
+    return Cipher.new(secret2).decrypt(string)
 
 
 def make_random_string(length):
