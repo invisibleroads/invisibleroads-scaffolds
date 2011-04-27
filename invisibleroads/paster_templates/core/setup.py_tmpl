@@ -1,7 +1,8 @@
 import os
 import sys
-
 from setuptools import setup, find_packages
+
+from {{package}}.parameters import SITE_VERSION
 
 
 requires = [
@@ -36,7 +37,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='{{project}}',
-    version='0.0',
+    version=SITE_VERSION,
     description='{{project}}',
     long_description=README + '\n\n' +  CHANGES,
     classifiers=[
