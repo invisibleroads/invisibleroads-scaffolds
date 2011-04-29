@@ -13,7 +13,7 @@ from recaptcha.client import captcha
 from sqlalchemy.orm import joinedload
 
 from {{package}}.models import db, User, User_, SMSAddress
-from {{package}}.libraries.tools import hash_string, make_random_string, make_random_unique_string
+from {{package}}.libraries.tools import hash, make_random_string, make_random_unique_string
 from {{package}}.parameters import *
 
 
@@ -100,7 +100,7 @@ def login_(request):
     if not user:
         return dict(isOk=0)
     # If the password is incorrect, increment and return rejection_count
-    if user.password_hash != hash_string(password):
+    if user.password_ != hash(password):
         user.rejection_count += 1
         return dict(isOk=0, rejection_count=user.rejection_count)
     # If there have been too many rejections, expect recaptcha
@@ -250,7 +250,7 @@ def save_user_(request, valueByName, action, user=None):
     # Prepare user_
     user_ = User_(
         username=form['username'],
-        password_hash=hash_string(form['password']), 
+        password_=hash(form['password']), 
         nickname=form['nickname'], 
         email=form['email'],
         user_id=user.id if user else None,
@@ -283,7 +283,7 @@ def apply_user_(ticket):
         db.merge(User(
             id=user_.user_id,
             username=user_.username,
-            password_hash=user_.password_hash,
+            password_=user_.password_,
             nickname=user_.nickname,
             email=user_.email,
             rejection_count=0))
@@ -329,24 +329,28 @@ class UserForm(Schema):
     filter_extra_fields = True
 
     username = All(
-        validators.String(
+        validators.UnicodeString(
             min=USERNAME_LEN_MIN,
             max=USERNAME_LEN_MAX,
+            not_empty=True,
             strip=True),
         Unique('username', 'That username already exists'))
     password = All(
-        validators.MinLength(
-            PASSWORD_LEN_MIN,
+        validators.UnicodeString(
+            min=PASSWORD_LEN_MIN,
             not_empty=True),
         SecurePassword())
     nickname = All(
         validators.UnicodeString(
             min=NICKNAME_LEN_MIN,
             max=NICKNAME_LEN_MAX,
+            not_empty=True,
             strip=True),
         Unique('nickname', 'That nickname already exists'))
     email = All(
-        validators.Email(
-            not_empty=True, 
+        validators.UnicodeString(
+            max=EMAIL_LEN_MAX,
+            not_empty=True,
             strip=True),
+        validators.Email(),
         Unique('email', 'That email is reserved for another account'))

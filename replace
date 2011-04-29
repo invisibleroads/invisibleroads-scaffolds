@@ -1,1 +1,0 @@
-su -c 'python setup.py install; rm -Rf build dist *.egg-info'

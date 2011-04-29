@@ -1,3 +1,12 @@
+1.7.2
+-----
+- Added test for unicode usernames, passwords, nicknames, emails
+- Fixed username, password, nickname, email to be unicode-friendly
+- Fixed tools.hash, tools.encrypt, tools.decrypt to be unicode-friendly
+- Created SQLAlchemy types Encrypted, LowercaseEncrypted
+- Encrypted the storage of email addresses
+
+
 1.7.1
 -----
 
