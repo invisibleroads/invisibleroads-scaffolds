@@ -3,7 +3,9 @@
 ::
 
     # Activate isolated environment
-    source ../../bin/activate
+    source $PYRAMID_ENV/bin/activate
+    # Enter repository
+    cd $PROJECTS/{{project}}
     # Install dependencies
     python setup.py develop
     # Run tests with coverage
