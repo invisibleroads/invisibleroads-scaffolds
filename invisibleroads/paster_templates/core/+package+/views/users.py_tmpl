@@ -25,6 +25,7 @@ def includeme(config):
     config.add_route('user_login', 'users/login')
     config.add_route('user_logout', 'users/logout')
     config.add_route('user_update', 'users/update')
+    config.add_route('user_move', 'users/move')
     config.add_route('user_reset', 'users/reset')
 
 
@@ -198,6 +199,29 @@ def update_(request):
         return dict(isOk=1)
     # If the command is not recognized,
     return dict(isOk=0, message='Command not recognized')
+
+
+@view_config(route_name='user_move', renderer='json', request_method='POST', permission='privileged')
+def move(request):
+    'Move a user to a different group'
+    params = request.params
+    if params.get('token') != request.session.get_csrf_token():
+        return dict(isOk=0, message='Invalid token')
+    userID = authenticated_userid(request)
+    # Load
+    targetUserID = params.get('targetUserID', 0)
+    targetUser = db.query(User).get(targetUserID)
+    is_super = params.get('is_super', 0)
+    if not targetUser:
+        return dict(isOk=0, message='Could not find targetUserID=%s' % targetUserID)
+    if int(userID) == int(targetUserID):
+        return dict(isOk=0, message='Cannot promote or demote yourself')
+    try:
+        is_super = bool(int(is_super))
+    except ValueError:
+        return dict(isOk=0, message='Could not parse is_super=%s' % is_super)
+    targetUser.is_super = is_super
+    return dict(isOk=1)
 
 
 @view_config(route_name='user_reset', renderer='json', request_method='POST', permission='__no_permission_required__')

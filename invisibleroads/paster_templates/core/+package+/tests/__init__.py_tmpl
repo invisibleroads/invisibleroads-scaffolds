@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 'Test templates'
 import os
+import re
 import webtest
 import shutil
 import unittest
@@ -50,11 +51,11 @@ class TestTemplate(unittest.TestCase):
 
     def get(self, url, params=None):
         'Send a GET request'
-        return self.app.get(url, unicodeDictionary(params))
+        return self.app.get(url, unicode_dictionary(params))
 
     def post(self, url, params=None):
         'Send a POST request'
-        return self.app.post(url, unicodeDictionary(params))
+        return self.app.post(url, unicode_dictionary(params))
 
     def login(self, userD):
         'Login using credentials'
@@ -73,8 +74,19 @@ class TestTemplate(unittest.TestCase):
         return data
 
 
-def unicodeDictionary(dictionary):
+def unicode_dictionary(dictionary):
     'Convert the values of the dictionary to unicode'
     if not dictionary:
         return {}
     return dict((key, value.encode('utf8') if isinstance(value, unicode) else value) for key, value in dictionary.iteritems())
+
+
+def get_token(body):
+    match = re.search("token = '(.*)'", body)
+    return match.group(1) if match else ''
+
+
+class ReplaceableDict(dict):
+    
+    def replace(self, **kw):
+        return dict(self.items() + kw.items())

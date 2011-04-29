@@ -5,6 +5,8 @@
 - Fixed tools.hash, tools.encrypt, tools.decrypt to be unicode-friendly
 - Created SQLAlchemy types Encrypted, LowercaseEncrypted
 - Encrypted the storage of email addresses
+- Let superusers promote or demote other users
+- Added redirect to login page if AJAX request does not return JSON
 
 
 1.7.1

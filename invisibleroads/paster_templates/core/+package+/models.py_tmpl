@@ -79,7 +79,7 @@ class User(Base):
 
     @property
     def groups(self):
-        return ['x'] if self.is_super else []
+        return ['s'] if self.is_super else []
 
 
 class User_(Base):

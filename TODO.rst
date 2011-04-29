@@ -1,3 +1,0 @@
-- Fix password_ to use TypeDecorator
-- Encrypt emails using TypeDecorator
-- Let superuser designate superusers
