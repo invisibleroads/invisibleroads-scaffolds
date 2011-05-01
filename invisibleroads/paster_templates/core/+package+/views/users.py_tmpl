@@ -175,9 +175,7 @@ def update_(request):
             recipients=[smsAddress.email],
             body=smsAddress.code))
         # Return smsAddresses
-        return dict(isOk=1, content=render('users/smsAddresses.mak', {
-            'user': db.query(User).options(joinedload(User.sms_addresses)).get(userID)
-        }, request))
+        return dict(isOk=1, content=render('users/smsAddresses.mak', update(request), request))
     # Make sure the smsAddressID belongs to the user
     smsAddressID = params.get('smsAddressID')
     smsAddress = db.query(SMSAddress).filter(
