@@ -13,7 +13,6 @@ from ConfigParser import ConfigParser
 
 from {{package}} import main
 from {{package}}.models import db, User
-from {{package}}.libraries.tools import hash
 
 
 temporaryFolder = tempfile.mkdtemp()
@@ -35,11 +34,11 @@ class TestTemplate(unittest.TestCase):
             os.mkdir(temporaryFolder)
         # Reset users
         word = 'Спасибо1'.decode('utf8')
-        self.userS = {'username': word, 'password': word, 'nickname': word, 'email': word + '@example.com'}
-        self.userN = dict((key, value.replace('1', '2')) for key, value in self.userS.iteritems())
+        self.userS = ReplaceableDict(username=word, password=word, nickname=word, email=word + '@example.com')
+        self.userN = ReplaceableDict((key, value.replace('1', '2')) for key, value in self.userS.iteritems())
         for userIndex, valueByKey in enumerate([self.userS, self.userN], 1):
             username, password, nickname, email = [valueByKey.get(x) for x in 'username', 'password', 'nickname', 'email']
-            db.merge(User(id=userIndex, username=username, password_=hash(password), nickname=nickname, email=email, is_super=userIndex % 2))
+            db.merge(User(id=userIndex, username=username, password=password, nickname=nickname, email=email, is_super=userIndex % 2))
         transaction.commit()
 
     def tearDown(self):

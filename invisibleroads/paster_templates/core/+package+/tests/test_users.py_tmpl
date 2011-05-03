@@ -1,7 +1,6 @@
 'Tests for user account management'
 from {{package}}.tests import TestTemplate, ReplaceableDict, get_token
 from {{package}}.models import db, User, User_, SMSAddress
-from {{package}}.libraries.tools import hash
 
 
 class TestUsers(TestTemplate):
@@ -20,19 +19,27 @@ class TestUsers(TestTemplate):
         # Make sure the registration page appears properly
         self.assert_('Registration' in self.get(url).unicode_body)
         # Register
+        registrationCount1 = db.query(User_).count()
         self.post(url, params)
+        # Register with a weak password
+        self.assertJSON(self.post(url, params.replace(password='xxx')), 0)
         # Register with the same username but with different case
         self.post(url, params.replace(username=username.upper(), nickname=nickname + 'x', email=email + 'x'))
         # Register with the same nickname but with different case
         self.post(url, params.replace(username=username + 'x', nickname=nickname.upper(), email=email + 'x'))
         # Register with the same email but with different case
         self.post(url, params.replace(username=username + 'x', nickname=nickname + 'x', email=email.upper()))
+        # Confirm with an invalid ticket
+        self.get(self.get_url('user_confirm', ticket='xxx'))
         # Confirm registration
+        registrationCount2 = db.query(User_).count()
+        self.assertEqual(registrationCount2 - registrationCount1, +4)
         self.get(self.get_url('user_confirm', ticket=db.query(User_.ticket).filter_by(email=email).order_by(User_.when_expired.desc()).first()[0]))
         # Make sure the user exists
         self.assertEqual(db.query(User).filter_by(email=email).count(), 1)
         # Make sure that conflicting registrations have been deleted
-        self.assertEqual(db.query(User_).filter_by(password_=hash(password)).count(), 0)
+        registrationCount3 = db.query(User_).count()
+        self.assertEqual(registrationCount3 - registrationCount2, -4)
 
     def test_login(self):
         'Make sure that login works'
@@ -43,7 +50,9 @@ class TestUsers(TestTemplate):
         # Going directly to the login page stores the target url
         self.assert_(url_ in self.get(url, dict(url=url_)).unicode_body)
         # Bad credentials fail
-        self.assertJSON(self.login({'username': self.userN['username'], 'password': self.userN['password'] + 'x'}), 0)
+        self.assertJSON(self.login(self.userN.replace(username='')), 0)
+        self.assertJSON(self.login(self.userN.replace(password='')), 0)
+        self.assertJSON(self.login(self.userN.replace(password=self.userN['password'] + 'x')), 0)
         # Good credentials succeed
         self.assertJSON(self.login(self.userN), 1)
 
@@ -71,15 +80,15 @@ class TestUsers(TestTemplate):
         token = get_token(body)
         # Updating credentials requires a token
         username, password, nickname, email = ['0' + self.userN[x] for x in 'username', 'password', 'nickname', 'email']
-        password_ = hash(password)
         params = ReplaceableDict(token=token, username=username, password=password, nickname=nickname, email=email)
         self.assertJSON(self.post(url, params.replace(token='')), 0)
         self.assertJSON(self.post(url, params), 1)
         # Make sure the credentials have not changed yet
-        self.assertEqual(db.query(User).filter_by(username=username, password_=password_, nickname=nickname, email=email).count(), 0)
+        self.assertEqual(db.query(User).filter_by(username=username, nickname=nickname, email=email).count(), 0)
         # Make sure the credentials have changed after confirmation
         self.get(self.get_url('user_confirm', ticket=db.query(User_.ticket).filter_by(email=email).order_by(User_.when_expired.desc()).first()[0]))
-        self.assertEqual(db.query(User).filter_by(username=username, password_=password_, nickname=nickname, email=email).count(), 1)
+        user = db.query(User).filter_by(username=username, nickname=nickname, email=email).first()
+        self.assertEqual(db.query(User).filter_by(username=username, nickname=nickname, email=email).first().check(password), True)
 
     def test_update_smsAddress(self):
         'Make sure that updating smsAddresses works'
@@ -158,13 +167,12 @@ class TestUsers(TestTemplate):
     def test_reset(self):
         'Make sure that resetting the password works'
         url = self.get_url('user_reset')
-        email = self.userN['email']
-        password_ = hash(self.userN['password'])
+        password, email = [self.userN[x] for x in 'password', 'email']
         # Trying to reset an email that does not exist returns an error
         self.assertJSON(self.post(url, dict(email=email + 'x')), 0)
         # Resetting the password does not immediately change the password
         self.assertJSON(self.post(url, dict(email=email)), 1)
-        self.assertEqual(db.query(User).filter_by(email=email, password_=password_).count(), 1)
+        self.assertEqual(db.query(User).filter_by(email=email).first().check(password), True)
         # Apply change
         self.get(self.get_url('user_confirm', ticket=db.query(User_.ticket).filter_by(email=email).order_by(User_.when_expired.desc()).first()[0]))
-        self.assertEqual(db.query(User).filter_by(email=email, password_=password_).count(), 0)
+        self.assertEqual(db.query(User).filter_by(email=email).first().check(password), False)

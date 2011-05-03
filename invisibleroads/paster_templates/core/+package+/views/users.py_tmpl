@@ -13,7 +13,7 @@ from recaptcha.client import captcha
 from sqlalchemy.orm import joinedload
 
 from {{package}}.models import db, User, User_, SMSAddress
-from {{package}}.libraries.tools import hash, make_random_string, make_random_unique_string
+from {{package}}.libraries.tools import make_random_string, make_random_unique_string
 from {{package}}.parameters import *
 
 
@@ -101,7 +101,7 @@ def login_(request):
     if not user:
         return dict(isOk=0)
     # If the password is incorrect, increment and return rejection_count
-    if user.password_ != hash(password):
+    if not user.check(password):
         user.rejection_count += 1
         return dict(isOk=0, rejection_count=user.rejection_count)
     # If there have been too many rejections, expect recaptcha
@@ -272,7 +272,7 @@ def save_user_(request, valueByName, action, user=None):
     # Prepare user_
     user_ = User_(
         username=form['username'],
-        password_=hash(form['password']), 
+        password=form['password'], 
         nickname=form['nickname'], 
         email=form['email'],
         user_id=user.id if user else None,

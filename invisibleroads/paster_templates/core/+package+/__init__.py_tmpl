@@ -24,10 +24,8 @@ def main(global_config, **settings):
         if configParser.read(os.path.join(configFolder, '.' + configName)):
             for section in configParser.sections():
                 settings.update(configParser.items(section))
-    if 'hashlib.secret' in settings:
-        tools.secret1 = settings['hashlib.secret']
     if 'ciphers.secret' in settings:
-        tools.secret2 = settings['ciphers.secret']
+        tools.secret = settings['ciphers.secret']
     # Connect to database
     sqlalchemyURL = settings['sqlalchemy.url'].strip()
     initialize_sql(engine_from_config(settings, 'sqlalchemy.', 
@@ -55,8 +53,8 @@ def main(global_config, **settings):
             USER_OFFSET=offset,
             IS_SUPER='s' in groups)
     # Prepare configuration
-    if 'authtkt.secret' not in settings:
-        settings['authtkt.secret'] = tools.make_random_string(SECRET_LEN)
+    if not settings.get('authtkt.secret'):
+        settings['authtkt.secret'] = os.urandom(SECRET_LEN)
     authenticationPolicy = AuthTktAuthenticationPolicy(settings['authtkt.secret'], 
         callback=get_groups, http_only=True)
     config = Configurator(
@@ -75,8 +73,8 @@ def main(global_config, **settings):
     config.include('pyramid_tm')
     config.include('pyramid_mailer')
     # Configure sessions and caching
-    if 'session.secret' not in settings:
-        settings['session.secret'] = tools.make_random_string(SECRET_LEN)
+    if not settings.get('session.secret'):
+        settings['session.secret'] = os.urandom(SECRET_LEN)
     config.set_session_factory(session_factory_from_settings(settings))
     set_cache_regions_from_settings(settings)
     # Configure static assets

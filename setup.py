@@ -17,7 +17,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='invisibleroads-templates',
-    version='1.7.2',
+    version='1.7.3',
     description='Pyramid application templates based on invisibleroads.com',
     long_description=README + '\n\n' +  CHANGES,
     license='MIT',

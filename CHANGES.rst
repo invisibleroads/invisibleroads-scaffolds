@@ -1,3 +1,9 @@
+1.7.3
+-----
+- Changed to urandom() for authtkt.secret and session.secret
+- Changed to cryptacular.bcrypt() for password hash
+
+
 1.7.2
 -----
 - Added test for unicode usernames, passwords, nicknames, emails
@@ -12,13 +18,11 @@
 
 1.7.1
 -----
-
 - Moved whenIO to a separate package in PyPI
 
 
 1.7.0
 -----
-
 - Migrated from Pylons to Pyramid
 - Changed authentication from Beaker sessions to AuthTkt cookies
 - Changed authorization from manual enforcement to ACLAuthorizationPolicy
