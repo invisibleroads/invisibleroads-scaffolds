@@ -59,9 +59,9 @@ class TestTemplate(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(temporaryFolder)
 
-    def get_url(self, name, **kw):
+    def get_url(self, name, **kwargs):
         'Return URL for route'
-        return self.router.routes_mapper.generate(name, kw)
+        return self.router.routes_mapper.generate(name, kwargs)
 
     def get(self, url, params=None):
         'Send a GET request'
@@ -107,5 +107,5 @@ def get_token(body):
 
 class ReplaceableDict(dict):
     
-    def replace(self, **kw):
-        return dict(self.items() + kw.items())
+    def replace(self, **kwargs):
+        return dict(self.items() + kwargs.items())

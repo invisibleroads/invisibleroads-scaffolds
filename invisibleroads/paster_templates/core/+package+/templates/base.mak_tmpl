@@ -23,7 +23,7 @@
 	%>
 % for linkName, linkPath in linkPacks:
 	&nbsp;
-	% if path != linkPath:
+	% if linkPath != path:
 		<a href='${linkPath}' class='hover link off'>${linkName}</a>
 	% else:
 		<b>${linkName}</b>

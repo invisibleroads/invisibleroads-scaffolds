@@ -3,6 +3,7 @@
 <%def name='title()'>Login</%def>
 
 <%def name='css()'>
+td {padding-right: 1em}
 #resetPack {display: none}
 #resetForm {display: none}
 </%def>
@@ -117,7 +118,10 @@ $('#username').focus();
 		<td><input id=username></td>
 		<td>
 			<span id=m_username>
-				${'. '.join(request.session.pop_flash())}
+            % if request.route_path('user_login') != request.path:
+                Elevated privileges required
+            % endif
+				${', '.join(request.session.pop_flash())}
 			</span>
 			<span id=resetPack>
 				<a id=resetLink class='hover link off'>Did you forget your login?</a>
