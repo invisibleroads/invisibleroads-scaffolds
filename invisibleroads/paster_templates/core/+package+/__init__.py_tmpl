@@ -17,6 +17,11 @@ from {{package}}.parameters import *
 
 def main(global_config, **settings):
     'Return a Pyramid WSGI application'
+    settings.update({ 
+        'mako.default_filters': 'h',
+        'mako.directories': '{{package}}:templates',
+        'cache.regions': 'short, medium, long',
+    })
     # Load sensitive configuration
     if '__file__' in global_config:
         configFolder, configName = os.path.split(global_config['__file__'])
@@ -31,44 +36,37 @@ def main(global_config, **settings):
     initialize_sql(engine_from_config(settings, 'sqlalchemy.', 
         poolclass=NullPool if sqlalchemyURL.startswith('sqlite:///') else QueuePool))
     # Define methods
-    def get_groups(userID, request):
-        'Return a list of groups associated with the authenticated user'
-        identity = authenticationPolicy.cookie.identify(request)
-        if identity:
-            return identity['tokens'][1:]
     def make_renderer_globals(system):
         'Define template constants'
         identity = authenticationPolicy.cookie.identify(system['request'])
         if identity:
             userID = identity['userid']
-            nickname, offset, groups = users.parse_tokens(identity['tokens'])
+            nickname, offset = users.parse_tokens(identity['tokens'])
+            groups = users.get_groups(userID)
         else:
             userID = None
-            nickname, offset, groups = u'', MINUTES_OFFSET, []
+            nickname, offset = u'', MINUTES_OFFSET
+            groups = []
         return dict(
             SITE_NAME=SITE_NAME, 
             SITE_VERSION=SITE_VERSION,
             USER_ID=userID,
             USER_NICKNAME=nickname,
             USER_OFFSET=offset,
-            IS_SUPER='s' in groups)
+            IS_SUPER='s' in groups,
+            IS_ACTIVE='a' in groups)
     # Prepare configuration
     if not settings.get('authtkt.secret'):
         settings['authtkt.secret'] = os.urandom(SECRET_LEN)
     authenticationPolicy = AuthTktAuthenticationPolicy(settings['authtkt.secret'], 
-        callback=get_groups, http_only=True)
+        callback=lambda userID, request: users.get_groups(userID), http_only=True)
     config = Configurator(
         settings=settings,
         authentication_policy=authenticationPolicy,
         authorization_policy=ACLAuthorizationPolicy(),
-        default_permission='protected',
+        default_permission='active',
         renderer_globals_factory=make_renderer_globals,
         root_factory='{{package}}.RootFactory')
-    config.add_settings({
-        'mako.directories': '{{package}}:templates',
-        'mako.default_filters': 'h',
-        'cache.regions': 'short, medium, long',
-    })
     # Configure transaction manager and mailer
     config.include('pyramid_tm')
     config.include('pyramid_mailer')
@@ -90,8 +88,9 @@ def main(global_config, **settings):
 class RootFactory(object):
     'Permission definitions'
     __acl__ = [ 
-        (Allow, Authenticated, 'protected'),
-        (Allow, 's', 'privileged'),
+        (Allow, Authenticated, 'authenticated'),
+        (Allow, 'a', 'active'),
+        (Allow, 's', 'super'),
     ]
 
     def __init__(self, request):

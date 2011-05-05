@@ -2,6 +2,7 @@
 -----
 - Changed to urandom() for authtkt.secret and session.secret
 - Changed to cryptacular.bcrypt() for password hash
+- Added server-side check for user.is_active, user.is_super
 
 
 1.7.2

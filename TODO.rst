@@ -1,5 +1,4 @@
-- Add server-side check if user.is_active
-- Let superuser activate or deactivate users
 - Add explanation message for each Forbidden Login page
+- Let superuser activate or deactivate users
 - Consider how to logout other sessions of a user
 - Let user determine expiration time of cookie
