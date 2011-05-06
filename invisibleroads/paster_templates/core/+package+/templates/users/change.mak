@@ -4,9 +4,8 @@
 
 <%def name='css()'>
 td {padding-right: 1em}
-.smsAddressCode {display: none}
-.smsAddressInactive {color: gray}
-.flag {font-size: xx-small; vertical-align: middle}
+.smsAddressInactive .text {color: gray}
+.flag {color: darkblue}
 </%def>
 
 <%def name='js()'>
@@ -67,40 +66,20 @@ $('#save').click(save);
 // Add SMS address after user presses ENTER key in input box
 $('#smsAddressEmail').live('keydown', function(e) {
 	if (e.keyCode == 13) {
-		var smsAddressEmail = $.trim(this.value);
-		if (!smsAddressEmail.length) {
+		var value = $.trim(this.value), smsAddressEmail = $(this);
+		if (!value.length) {
 			return showMessageByID({smsAddressEmail: 'Please enter a value'});
 		}
 		post("${request.route_path('user_update')}", {
 			token: token,
 			smsAddressAction: 'add',
-			smsAddressEmail: smsAddressEmail
+			smsAddressEmail: value
 		}, function(data) {
 			if (data.isOk) {
 				$('#smsAddresses').html(data.content);
+				smsAddressEmail.val('');
 			} else {
 				showMessageByID({smsAddressEmail: data.message});
-			}
-		});
-	}
-});
-// Activate SMS address after user enters correct code
-$('.smsAddressCode').live('keydown', function() {
-	if (e.keyCode == 13) {
-		var smsAddressID = getID(this), smsAddressCode = $(this), smsAddressEmail = $('#smsAddressEmail' + smsAddressID);
-		smsAddressCode.attr('disabled', 'disabled');
-		post("${request.route_path('user_update')}", {
-			token: token,
-			smsAddressAction: 'activate',
-			smsAddressID: smsAddressID,
-			smsAddressCode: smsAddressCode
-		}, function(data) {
-			if (data.isOk) {
-				smsAddressCode.hide();
-				smsAddressEmail.removeClass('smsAddressInactive').show();
-			} else {
-				alert(data.message);
-				smsAddressCode.removeAttr('disabled').val('').focus();
 			}
 		});
 	}
@@ -121,16 +100,52 @@ $('.smsAddressRemove').live('click', function() {
 	});
 });
 // Show SMS address code input box after user clicks on text
-$('.smsAddressInactive').live({
+$('.smsAddressInactive > .smsAddressEmail').live({
 	mouseenter: function() {
-		$(this).append('<span class=flag>&nbsp; activate</span>');
+		$(this).find('.text').hide();
+		if (!$(this).find('.smsAddressCode').length) {
+			$(this).append('<span class=flag>Activate</span>');
+		}
 	},
 	mouseleave: function() {
 		$(this).find('.flag').remove();
+		if (!$(this).find('.smsAddressCode').length) {
+			$(this).find('.text').show();
+		}
 	},
 	click: function() {
-		$(this).hide();
-		$('#smsAddressCode' + getID(this)).show().focus();
+		var objID = 'smsAddressCode' + getID(this);
+		$(this).find('.flag').remove();
+		$(this).append('<input id=' + objID + ' class=smsAddressCode>')
+		$('#' + objID).focus();
+	}
+});
+// Activate SMS address after user enters correct code
+$('.smsAddressCode').live('keydown', function(e) {
+	switch(e.keyCode) {
+		case 13:
+			var smsAddressID = getID(this), smsAddressCode = $(this);
+			smsAddressCode.attr('disabled', 'disabled');
+			post("${request.route_path('user_update')}", {
+				token: token,
+				smsAddressAction: 'activate',
+				smsAddressID: smsAddressID,
+				smsAddressCode: smsAddressCode.val()
+			}, function(data) {
+				if (data.isOk) {
+					smsAddressCode.remove();
+					$('#smsAddressEmail' + smsAddressID).find('.text').show();
+					$('#smsAddress' + smsAddressID).removeClass('smsAddressInactive');
+				} else {
+					alert(data.message);
+					smsAddressCode.removeAttr('disabled').val('').focus();
+				}
+			});
+			break;
+		case 27:
+			$(this).remove();
+			$('#smsAddressEmail' + getID(this)).find('.text').show();
+			break;
 	}
 });
 % endif

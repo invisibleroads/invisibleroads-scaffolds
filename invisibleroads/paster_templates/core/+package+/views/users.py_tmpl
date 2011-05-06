@@ -202,24 +202,33 @@ def update_(request):
 
 @view_config(route_name='user_move', renderer='json', request_method='POST', permission='super')
 def move(request):
-    'Move a user to a different group'
+    'Move a user to a different access category'
     params = request.params
     if params.get('token') != request.session.get_csrf_token():
         return dict(isOk=0, message='Invalid token')
     userID = authenticated_userid(request)
-    # Load
+    # Load targetUser
     targetUserID = params.get('targetUserID', 0)
     targetUser = db.query(User).get(targetUserID)
-    is_super = params.get('is_super', 0)
     if not targetUser:
         return dict(isOk=0, message='Could not find targetUserID=%s' % targetUserID)
     if int(userID) == int(targetUserID):
         return dict(isOk=0, message='Cannot promote or demote yourself')
-    try:
-        is_super = bool(int(is_super))
-    except ValueError:
-        return dict(isOk=0, message='Could not parse is_super=%s' % is_super)
-    targetUser.is_super = is_super
+    # Load attributes
+    hasAttributes = False
+    for attributeName in 'is_active', 'is_super':
+        value = params.get(attributeName)
+        if value is None:
+            continue
+        try:
+            value = bool(int(value))
+        except ValueError:
+            return dict(isOk=0, message='Could not parse %s=%s' % (attributeName, value))
+        setattr(targetUser, attributeName, value)
+        hasAttributes = True
+    if not hasAttributes:
+        return dict(isOk=0, message='No attributes specified')
+    # Signal success
     region_invalidate(get_groups, None, targetUserID)
     return dict(isOk=1)
 

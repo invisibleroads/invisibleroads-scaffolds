@@ -2,15 +2,16 @@
 	<%
 	smsAddressID = smsAddress.id
 	%>
-    <tr id=smsAddress${smsAddressID}>
+    <tr id=smsAddress${smsAddressID}
+	% if smsAddress.code:
+		class=smsAddressInactive
+	% endif
+	>
         <td>
             <input type=button id=smsAddressRemove${smsAddressID} class=smsAddressRemove value=- title='Remove'>
 		</td>
-		<td colspan=2>
-			<span id=smsAddressEmail${smsAddressID} class="${'smsAddressInactive' if smsAddress.code else ''}">${smsAddress.email}</span>
-		% if smsAddress.code:
-			<input id=smsAddressCode${smsAddressID} class=smsAddressCode>
-		% endif
+		<td id=smsAddressEmail${smsAddressID} class=smsAddressEmail colspan=2>
+			<span class=text>${smsAddress.email}</span>
 		</td>
     </tr>
 % endfor

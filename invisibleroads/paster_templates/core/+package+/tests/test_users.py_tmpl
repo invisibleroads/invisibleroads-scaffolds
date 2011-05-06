@@ -153,21 +153,25 @@ class TestUsers(TestTemplate):
         user = db.query(User).filter_by(username=self.userS['username']).first()
         token = get_token(self.get(self.get_url('user_index')).body)
         targetUser = db.query(User).filter_by(username=self.userI['username']).first()
-        params = ReplaceableDict(token=token, targetUserID=targetUser.id, is_super=1)
+        params = ReplaceableDict(token=token, targetUserID=targetUser.id, is_super=1, is_active=1)
         # Check that a bad token fails
         self.assert_json(self.post(url, params.replace(token=token + 'x')), 0)
         # Check that a bad targetUserID fails
         self.assert_json(self.post(url, params.replace(targetUserID=0)), 0)
-        # Check that a bad is_super fails
+        # Check that a bad attribute fails
         self.assert_json(self.post(url, params.replace(is_super='xxx')), 0)
+        self.assert_json(self.post(url, params.replace(is_active='xxx')), 0)
         # Check that a super user cannot promote or demote self
-        self.assert_json(self.post(url, params.replace(targetUserID=user.id, is_super=0)), 0)
-        self.assert_json(self.post(url, params.replace(targetUserID=user.id, is_super=1)), 0)
+        self.assert_json(self.post(url, params.replace(targetUserID=user.id)), 0)
         # Check that a super user can promote or demote other users
         self.assert_json(self.post(url, params.replace(is_super=1)), 1)
         self.assert_('s' in users.get_groups(targetUser.id))
         self.assert_json(self.post(url, params.replace(is_super=0)), 1)
         self.assert_('s' not in users.get_groups(targetUser.id))
+        self.assert_json(self.post(url, params.replace(is_active=1)), 1)
+        self.assert_('a' in users.get_groups(targetUser.id))
+        self.assert_json(self.post(url, params.replace(is_active=0)), 1)
+        self.assert_('a' not in users.get_groups(targetUser.id))
 
     def test_reset(self):
         'Make sure that resetting the password works'
