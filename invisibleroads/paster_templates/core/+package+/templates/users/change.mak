@@ -61,8 +61,30 @@ function save() {
         showMessageByID(messageByID);
     });
 }
-$('#save').click(save);
+$('#save').hover(
+	function() {
+		$('#m_status').html('Send confirmation');
+	},
+	function() {}
+).click(save);
 % if user:
+// Mutate token
+$('#mutate').hover(
+	function() {
+		$('#m_status').html('Invalidate other sessions for your security');
+	},
+	function() {}
+).click(function() {
+	$.post("${request.route_path('user_mutate')}", {
+		token: token
+	}, function(data) {
+		if (data.isOk) {
+			$('#m_status').html('Token mutated successfully');
+		} else {
+			$('#m_status').html(data.message);
+		}
+	});
+});
 // Add SMS address after user presses ENTER key in input box
 $('#smsAddressEmail').live('keydown', function(e) {
 	if (e.keyCode == 13) {
@@ -163,52 +185,57 @@ ${'Update your account' if user else 'Register for an account'}
 </%def>
 
 <table>
-    <tr>
-        <td><label for=username>Username</label></td>
-        <td><input id=username class=lockOnSave autocomplete=off\
+	<tr>
+		<td><label for=username>Username</label></td>
+		<td><input id=username class=lockOnSave autocomplete=off\
 		% if user:
 			value='${user.username}'
 		% endif
 		></td>
-        <td id=m_username class=message>What you use to login</td>
-    </tr>
-    <tr>
-        <td><label for=password>Password</label></td>
-        <td><input id=password class=lockOnSave type=password autocomplete=off></td>
-        <td id=m_password class=message>So you have some privacy</td>
-    </tr>
-    <tr>
-        <td><label for=nickname>Nickname</label></td>
-        <td><input id=nickname class=lockOnSave autocomplete=off\
+		<td id=m_username class=message>What you use to login</td>
+	</tr>
+	<tr>
+		<td><label for=password>Password</label></td>
+		<td><input id=password class=lockOnSave type=password autocomplete=off></td>
+		<td id=m_password class=message>So you have some privacy</td>
+	</tr>
+	<tr>
+		<td><label for=nickname>Nickname</label></td>
+		<td><input id=nickname class=lockOnSave autocomplete=off\
 		% if user:
 			value='${user.nickname}'
 		% endif
 		></td>
-        <td id=m_nickname class=message>How others see you</td>
-    </tr>
-    <tr>
-        <td><label for=email>Email</label></td>
-        <td><input id=email class=lockOnSave autocomplete=off\
+		<td id=m_nickname class=message>How others see you</td>
+	</tr>
+	<tr>
+		<td><label for=email>Email</label></td>
+		<td><input id=email class=lockOnSave autocomplete=off\
 		% if user:
 			value='${user.email}'
 		% endif
 		></td>
-        <td id=m_email class=message>To confirm changes to your account</td>
-    </tr>
-    <tr>
-        <td></td>
-		<td><input id=save class=lockOnSave type=button value="${'Update' if user else 'Register'}"></td>
-        <td id=m_status class=message></td>
-    </tr>
+		<td id=m_email class=message>To confirm changes to your account</td>
+	</tr>
+	<tr>
+		<td></td>
+		<td>
+			<input id=save class=lockOnSave type=button value="${'Update' if user else 'Register'}">
+		% if user:
+			<input id=mutate type=button value=Mutate>
+		% endif
+		</td>
+		<td id=m_status class=message></td>
+	</tr>
 % if user:
-    <tr>
-        <td>&nbsp;</td>
-    </tr>
-    <tr>
+	<tr>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
 		<td><label for=smsAddressEmail>SMS address</label></td>
 		<td><input id=smsAddressEmail></td>
 		<td id=m_smsAddressEmail class=message>For text message alerts</td>
-    </tr>
+	</tr>
 	<tbody id=smsAddresses>
 		<%include file='smsAddresses.mak'/>
 	</tbody>

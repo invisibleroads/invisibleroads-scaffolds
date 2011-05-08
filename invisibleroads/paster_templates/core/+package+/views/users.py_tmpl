@@ -27,6 +27,7 @@ def includeme(config):
     config.add_route('user_logout', 'users/logout')
     config.add_route('user_update', 'users/update')
     config.add_route('user_move', 'users/move')
+    config.add_route('user_mutate', 'users/mutate')
     config.add_route('user_reset', 'users/reset')
 
 
@@ -63,6 +64,10 @@ def confirm(request):
             (User_.username == user_.username) | 
             (User_.nickname == user_.nickname) | 
             (User_.email == user_.email)))
+        # Set headers to set cookie
+        # if not hasattr(request, 'response_headerlist'):
+            # request.response_headerlist = []
+        # request.response_headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
     # If the user_ does not exist,
     else:
         # Set
@@ -147,7 +152,7 @@ def update_(request):
     'Update account'
     params = request.params
     if params.get('token') != request.session.get_csrf_token():
-        return dict(isOk=0, message='Invalid token')
+        return dict(isOk=0, message='Invalid session token')
     userID = authenticated_userid(request)
     # If the user is trying to update account information, send confirmation email
     if 'username' in params:
@@ -205,7 +210,7 @@ def move(request):
     'Move a user to a different access category'
     params = request.params
     if params.get('token') != request.session.get_csrf_token():
-        return dict(isOk=0, message='Invalid token')
+        return dict(isOk=0, message='Invalid session token')
     userID = authenticated_userid(request)
     # Load targetUser
     targetUserID = params.get('targetUserID', 0)
@@ -229,7 +234,26 @@ def move(request):
     if not hasAttributes:
         return dict(isOk=0, message='No attributes specified')
     # Signal success
-    region_invalidate(get_groups, None, targetUserID)
+    region_invalidate(get_privileges, None, targetUserID)
+    return dict(isOk=1)
+
+
+@view_config(route_name='user_mutate', renderer='json', request_method='', permission='authenticated')
+def mutate(request):
+    'Mutate user token'
+    params = request.params
+    if params.get('token') != request.session.get_csrf_token():
+        return dict(isOk=0, message='Invalid session token')
+    userID = authenticated_userid(request)
+    # Mutate user code 
+    user = db.query(User).get(userID)
+    user.code = make_random_string(CODE_LEN)
+    # Refresh cookie
+    if not hasattr(request, 'response_headerlist'):
+        request.response_headerlist = []
+    request.response_headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
+    # Return
+    region_invalidate(get_privileges, None, userID)
     return dict(isOk=1)
 
 
@@ -255,14 +279,38 @@ def format_tokens(user):
     'Format user information into a cookie'
     nickname = 'x' + base64.urlsafe_b64encode(user.nickname.encode('utf8')).replace('=', '+')
     offset = 'x' + str(user.offset)
-    return [nickname, offset]
+    code = 'x' + user.code
+    return [nickname, offset, code]
 
 
 def parse_tokens(tokens):
     'Parse user information from a cookie'
     nickname = base64.urlsafe_b64decode(tokens[0][1:].replace('+', '=')).decode('utf8')
     offset = int(tokens[1][1:])
-    return nickname, offset
+    code = tokens[2][1:]
+    return nickname, offset, code
+
+
+@cache_region('medium')
+def get_privileges(userID):
+    'Return user privileges'
+    return db.query(User.is_active, User.is_super, User.code).filter_by(id=userID).first()
+
+
+def get_groups(userID, code):
+    'Return access categories associated with the user'
+    groups = []
+    try:
+        isActive, isSuper, userCode = get_privileges(userID)
+    except TypeError:
+        return groups
+    if code != userCode:
+        return ['d']
+    if isActive:
+        groups.append('a')
+    if isSuper:
+        groups.append('s')
+    return groups
 
 
 def save_user_(request, valueByName, action, user=None):
@@ -317,24 +365,10 @@ def apply_user_(ticket):
             password_=user_.password_,
             nickname=user_.nickname,
             email=user_.email,
-            rejection_count=0))
+            rejection_count=0,
+            code=make_random_string(CODE_LEN)))
     # Return
     return user_
-
-
-@cache_region('medium')
-def get_groups(userID):
-    'Return access categories associated with the user'
-    groups = []
-    try:
-        is_active, is_super = db.query(User.is_active, User.is_super).filter_by(id=userID).first()
-    except TypeError:
-        return groups
-    if is_active:
-        groups.append('a')
-    if is_super:
-        groups.append('s')
-    return groups
 
 
 class Unique(validators.FancyValidator):

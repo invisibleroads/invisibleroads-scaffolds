@@ -1,7 +1,7 @@
 'Pyramid WSGI configuration'
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import Allow, Authenticated
+from pyramid.security import Allow, Authenticated, Deny
 from pyramid.config import Configurator
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
 from sqlalchemy import engine_from_config
@@ -36,13 +36,25 @@ def main(global_config, **settings):
     initialize_sql(engine_from_config(settings, 'sqlalchemy.', 
         poolclass=NullPool if sqlalchemyURL.startswith('sqlite:///') else QueuePool))
     # Define methods
+    def get_groups(userID, request):
+        'Return access categories associated with the user'
+        identity = authenticationPolicy.cookie.identify(system['request'])
+        code = users.parse_tokens(identity['tokens'])[2]
+        return users.get_groups(userID, code)
     def make_renderer_globals(system):
         'Define template constants'
         identity = authenticationPolicy.cookie.identify(system['request'])
         if identity:
             userID = identity['userid']
-            nickname, offset = users.parse_tokens(identity['tokens'])
-            groups = users.get_groups(userID)
+
+            
+            nickname, groups, offset =
+            nickname, offset, groups = 
+            groups, nickname, offset = users.get_credentials
+
+
+            nickname, offset, code = users.parse_tokens(identity['tokens'])
+            groups = users.get_groups(userID, code)
         else:
             userID = None
             nickname, offset = u'', MINUTES_OFFSET
@@ -59,7 +71,7 @@ def main(global_config, **settings):
     if not settings.get('authtkt.secret'):
         settings['authtkt.secret'] = os.urandom(SECRET_LEN)
     authenticationPolicy = AuthTktAuthenticationPolicy(settings['authtkt.secret'], 
-        callback=lambda userID, request: users.get_groups(userID), http_only=True)
+        callback=users.get_groups, http_only=True)
     config = Configurator(
         settings=settings,
         authentication_policy=authenticationPolicy,
@@ -91,6 +103,7 @@ class RootFactory(object):
         (Allow, Authenticated, 'authenticated'),
         (Allow, 'a', 'active'),
         (Allow, 's', 'super'),
+        (Deny, 'd', 'denied'),
     ]
 
     def __init__(self, request):

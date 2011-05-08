@@ -1,7 +1,7 @@
 1.7.3
 -----
-- Changed to urandom() for authtkt.secret and session.secret
 - Changed to cryptacular.bcrypt() for password hash
+- Changed to urandom() for authtkt.secret and session.secret
 - Added server-side check for user.is_active, user.is_super
 - Let superuser activate or deactivate other users
 - Fixed SMS address registration

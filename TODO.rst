@@ -1,2 +1,1 @@
 - Consider how to logout other sessions of a user
-- Let user determine expiration time of cookie

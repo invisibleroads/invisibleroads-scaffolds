@@ -65,7 +65,7 @@ class User(Base):
     username = column_property(
         Column(Unicode(USERNAME_LEN_MAX), unique=True), 
         comparator_factory=CaseInsensitiveComparator)
-    password_ = Column('password', LargeBinary(60)) # Each hash is 60 bytes long
+    password_ = Column('password', LargeBinary(60)) # Hash from bcrypt
     @property
     def password(self):
         return self.password_
@@ -82,6 +82,7 @@ class User(Base):
     rejection_count = Column(Integer, default=0)
     offset = Column(Integer, default=0)
     when_login = Column(DateTime)
+    code = Column(String(CODE_LEN)) # For invalidating other authtkts
     sms_addresses = relationship('SMSAddress')
 
     def __str__(self):
@@ -99,7 +100,7 @@ class User_(Base):
     username = column_property(
         Column(Unicode(USERNAME_LEN_MAX)), 
         comparator_factory=CaseInsensitiveComparator)
-    password_ = Column('password', LargeBinary(60)) # Each hash is 60 bytes long
+    password_ = Column('password', LargeBinary(60)) # Hash from bcrypt
     @property
     def password(self):
         return self.password_
@@ -125,7 +126,7 @@ class SMSAddress(Base):
     id = Column(Integer, primary_key=True)
     email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2))
     user_id = Column(ForeignKey('users.id'))
-    code = Column(String(CODE_LEN))
+    code = Column(String(CODE_LEN)) # For activating an SMS address
 
     def __str__(self):
         return "<SMSAddress(id=%s)>" % self.id
