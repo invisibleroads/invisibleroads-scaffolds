@@ -26,6 +26,10 @@ mail.default_sender = {{project}} <support@example.com>
 ; ciphers.secret = {{random_string}}
 ; recaptcha.public = 
 ; recaptcha.private = 
+; sms.imap.host = localhost
+; sms.imap.port = 25
+; sms.imap.username =
+; sms.imap.password =
 ; 
 ; [app:qp]
 ; mail.default_sender = {{project}} <support@example.com>
