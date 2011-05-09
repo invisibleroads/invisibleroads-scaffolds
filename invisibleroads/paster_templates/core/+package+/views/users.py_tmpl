@@ -1,5 +1,4 @@
 'Views for user account management'
-import base64
 import datetime
 from pyramid.view import view_config
 from pyramid.security import remember, forget, authenticated_userid
@@ -53,10 +52,11 @@ def register_(request):
 def confirm(request):
     'Confirm changes'
     # Apply changes to user account
-    user_ = apply_user_(request.matchdict.get('ticket', ''))
-    # If the user_ exists,
-    if user_:
-        # Set
+    try:
+        user, user_ = apply_user_(request.matchdict.get('ticket', ''))
+    except UserException:
+        message = 'Ticket expired'
+    else:
         message = 'Account updated' if user_.user_id else 'Account created'
         # Delete expired or similar user_
         db.execute(User_.__table__.delete().where(
@@ -64,15 +64,7 @@ def confirm(request):
             (User_.username == user_.username) | 
             (User_.nickname == user_.nickname) | 
             (User_.email == user_.email)))
-        # Set headers to set cookie
-        # if not hasattr(request, 'response_headerlist'):
-            # request.response_headerlist = []
-        # request.response_headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
-    # If the user_ does not exist,
-    else:
-        # Set
-        message = 'Ticket expired'
-    # Save flash in session
+    # Save message in session
     request.session.flash(message)
     # Return
     return HTTPFound(location=request.route_path('user_login'))
@@ -125,7 +117,7 @@ def login_(request):
         user.offset = MINUTES_OFFSET
     user.when_login = datetime.datetime.utcnow()
     user.rejection_count = 0
-    # Set headers to set cookie
+    # Set cookie
     if not hasattr(request, 'response_headerlist'):
         request.response_headerlist = []
     request.response_headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
@@ -234,7 +226,7 @@ def move(request):
     if not hasAttributes:
         return dict(isOk=0, message='No attributes specified')
     # Signal success
-    region_invalidate(get_privileges, None, targetUserID)
+    region_invalidate(get_properties, None, targetUserID)
     return dict(isOk=1)
 
 
@@ -253,7 +245,7 @@ def mutate(request):
         request.response_headerlist = []
     request.response_headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
     # Return
-    region_invalidate(get_privileges, None, userID)
+    region_invalidate(get_properties, None, userID)
     return dict(isOk=1)
 
 
@@ -277,40 +269,20 @@ def reset(request):
 
 def format_tokens(user):
     'Format user information into a cookie'
-    nickname = 'x' + base64.urlsafe_b64encode(user.nickname.encode('utf8')).replace('=', '+')
-    offset = 'x' + str(user.offset)
-    code = 'x' + user.code
-    return [nickname, offset, code]
+    code = 'x' + str(user.code)
+    return [code]
 
 
 def parse_tokens(tokens):
     'Parse user information from a cookie'
-    nickname = base64.urlsafe_b64decode(tokens[0][1:].replace('+', '=')).decode('utf8')
-    offset = int(tokens[1][1:])
-    code = tokens[2][1:]
-    return nickname, offset, code
+    code = tokens[0][1:]
+    return [code]
 
 
 @cache_region('medium')
-def get_privileges(userID):
-    'Return user privileges'
-    return db.query(User.is_active, User.is_super, User.code).filter_by(id=userID).first()
-
-
-def get_groups(userID, code):
-    'Return access categories associated with the user'
-    groups = []
-    try:
-        isActive, isSuper, userCode = get_privileges(userID)
-    except TypeError:
-        return groups
-    if code != userCode:
-        return ['d']
-    if isActive:
-        groups.append('a')
-    if isSuper:
-        groups.append('s')
-    return groups
+def get_properties(userID):
+    'Return user properties'
+    return db.query(User.nickname, User.offset, User.is_active, User.is_super, User.code).filter_by(id=userID).first()
 
 
 def save_user_(request, valueByName, action, user=None):
@@ -352,10 +324,11 @@ def save_user_(request, valueByName, action, user=None):
 
 def apply_user_(ticket):
     'Finalize a change to a user account'
-    # Load
     user_ = db.query(User_).filter(
         (User_.ticket == ticket) & 
         (User_.when_expired >= datetime.datetime.utcnow())).first()
+    if not user_:
+        raise UserException('')
     # If the ticket is valid,
     if user_:
         # Apply the change and reset rejection_count
@@ -434,3 +407,7 @@ class UserForm(Schema):
             strip=True),
         validators.Email(),
         Unique('email', 'That email is reserved for another account'))
+
+
+class UserException(Exception):
+    pass

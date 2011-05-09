@@ -1,7 +1,7 @@
 'Pyramid WSGI configuration'
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import Allow, Authenticated, Deny
+from pyramid.security import Allow, Authenticated, Deny, authenticated_userid
 from pyramid.config import Configurator
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
 from sqlalchemy import engine_from_config
@@ -38,40 +38,40 @@ def main(global_config, **settings):
     # Define methods
     def get_groups(userID, request):
         'Return access categories associated with the user'
-        identity = authenticationPolicy.cookie.identify(system['request'])
-        code = users.parse_tokens(identity['tokens'])[2]
-        return users.get_groups(userID, code)
+        # Get properties
+        properties = users.get_properties(userID)
+        if not properties:
+            return []
+        is_active, is_super, code = properties[-3:]
+        # Check code
+        identity = authenticationPolicy.cookie.identify(request)
+        if code != users.parse_tokens(identity['tokens'])[0]:
+            return ['d']
+        # Set groups
+        groups = []
+        if is_active:
+            groups.append('a')
+        if is_super:
+            groups.append('s')
+        return groups
     def make_renderer_globals(system):
         'Define template constants'
-        identity = authenticationPolicy.cookie.identify(system['request'])
-        if identity:
-            userID = identity['userid']
-
-            
-            nickname, groups, offset =
-            nickname, offset, groups = 
-            groups, nickname, offset = users.get_credentials
-
-
-            nickname, offset, code = users.parse_tokens(identity['tokens'])
-            groups = users.get_groups(userID, code)
-        else:
-            userID = None
-            nickname, offset = u'', MINUTES_OFFSET
-            groups = []
+        userID = authenticated_userid(system['request'])
+        properties = users.get_properties(userID) or (u'', MINUTES_OFFSET, False, False, '')
+        nickname, offset, is_active, is_super = properties[:-1]
         return dict(
             SITE_NAME=SITE_NAME, 
-            SITE_VERSION=SITE_VERSION,
-            USER_ID=userID,
-            USER_NICKNAME=nickname,
-            USER_OFFSET=offset,
-            IS_SUPER='s' in groups,
-            IS_ACTIVE='a' in groups)
+            SITE_VERSION=SITE_VERSION, 
+            USER_ID=userID, 
+            USER_NICKNAME=nickname, 
+            USER_OFFSET=offset, 
+            IS_SUPER=is_super, 
+            IS_ACTIVE=is_active)
     # Prepare configuration
     if not settings.get('authtkt.secret'):
         settings['authtkt.secret'] = os.urandom(SECRET_LEN)
     authenticationPolicy = AuthTktAuthenticationPolicy(settings['authtkt.secret'], 
-        callback=users.get_groups, http_only=True)
+        callback=get_groups, http_only=True)
     config = Configurator(
         settings=settings,
         authentication_policy=authenticationPolicy,

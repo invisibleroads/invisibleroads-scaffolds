@@ -52,7 +52,7 @@ class LowercaseEncrypted(TypeDecorator):
     impl = LargeBinary
 
     def process_bind_param(self, value, dialect):
-        return encrypt(value.lower())
+        return encrypt((value or '').lower())
 
     def process_result_value(self, value, dialect):
         return decrypt(value)
@@ -82,7 +82,7 @@ class User(Base):
     rejection_count = Column(Integer, default=0)
     offset = Column(Integer, default=0)
     when_login = Column(DateTime)
-    code = Column(String(CODE_LEN)) # For invalidating other authtkts
+    code = Column(String(CODE_LEN), default=lambda: make_random_string(CODE_LEN))
     sms_addresses = relationship('SMSAddress')
 
     def __str__(self):
@@ -126,7 +126,7 @@ class SMSAddress(Base):
     id = Column(Integer, primary_key=True)
     email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2))
     user_id = Column(ForeignKey('users.id'))
-    code = Column(String(CODE_LEN)) # For activating an SMS address
+    is_active = Column(Boolean, default=False)
 
     def __str__(self):
         return "<SMSAddress(id=%s)>" % self.id
