@@ -5,6 +5,7 @@
 - Added server-side check for user.is_active, user.is_super
 - Let superuser activate or deactivate other users
 - Fixed SMS address registration
+- Added mechanism for user to invalidate other sessions
 
 
 1.7.2
