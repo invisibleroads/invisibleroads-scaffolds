@@ -1,55 +1,74 @@
-'Command-line script to process text messages'
-from sqlalchemy import orm
+'Command-line script to process SMS messages'
+import re
+import collections
+import transaction
+from sqlalchemy.orm import joinedload
+from ConfigParser import NoOptionError
+from email.utils import parseaddr
 
 import script_process
-from {{package}} import model
-from {{package}}.lib import imap
-from {{package}}.model import Session
+from {{package}}.models import db, User, SMSAddress
+from {{package}}.libraries import imap
+
+
+pattern_registration = re.compile(r'(\d+)\W+(.*)')
 
 
 def run():
-    'Process text messages'
-    # Initialize
-    registrationActionCount = 0
-    getX = lambda x: configuration.get('app:main', x) if x in configuration.options('app:main') else ''
-    # Connect
+    'Connect to IMAP host and process messages'
     try:
-        imapStore = imap.Store(getX('sms.imap_server'), getX('sms.imap_username'), getX('sms.imap_password'))
+        imapHost, imapPort, imapUsername, imapPassword = [configuration.get('app:main', x) for x in 'sms.imap.host', 'sms.imap.port', 'sms.imap.username', 'sms.imap.password']
+    except NoOptionError, error:
+        return 'Please fix your configuration file: (%s)' % str(error)
+    try:
+        imapStore = imap.Store(imapHost, imapPort, imapUsername, imapPassword)
     except imap.IMAPError:
-        return 'Unable to connect to IMAP server'
+        return 'Unable to connect to IMAP host'
+    countByKey = process(imapStore)
+    return '\n'.join('%s: %s' % (key.capitalize(), count) for key, count in countByKey.iteritems())
+
+
+def process(imapStore):
+    'Process SMS messages'
+    countByKey = collections.defaultdict(int)
     # For each message,
     for message in imapStore.read(includes=['inbox']):
         # If the message is trying to register an SMS address,
-        if isRegistrationAction(message):
-            registrationActionCount += 1
+        if processRegistration(message):
+            countByKey['registrations'] += 1
         # Mark message for deletion
         message.markDeleted()
+        countByKey['messages'] += 1
     # Finalize
+    transaction.commit()
     imapStore.expunge()
-    Session.commit()
-    return 'Registration actions: %s' % registrationActionCount
+    # Return
+    return countByKey
 
 
-def isRegistrationAction(message):
-    'Return True if the message is trying to register an SMS address'
-    # Get
-    messageFromWhom = message.fromWhom.lower()
-    try:
-        personID = int(message.subject)
-    except ValueError:
+def processRegistration(message):
+    'Process SMS messages that are trying to register an SMS address'
+    # Get userID and code
+    match = pattern_registration.match(message.subject)
+    if not match:
         return False
-    # If personID == 0, then the sender is trying to unregister his or her phone
-    if personID == 0:
-        Session.query(model.SMSAddress).filter_by(email=messageFromWhom).delete()
+    userID, userCode = match.groups()
+    userID = int(userID)
+    fromWhom = parseaddr(message.fromWhom)[1]
+    # If userID is zero, then the sender wants to unregister his or her address
+    if userID == 0:
+        db.query(SMSAddress).filter_by(email=fromWhom).delete()
         return True
     # Load
-    person = Session.query(model.Person).options(orm.joinedload(model.Person.sms_addresses)).get(personID)
-    # If the person doesn't exist or we have recorded the address already,
-    if not person or messageFromWhom in (x.email.lower() for x in person.sms_addresses):
+    user = db.query(User).filter_by(id=userID, code=userCode).options(joinedload(User.sms_addresses)).first()
+    # If the user doesn't exist,
+    if not user:
         return False
+    # If we have registered the address already,
+    if fromWhom in (x.email for x in user.sms_addresses):
+        return True
     # Add
-    Session.add(model.SMSAddress(messageFromWhom, personID))
-    # Return
+    db.add(SMSAddress(email=fromWhom, user_id=userID))
     return True
 
 
@@ -60,7 +79,6 @@ if __name__ == '__main__':
     options = optionParser.parse_args()[0]
     # Initialize
     configuration = script_process.initialize(options)
-    # Run
     message = run()
     # Say
     if options.verbose:
