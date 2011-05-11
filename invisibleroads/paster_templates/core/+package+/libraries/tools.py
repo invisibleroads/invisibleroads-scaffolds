@@ -9,12 +9,12 @@ secret = alphabet # Please set this in .development.ini or .production.ini
 
 def encrypt(string):
     'Encrypt string'
-    return AES.new(secret[:32], AES.MODE_CFB).encrypt(string.encode('utf8'))
+    return AES.new(secret[:32], AES.MODE_CFB).encrypt(string.encode('utf-8'))
 
 
 def decrypt(string):
     'Decrypt string'
-    return AES.new(secret[:32], AES.MODE_CFB).decrypt(string).decode('utf8')
+    return AES.new(secret[:32], AES.MODE_CFB).decrypt(string).decode('utf-8')
 
 
 def make_random_string(length):

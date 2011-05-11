@@ -33,7 +33,7 @@ class TestTemplate(unittest.TestCase):
         if not os.path.exists(temporaryFolder):
             os.mkdir(temporaryFolder)
         # Reset users
-        word = 'Спасибо'.decode('utf8')
+        word = 'Спасибо'.decode('utf-8')
         self.userS = ReplaceableDict() # Super
         self.userA = ReplaceableDict() # Active
         self.userI = ReplaceableDict() # Inactive
@@ -97,7 +97,7 @@ def unicode_dictionary(dictionary):
     'Convert the values of the dictionary to unicode'
     if not dictionary:
         return {}
-    return dict((key, value.encode('utf8') if isinstance(value, unicode) else value) for key, value in dictionary.iteritems())
+    return dict((key, value.encode('utf-8') if isinstance(value, unicode) else value) for key, value in dictionary.iteritems())
 
 
 def get_token(body):
