@@ -15,7 +15,7 @@ Installation
     # Activate isolated environment
     source $PYRAMID_ENV/bin/activate
     # Install packages
-    pip install pyramid ipython ipdb nose coverage invisibleroads-templates
+    pip install ipython ipdb coverage invisibleroads-templates
 
 
 Usage
@@ -35,8 +35,10 @@ Usage
     # Install dependencies
     python setup.py develop
 
+    # Edit sensitive information
+    vim .test.ini
     # Run tests with coverage
-    nosetests
+    nosetests --pdb --pdb-failures
     # Show URL routes
     paster proutes development.ini xxx
     # Run shell
