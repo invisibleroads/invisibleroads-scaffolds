@@ -108,4 +108,4 @@ def get_token(body):
 class ReplaceableDict(dict):
     
     def replace(self, **kwargs):
-        return dict(self.items() + kwargs.items())
+        return ReplaceableDict(self.items() + kwargs.items())
