@@ -45,7 +45,7 @@ function login() {
     var loginData = {
         'username': $('#username').val(),
         'password': $('#password').val(),
-        'offset': $('#offset').val()
+        'minutes_offset': $('#minutes_offset').val()
     }
     // Get recaptcha
     if ($('#recaptcha_challenge_field').length) {
@@ -108,7 +108,7 @@ $('#username').keydown(function(e) {if (e.keyCode == 13) $('#password').focus()}
 $('#password').keydown(function(e) {if (e.keyCode == 13) login()});
 
 // Configure
-$('#offset').val(new Date().getTimezoneOffset());
+$('#minutes_offset').val(new Date().getTimezoneOffset());
 $('#username').focus();
 </%def>
 
@@ -139,13 +139,13 @@ $('#username').focus();
 		<td id=m_password></td>
 	</tr>
 	<tr>
-		<td><label for=offset>Time</label</td>
+		<td><label for=minutes_offset>Time</label</td>
 		<td>
-			<select id=offset>
+			<select id=minutes_offset>
 				<%include file='offsets.mak'/>
 			</select>
 		</td>
-		<td id=m_offset></td>
+		<td id=m_minutes_offset></td>
 	</tr>
 </table>
 <div id=recaptcha></div>

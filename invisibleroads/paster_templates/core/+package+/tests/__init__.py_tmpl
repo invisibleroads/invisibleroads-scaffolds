@@ -1,37 +1,29 @@
 # -*- coding: utf-8 -*-
 'Test templates'
-import os
+import os; basePath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import re
 import webtest
 import shutil
 import unittest
-import tempfile
 import simplejson
 import transaction
 import warnings; warnings.simplefilter('error')
-from ConfigParser import ConfigParser
 
-from {{package}} import main
+from {{package}} import main, load_settings
 from {{package}}.models import db, User
 
 
-temporaryFolder = tempfile.mkdtemp()
+configurationPath = os.path.join(basePath, 'test.ini')
 
 
 class TestTemplate(unittest.TestCase):
 
-    router = main({}, **{
-        'sqlalchemy.url': 'sqlite://',
-        'mail.queue_path': os.path.join(temporaryFolder, 'mail'),
-        'mail.default_sender': '{{project}} <support@example.com>',
-    })
+    router = main({'__file__': configurationPath}, **load_settings(configurationPath, basePath))
 
     def setUp(self):
         # Initialize functional test framework
         self.app = webtest.TestApp(self.router)
         self.logout()
-        if not os.path.exists(temporaryFolder):
-            os.mkdir(temporaryFolder)
         # Reset users
         word = 'Спасибо'.decode('utf-8')
         self.userS = ReplaceableDict() # Super
@@ -55,9 +47,6 @@ class TestTemplate(unittest.TestCase):
                 is_super=valueByKey['is_super'])
             db.merge(user)
         transaction.commit()
-
-    def tearDown(self):
-        shutil.rmtree(temporaryFolder)
 
     def get_url(self, name, **kwargs):
         'Return URL for route'

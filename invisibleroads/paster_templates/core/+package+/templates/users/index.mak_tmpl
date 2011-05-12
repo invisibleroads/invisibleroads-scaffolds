@@ -174,7 +174,7 @@ import whenIO
 			% if user.when_login:
 				<%
 				when_login = user.when_login
-				localWhenIO = whenIO.WhenIO(user.offset)
+				localWhenIO = whenIO.WhenIO(user.minutes_offset)
 				%>
 				<span class=text title="${when_login.strftime('%Y%m%d%H%M%S')}"></span>
 				${localWhenIO.format(when_login)} ${localWhenIO.format_offset()}

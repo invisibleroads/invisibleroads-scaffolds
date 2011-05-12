@@ -1,17 +1,15 @@
-% for smsAddress in sorted(user.sms_addresses, key=lambda x: [-len(x.code), x.email]):
+% for smsAddress in sorted(user.sms_addresses, key=lambda x: [x.is_active, x.email]):
 	<%
 	smsAddressID = smsAddress.id
 	%>
-    <tr id=smsAddress${smsAddressID}
-	% if smsAddress.code:
+	<div id=smsAddress${smsAddressID}
+	% if not smsAddress.is_active:
 		class=smsAddressInactive
 	% endif
 	>
-        <td>
-            <input type=button id=smsAddressRemove${smsAddressID} class=smsAddressRemove value=- title='Remove'>
-		</td>
-		<td id=smsAddressEmail${smsAddressID} class=smsAddressEmail colspan=2>
+		<input type=button id=smsAddressRemove${smsAddressID} class=smsAddressRemove title='Remove'>
+		<span id=smsAddressEmail${smsAddressID} class=smsAddressEmail>
 			<span class=text>${smsAddress.email}</span>
-		</td>
-    </tr>
+		</span>
+    </div>
 % endfor

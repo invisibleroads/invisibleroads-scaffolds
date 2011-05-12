@@ -1,75 +1,12 @@
 'Command-line script to process SMS messages'
-import re
-import collections
-import transaction
-from sqlalchemy.orm import joinedload
-from ConfigParser import NoOptionError
-from email.utils import parseaddr
-
 import script_process
-from {{package}}.models import db, User, SMSAddress
-from {{package}}.libraries import imap
+from {{package}}.libraries import sms
 
 
-pattern_registration = re.compile(r'(\d+)\W+(.*)')
-
-
-def run():
-    'Connect to IMAP host and process messages'
-    try:
-        imapHost, imapPort, imapUsername, imapPassword = [configuration.get('app:main', x) for x in 'sms.imap.host', 'sms.imap.port', 'sms.imap.username', 'sms.imap.password']
-    except NoOptionError, error:
-        return 'Please fix your configuration file: (%s)' % str(error)
-    try:
-        imapStore = imap.Store(imapHost, imapPort, imapUsername, imapPassword)
-    except imap.IMAPError:
-        return 'Unable to connect to IMAP host'
-    countByKey = process(imapStore)
+def run(settings):
+    'Connect to IMAP server and process messages'
+    countByKey = sms.process(settings)
     return '\n'.join('%s: %s' % (key.capitalize(), count) for key, count in countByKey.iteritems())
-
-
-def process(imapStore):
-    'Process SMS messages'
-    countByKey = collections.defaultdict(int)
-    # For each message,
-    for message in imapStore.read(includes=['inbox']):
-        # If the message is trying to register an SMS address,
-        if processRegistration(message):
-            countByKey['registrations'] += 1
-        # Mark message for deletion
-        message.markDeleted()
-        countByKey['messages'] += 1
-    # Finalize
-    transaction.commit()
-    imapStore.expunge()
-    # Return
-    return countByKey
-
-
-def processRegistration(message):
-    'Process SMS messages that are trying to register an SMS address'
-    # Get userID and code
-    match = pattern_registration.match(message.subject)
-    if not match:
-        return False
-    userID, userCode = match.groups()
-    userID = int(userID)
-    fromWhom = parseaddr(message.fromWhom)[1]
-    # If userID is zero, then the sender wants to unregister his or her address
-    if userID == 0:
-        db.query(SMSAddress).filter_by(email=fromWhom).delete()
-        return True
-    # Load
-    user = db.query(User).filter_by(id=userID, code=userCode).options(joinedload(User.sms_addresses)).first()
-    # If the user doesn't exist,
-    if not user:
-        return False
-    # If we have registered the address already,
-    if fromWhom in (x.email for x in user.sms_addresses):
-        return True
-    # Add
-    db.add(SMSAddress(email=fromWhom, user_id=userID))
-    return True
 
 
 # If we are running standalone,
@@ -77,9 +14,8 @@ if __name__ == '__main__':
     # Parse
     optionParser = script_process.OptionParser()
     options = optionParser.parse_args()[0]
-    # Initialize
-    configuration = script_process.initialize(options)
-    message = run()
+    # Run
+    message = run(script_process.initialize(options))
     # Say
     if options.verbose:
         print message

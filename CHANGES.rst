@@ -4,8 +4,10 @@
 - Changed to urandom() for authtkt.secret and session.secret
 - Added server-side check for user.is_active, user.is_super
 - Let superuser activate or deactivate other users
-- Fixed SMS address registration
 - Added mechanism for user to invalidate other sessions
+- Moved imapIO to a separate package in PyPI
+- Reverted SMS address registration so that users register by sending an SMS
+- Increased test coverage to 96%
 
 
 1.7.2

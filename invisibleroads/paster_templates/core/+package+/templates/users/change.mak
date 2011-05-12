@@ -61,50 +61,20 @@ function save() {
         showMessageByID(messageByID);
     });
 }
-$('#save').hover(
-	function() {
-		$('#m_status').html('Send confirmation');
-	},
-	function() {}
-).click(save);
+$('#save').click(save);
 % if user:
 // Mutate token
-$('#mutate').hover(
-	function() {
-		$('#m_status').html('Invalidate other sessions for your security');
-	},
-	function() {}
-).click(function() {
+$('#mutate').click(function() {
 	$.post("${request.route_path('user_mutate')}", {
 		token: token
 	}, function(data) {
 		if (data.isOk) {
 			$('#m_status').html('Token mutated successfully');
+			$('#userCode').html(data.code);
 		} else {
 			$('#m_status').html(data.message);
 		}
 	});
-});
-// Add SMS address after user presses ENTER key in input box
-$('#smsAddressEmail').live('keydown', function(e) {
-	if (e.keyCode == 13) {
-		var value = $.trim(this.value), smsAddressEmail = $(this);
-		if (!value.length) {
-			return showMessageByID({smsAddressEmail: 'Please enter a value'});
-		}
-		post("${request.route_path('user_update')}", {
-			token: token,
-			smsAddressAction: 'add',
-			smsAddressEmail: value
-		}, function(data) {
-			if (data.isOk) {
-				$('#smsAddresses').html(data.content);
-				smsAddressEmail.val('');
-			} else {
-				showMessageByID({smsAddressEmail: data.message});
-			}
-		});
-	}
 });
 // Remove SMS address after user clicks on the button
 $('.smsAddressRemove').live('click', function() {
@@ -112,8 +82,8 @@ $('.smsAddressRemove').live('click', function() {
 	smsAddress.hide();
 	post("${request.route_path('user_update')}", {
 		token: token,
-		smsAddressAction: 'remove',
-		smsAddressID: smsAddressID
+		smsAddressID: smsAddressID,
+		smsAddressAction: 'remove'
 	}, function(data) {
 		if (!data.isOk) {
 			alert(data.message);
@@ -121,53 +91,39 @@ $('.smsAddressRemove').live('click', function() {
 		}
 	});
 });
-// Show SMS address code input box after user clicks on text
-$('.smsAddressInactive > .smsAddressEmail').live({
+// Activate SMS address after user clicks on text
+$('.smsAddressEmail').live({
 	mouseenter: function() {
+		var smsAddressID = getID(this);
+		var is_active = $('#smsAddress' + smsAddressID).hasClass('smsAddressInactive');
 		$(this).find('.text').hide();
-		if (!$(this).find('.smsAddressCode').length) {
-			$(this).append('<span class=flag>Activate</span>');
-		}
+		$(this).append('<span class=flag>' + (is_active ? 'Deactivate' : 'Activate') + '</span>');
 	},
 	mouseleave: function() {
 		$(this).find('.flag').remove();
-		if (!$(this).find('.smsAddressCode').length) {
-			$(this).find('.text').show();
-		}
+		$(this).find('.text').show();
 	},
 	click: function() {
-		var objID = 'smsAddressCode' + getID(this);
 		$(this).find('.flag').remove();
-		$(this).append('<input id=' + objID + ' class=smsAddressCode>')
-		$('#' + objID).focus();
-	}
-});
-// Activate SMS address after user enters correct code
-$('.smsAddressCode').live('keydown', function(e) {
-	switch(e.keyCode) {
-		case 13:
-			var smsAddressID = getID(this), smsAddressCode = $(this);
-			smsAddressCode.attr('disabled', 'disabled');
-			post("${request.route_path('user_update')}", {
-				token: token,
-				smsAddressAction: 'activate',
-				smsAddressID: smsAddressID,
-				smsAddressCode: smsAddressCode.val()
-			}, function(data) {
-				if (data.isOk) {
-					smsAddressCode.remove();
-					$('#smsAddressEmail' + smsAddressID).find('.text').show();
-					$('#smsAddress' + smsAddressID).removeClass('smsAddressInactive');
+		var smsAddressID = getID(this);
+		var smsAddress = $('#smsAddress' + smsAddressID);
+		var is_active = smsAddress.hasClass('smsAddressInactive');
+		post("${request.route_path('user_update')}", {
+			token: token,
+			smsAddressID: smsAddressID,
+			smsAddressAction: is_active ? 'deactivate' : 'activate'
+		}, function(data) {
+			$('#smsAddressEmail' + smsAddressID).find('.text').show();
+			if (data.isOk) {
+				if (data.is_active) {
+					smsAddress.removeClass('smsAddressInactive');
 				} else {
-					alert(data.message);
-					smsAddressCode.removeAttr('disabled').val('').focus();
+					smsAddress.addClass('smsAddressInactive');
 				}
-			});
-			break;
-		case 27:
-			$(this).remove();
-			$('#smsAddressEmail' + getID(this)).find('.text').show();
-			break;
+			} else {
+				alert(data.message);
+			}
+		});
 	}
 });
 % endif
@@ -220,24 +176,21 @@ ${'Update your account' if user else 'Register for an account'}
 	<tr>
 		<td></td>
 		<td>
-			<input id=save class=lockOnSave type=button value="${'Update' if user else 'Register'}">
+			<input id=save class=lockOnSave type=button value="${'Update' if user else 'Register'}" title='Send confirmation'>
 		% if user:
-			<input id=mutate type=button value=Mutate>
+			<input id=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
 		% endif
 		</td>
 		<td id=m_status class=message></td>
 	</tr>
-% if user:
-	<tr>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-		<td><label for=smsAddressEmail>SMS address</label></td>
-		<td><input id=smsAddressEmail></td>
-		<td id=m_smsAddressEmail class=message>For text message alerts</td>
-	</tr>
-	<tbody id=smsAddresses>
-		<%include file='smsAddresses.mak'/>
-	</tbody>
-% endif
 </table>
+% if user:
+	<p>
+	For SMS alerts, send a text message to ${request.registry.settings['sms.email']} with 
+	${user.id}-<span id=userCode>${user.code}</span> as the subject.
+	</p>
+
+	<div id=smsAddresses>
+		<%include file='smsAddresses.mak'/>
+	</div>
+% endif

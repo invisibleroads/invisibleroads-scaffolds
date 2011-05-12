@@ -5,6 +5,7 @@ import optparse
 import ConfigParser
 from sqlalchemy import create_engine
 
+from {{package}} import load_settings
 from {{package}}.models import initialize_sql
 
 
@@ -17,10 +18,9 @@ class OptionParser(optparse.OptionParser):
 
 
 def initialize(options):
-    'Connect to database'
+    'Connect to database and return configuration settings'
     if options.verbose:
         print 'Using %s' % options.configurationPath
-    configuration = ConfigParser.ConfigParser({'here': basePath})
-    configuration.read(options.configurationPath)
-    initialize_sql(create_engine(configuration.get('app:{{project}}', 'sqlalchemy.url')))
-    return configuration
+    settings = load_settings(options.configurationPath, basePath)
+    initialize_sql(create_engine(settings['sqlalchemy.url']))
+    return settings

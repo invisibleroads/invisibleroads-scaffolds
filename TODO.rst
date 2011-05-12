@@ -1,1 +1,0 @@
-- Revert SMS address registration to originate from SMS address
