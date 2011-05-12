@@ -2,3 +2,5 @@
 15,35,55 * * * * cd /var/www/virtualenv/{{project}};source ../bin/activate;paster serve --daemon production.ini >> paster.log 2>&1
 # Check outbox every minute
 * * * * * cd /var/www/virtualenv/{{project}};source ../bin/activate;qp data/mail --config .production.ini >> qp.log 2>&1
+# Process SMS messages every ten minutes
+* * * * * cd /var/www/virtualenv/{{project}};source ../bin/activate;python utilities/sms.py -c production.ini >> sms.log 2>&1
