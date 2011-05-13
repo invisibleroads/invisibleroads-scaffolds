@@ -23,7 +23,7 @@ ${len(users)} users
 function computeTableHeight() {
 	return $(window).height() - 100;
 }
-var usersTable = $('#users').dataTable({
+var table = $('#users').dataTable({
 	'aaSorting': [[2, 'desc']],
 	'aoColumns': [
 		{'sType': 'html'},
@@ -37,7 +37,7 @@ var usersTable = $('#users').dataTable({
 });
 $(window).bind('resize', function() {
 	$('.dataTables_scrollBody').height(computeTableHeight());
-	usersTable.fnAdjustColumnSizing();
+	table.fnAdjustColumnSizing();
 });
 $('.dataTables_filter input').focus();
 % if IS_SUPER:
