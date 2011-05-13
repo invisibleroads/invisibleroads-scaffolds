@@ -3,6 +3,7 @@ import re
 import imapIO
 import collections
 import transaction
+import ConfigParser
 from email.utils import parseaddr
 from sqlalchemy.orm import joinedload
 from formencode import validators, Invalid
@@ -41,7 +42,7 @@ def connect(settings):
             'sms.imap.username', 
             'sms.imap.password']
     except KeyError, error:
-        return 'Missing %s in configuration file' % error
+        raise KeyError('Missing %s in configuration file' % error)
     try:
         imapServer = imapIO.connect(*imapParams)
     except imapIO.IMAPError, error:

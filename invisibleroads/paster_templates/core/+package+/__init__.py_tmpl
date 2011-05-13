@@ -6,8 +6,8 @@ from pyramid.config import Configurator
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
 from sqlalchemy import engine_from_config
 from sqlalchemy.pool import QueuePool, NullPool
-from ConfigParser import ConfigParser
 import logging; log = logging.getLogger(__name__)
+import ConfigParser
 import os
 
 from {{package}}.libraries import tools
@@ -25,7 +25,7 @@ def main(global_config, **settings):
     })
     # Load sensitive configuration
     if '__file__' in global_config:
-        settings.update(load_sensitive_settings(global_config['__file__'], ConfigParser(global_config)))
+        settings.update(load_sensitive_settings(global_config['__file__'], global_config))
     if 'ciphers.secret' in settings:
         tools.secret = settings['ciphers.secret']
     # Connect to database
@@ -96,19 +96,26 @@ def main(global_config, **settings):
 
 def load_settings(configurationPath, basePath):
     'Load settings'
-    configParser = ConfigParser({'here': basePath})
+    defaultByKey = {'here': basePath}
+    configParser = ConfigParser.ConfigParser(defaultByKey)
     if not configParser.read(configurationPath):
         raise ConfigParser.Error('Could not open %s' % configurationPath)
-    settings = dict(configParser.items('app:{{project}}'))
-    settings.update(load_sensitive_settings(configurationPath, configParser))
+    settings = {}
+    for key, value in configParser.items('app:{{project}}'):
+        if 'use' == key:
+            if value.startswith('config:'):
+                settings.update(load_settings(value.replace('config:', ''), basePath))
+        settings[key] = value
+    settings.update(load_sensitive_settings(configurationPath, defaultByKey))
     return settings
 
 
-def load_sensitive_settings(configurationPath, configParser):
+def load_sensitive_settings(configurationPath, defaultByKey):
     'Load sensitive settings from hidden configuration file'
     configFolder, configName = os.path.split(configurationPath)
     sensitivePath = os.path.join(configFolder, '.' + configName)
     settings = {}
+    configParser  = ConfigParser.ConfigParser(defaultByKey)
     if not configParser.read(sensitivePath):
         log.warn('Could not open %s' % sensitivePath)
         return settings

@@ -2,17 +2,39 @@
 ===========
 ::
 
+    # Prepare isolated environment
+    PYRAMID_ENV=$HOME/pyramid-env
+    virtualenv --no-site-packages $PYRAMID_ENV 
     # Activate isolated environment
     source $PYRAMID_ENV/bin/activate
+    # Install packages
+    pip install ipython ipdb nose coverage
+
     # Enter repository
+    PROJECTS=$HOME/Projects
     cd $PROJECTS/{{project}}
     # Install dependencies
     python setup.py develop
+
+    # Edit sensitive information
+    vim .test.ini
     # Run tests with coverage
-    nosetests
+    nosetests --pdb --pdb-failures
     # Show URL routes
     paster proutes development.ini {{package}}
     # Run shell
     paster pshell development.ini {{package}}
-    # Start server
+
+    # Edit sensitive information
+    vim .development.ini
+    # Start development server
     paster serve --reload development.ini
+
+    # Edit sensitive information
+    vim .production.ini
+    # Start production server
+    paster serve --daemon production.ini
+
+    # Edit and install crontab.crt
+    vim deployment/crontab.crt
+    crontab deployment/crontab.crt

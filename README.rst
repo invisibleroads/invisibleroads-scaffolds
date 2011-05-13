@@ -15,7 +15,7 @@ Installation
     # Activate isolated environment
     source $PYRAMID_ENV/bin/activate
     # Install packages
-    pip install ipython ipdb coverage invisibleroads-templates
+    pip install ipython ipdb nose coverage invisibleroads-templates
 
 
 Usage

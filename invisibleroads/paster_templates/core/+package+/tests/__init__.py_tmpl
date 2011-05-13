@@ -14,11 +14,12 @@ from {{package}}.models import db, User
 
 
 configurationPath = os.path.join(basePath, 'test.ini')
+settings = load_settings(configurationPath, basePath)
 
 
 class TestTemplate(unittest.TestCase):
 
-    router = main({'__file__': configurationPath}, **load_settings(configurationPath, basePath))
+    router = main({'__file__': configurationPath}, **settings)
 
     def setUp(self):
         # Initialize functional test framework
