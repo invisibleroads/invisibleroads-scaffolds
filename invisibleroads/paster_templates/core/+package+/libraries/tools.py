@@ -36,3 +36,10 @@ def make_random_unique_string(length, is_unique):
             return randomID
     # Raise exception if we have no more permutations left
     raise RuntimeError('Could not create a unique string')
+
+
+def get_remote_ip(request):
+    'Return IP address of client'
+    return request.environ.get('HTTP_X_REAL_IP', 
+           request.environ.get('HTTP_X_FORWARDED_FOR',
+           request.environ.get('REMOTE_ADDR')))
