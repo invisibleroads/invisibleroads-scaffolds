@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 'Test templates'
 import os; basePath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import re
 import webtest
 import shutil
 import unittest
@@ -88,11 +87,6 @@ def unicode_dictionary(dictionary):
     if not dictionary:
         return {}
     return dict((key, value.encode('utf-8') if isinstance(value, unicode) else value) for key, value in dictionary.iteritems())
-
-
-def get_token(body):
-    match = re.search("token = '(.*)'", body)
-    return match.group(1) if match else ''
 
 
 class ReplaceableDict(dict):

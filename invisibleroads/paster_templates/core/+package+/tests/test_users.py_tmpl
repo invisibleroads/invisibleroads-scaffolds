@@ -4,9 +4,9 @@ import unittest
 
 from {{package}}.views import users
 from {{package}}.libraries import sms
-from {{package}}.tests import settings
+from {{package}}.libraries.tools import get_token
 from {{package}}.models import db, User, User_, SMSAddress
-from {{package}}.tests import TestTemplate, ReplaceableDict, get_token
+from {{package}}.tests import TestTemplate, ReplaceableDict, settings
 
 
 class TestUsers(TestTemplate):
