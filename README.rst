@@ -10,7 +10,7 @@ Installation
 ::
 
     # Prepare isolated environment
-    PYRAMID_ENV=$HOME/pyramid-env
+    PYRAMID_ENV=$HOME/Projects/pyramid-env
     virtualenv --no-site-packages $PYRAMID_ENV 
     # Activate isolated environment
     source $PYRAMID_ENV/bin/activate
@@ -24,6 +24,9 @@ Usage
 
     # Activate isolated environment
     source $PYRAMID_ENV/bin/activate
+    # Enter workspace
+    PROJECTS=$HOME/Projects
+    cd $PROJECTS
 
     # List available templates
     paster create --list-templates
