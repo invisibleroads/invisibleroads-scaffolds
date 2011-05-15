@@ -76,7 +76,7 @@ class User(Base):
     nickname = column_property(
         Column(Unicode(NICKNAME_LEN_MAX), unique=True),
         comparator_factory=CaseInsensitiveComparator)
-    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2), unique=True)
+    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2), unique=True) # Doubled for unicode addresses
     is_active = Column(Boolean, default=True)
     is_super = Column(Boolean, default=False)
     rejection_count = Column(Integer, default=0)
@@ -111,7 +111,7 @@ class User_(Base):
     nickname = column_property(
         Column(Unicode(NICKNAME_LEN_MAX)), 
         comparator_factory=CaseInsensitiveComparator)
-    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2))
+    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2)) # Doubled for unicode addresses
     user_id = Column(ForeignKey('users.id'))
     ticket = Column(String(TICKET_LEN), unique=True)
     when_expired = Column(DateTime)
@@ -124,7 +124,7 @@ class SMSAddress(Base):
     'An SMS address'
     __tablename__ = 'sms_addresses'
     id = Column(Integer, primary_key=True)
-    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2))
+    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2)) # Doubled for unicode addresses
     user_id = Column(ForeignKey('users.id'))
     is_active = Column(Boolean, default=False)
 
