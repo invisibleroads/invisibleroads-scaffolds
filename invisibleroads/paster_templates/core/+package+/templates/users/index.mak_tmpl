@@ -7,6 +7,7 @@ td {text-align: center}
 .user {color: gray}
 .user.is_active {color: black}
 .flag {color: darkblue}
+.dataTables_filter {position: fixed; bottom: 0}
 </%def>
 
 <%def name='toolbar()'>
