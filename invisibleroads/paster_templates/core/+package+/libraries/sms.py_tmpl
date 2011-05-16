@@ -22,10 +22,10 @@ def process(settings):
     for email in imapServer.walk('inbox', sortCriterion='ARRIVAL'):
         # If the user is trying to register an SMS address,
         if processRegistration(email):
-            countByKey['registrations'] += 1
+            countByKey['Registrations'] += 1
         # Mark email as deleted
         email.deleted = True
-        countByKey['messages'] += 1
+        countByKey['Messages'] += 1
     # Finalize
     transaction.commit()
     imapServer.expunge()
