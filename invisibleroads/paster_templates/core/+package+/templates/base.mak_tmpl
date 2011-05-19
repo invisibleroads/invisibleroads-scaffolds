@@ -1,11 +1,11 @@
 <!doctype html>
-<html>
+<html lang=en>
 <head>
-	<meta http-equiv='Content-Type' content='text/html;charset=UTF-8'/>
-	<meta name='author' content='Roy Hyunjin Han'/>
+    <meta charset=utf-8 />
+	<meta name=author content='Roy Hyunjin Han' />
 	<title>${SITE_NAME} ${self.title()}</title>
-	<link rel='shortcut icon' href='${request.static_url('{{package}}:static/favicon.ico')}'/>
-	<link rel=stylesheet href='${request.static_url('{{package}}:static/style.css')}'>
+	<link rel=icon href='${request.static_url('{{package}}:static/favicon.ico')}' />
+	<link rel=stylesheet href='${request.static_url('{{package}}:static/style.css')}' />
 	<style>${self.css()}</style>
 </head>
 <body>
