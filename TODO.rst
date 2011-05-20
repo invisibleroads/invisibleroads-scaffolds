@@ -1,0 +1,7 @@
+- Upgrade to latest jQuery
+- Use $.ajaxSetup for general error handling
+- Use $.serialize to gather form data
+- Use $.map where there are list comprehensions
+- Replace relevant instances of attr with prop
+- Replace hover with toggleClass boolean
+- Use || trick to set defaults for null values
