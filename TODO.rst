@@ -5,3 +5,6 @@
 - Replace relevant instances of attr with prop
 - Replace hover with toggleClass boolean
 - Use || trick to set defaults for null values
+- Use $() html with props creation trick
+- Use e.which
+- Use focused selector to indicate element that has focus
