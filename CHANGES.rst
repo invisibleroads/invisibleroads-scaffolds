@@ -1,9 +1,11 @@
 1.7.4
 -----
-- Upgraded to jQuery 1.6.1
+- Added robots.txt with default exclusion from search engine crawlers
+- Added get_remote_ip()
 - Added $.ajaxSetup for general error handling
 - Used prop('disabled', true) instead of attr('disabled', 'disabled')
 - Used e.which instead of e.keyCode
+- Upgraded to jQuery 1.6.1
 
 
 1.7.3
