@@ -1,3 +1,8 @@
+1.7.4
+-----
+- Upgraded to jQuery 1.6.1
+
+
 1.7.3
 -----
 - Changed to cryptacular.bcrypt() for password hash

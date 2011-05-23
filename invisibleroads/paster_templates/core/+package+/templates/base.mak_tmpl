@@ -42,7 +42,7 @@
 <div id=main>
 	${next.body()}
 </div>
-<script src="${request.static_url('{{package}}:static/jquery-1.5.2.min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/jquery-1.6.1.min.js')}"></script>
 ${self.root()}
 <script>
     $('.hover').live({
