@@ -1,7 +1,7 @@
 We received your ${action} request for the following credentials.
 
 Username: ${form['username']}
-% if action == 'reset':
+% if 'reset' == action:
 Password: ${form['password']}
 % endif
 

@@ -68,7 +68,7 @@ $('.role').live({
             } else {
                 objRow.removeClass('is_super');
             }
-            post("${request.route_path('user_move')}", {
+            $.post("${request.route_path('user_move')}", {
                 token: token,
                 targetUserID: targetUserID,
                 is_super: is_super
@@ -110,7 +110,7 @@ $('.when_login').live({
             } else {
                 objRow.removeClass('is_active');
             }
-            post("${request.route_path('user_move')}", {
+            $.post("${request.route_path('user_move')}", {
                 token: token,
                 targetUserID: targetUserID,
                 is_active: is_active

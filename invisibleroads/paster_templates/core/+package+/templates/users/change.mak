@@ -37,25 +37,21 @@ $('.message').each(function() {
 });
 // Define button behavior
 function save() {
-    var username = $('#username').val(),
-        password = $('#password').val(), 
-        nickname = $('#nickname').val(), 
-        email = $('#email').val();
-    $('.lockOnSave').attr('disabled', 'disabled');
-	post("${request.route_path('user_update' if user else 'user_register')}", {
+    $('.lockOnSave').prop('disabled', true);
+	$.post("${request.route_path('user_update' if user else 'user_register')}", {
 	% if user:
 		token: token,
 	% endif
-        username: username,
-        password: password,
-        nickname: nickname,
-        email: email
+        username: $('#username').val(),
+        password: $('#password').val(),
+        nickname: $('#nickname').val(),
+        email: $('#email').val()
     }, function(data) {
         var messageByID = {};
         if (data.isOk) {
 			messageByID['status'] = "Please check your email to ${'finalize changes to' if user else 'create'} your account.";
         } else {
-            $('.lockOnSave').removeAttr('disabled');
+			$('.lockOnSave').prop('disabled', false);
             messageByID = data.errorByID;
         }
         showMessageByID(messageByID);
@@ -80,7 +76,7 @@ $('#mutate').click(function() {
 $('.smsAddressRemove').live('click', function() {
 	var smsAddressID = getID(this), smsAddress = $('#smsAddress' + smsAddressID);
 	smsAddress.hide();
-	post("${request.route_path('user_update')}", {
+	$.post("${request.route_path('user_update')}", {
 		token: token,
 		smsAddressID: smsAddressID,
 		smsAddressAction: 'remove'
@@ -108,7 +104,7 @@ $('.smsAddressEmail').live({
 		var smsAddressID = getID(this);
 		var smsAddress = $('#smsAddress' + smsAddressID);
 		var is_active = smsAddress.hasClass('smsAddressInactive');
-		post("${request.route_path('user_update')}", {
+		$.post("${request.route_path('user_update')}", {
 			token: token,
 			smsAddressID: smsAddressID,
 			smsAddressAction: is_active ? 'deactivate' : 'activate'
@@ -128,10 +124,10 @@ $('.smsAddressEmail').live({
 });
 % endif
 // Let ENTER key traverse and submit form
-$('#username').keydown(function(e) {if (e.keyCode == 13) $('#password').focus()});
-$('#password').keydown(function(e) {if (e.keyCode == 13) $('#nickname').focus()});
-$('#nickname').keydown(function(e) {if (e.keyCode == 13) $('#email').focus()});
-$('#email').keydown(function(e) {if (e.keyCode == 13) save()});
+$('#username').keydown(function(e) {if (13 == e.which) $('#password').focus()});
+$('#password').keydown(function(e) {if (13 == e.which) $('#nickname').focus()});
+$('#nickname').keydown(function(e) {if (13 == e.which) $('#email').focus()});
+$('#email').keydown(function(e) {if (13 == e.which) save()});
 // Focus
 $('#username').focus();
 </%def>

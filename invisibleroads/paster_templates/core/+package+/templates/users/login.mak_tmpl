@@ -53,7 +53,7 @@ function login() {
         loginData['recaptcha_response'] = $('#recaptcha_response_field').val();
     }
     // Attempt login
-    post("${request.route_path('user_login')}", loginData, function(data) {
+    $.post("${request.route_path('user_login')}", loginData, function(data) {
         if (data.isOk) {
             window.location = "${url}";
         } else {
@@ -81,15 +81,15 @@ function reset() {
         return;
     }
     // Post
-    $('.lockOnReset').attr('disabled', true);
-    post("${request.route_path('user_reset')}", {
+    $('.lockOnReset').prop('disabled', true);
+    $.post("${request.route_path('user_reset')}", {
         'email': email
     }, function(data) {
         if (data.isOk) {
             $('#m_password').html('<b>Please check your mailbox</b>');
         } else {
             $('#m_password').html('<b>Email not found</b>');
-            $('.lockOnReset').removeAttr('disabled');
+            $('.lockOnReset').prop('disabled', false);
         }
     });
 }
@@ -98,14 +98,14 @@ function reset() {
 $('#resetLink').click(function() {
     $('#resetLink').hide();
     $('#resetForm').show();
-    $('#resetEmail').val('').keydown(function(e) {if (e.keyCode == 13) reset()}).focus();
+    $('#resetEmail').val('').keydown(function(e) {if (13 == e.which) reset()}).focus();
 });
 $('#reset').click(reset);
 
 // Prepare login form
 $('#login').click(login);
-$('#username').keydown(function(e) {if (e.keyCode == 13) $('#password').focus()});
-$('#password').keydown(function(e) {if (e.keyCode == 13) login()});
+$('#username').keydown(function(e) {if (13 == e.which) $('#password').focus()});
+$('#password').keydown(function(e) {if (13 == e.which) login()});
 
 // Configure
 $('#minutes_offset').val(new Date().getTimezoneOffset());

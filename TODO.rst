@@ -1,9 +1,0 @@
-- Use $.ajaxSetup for general error handling
-- Use $.serialize to gather form data
-- Use $.map where there are list comprehensions
-- Replace relevant instances of attr with prop
-- Replace hover with toggleClass boolean
-- Use || trick to set defaults for null values
-- Use $() html with props creation trick
-- Use e.which instead of keyCode
-- Use focused selector to indicate element that has focus

@@ -1,6 +1,9 @@
 1.7.4
 -----
 - Upgraded to jQuery 1.6.1
+- Added $.ajaxSetup for general error handling
+- Used prop('disabled', true) instead of attr('disabled', 'disabled')
+- Used e.which instead of e.keyCode
 
 
 1.7.3
