@@ -114,7 +114,7 @@ class User_(Base):
     email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2)) # Doubled for unicode addresses
     user_id = Column(ForeignKey('users.id'))
     ticket = Column(String(TICKET_LEN), unique=True)
-    when_expired = Column(DateTime)
+    when_expire = Column(DateTime)
 
     def __str__(self):
         return "<User_(id=%s)>" % self.id
