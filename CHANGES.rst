@@ -1,3 +1,8 @@
+1.7.5
+-----
+- Used argparse instead of optparse in utilities/script_process
+
+
 1.7.4
 -----
 - Added robots.txt with default exclusion from search engine crawlers
