@@ -3,9 +3,8 @@
 <%def name='title()'>Account ${'Update' if user else 'Registration'}</%def>
 
 <%def name='css()'>
-td {padding-right: 1em}
+td {padding-right: 0.5em}
 .smsAddressInactive .text {color: gray}
-.flag {color: darkblue}
 </%def>
 
 <%def name='js()'>
@@ -74,8 +73,8 @@ $('#mutate').click(function() {
 });
 // Remove SMS address after user clicks on the button
 $('.smsAddressRemove').live('click', function() {
-	var smsAddressID = getID(this), smsAddress = $('#smsAddress' + smsAddressID);
-	smsAddress.hide();
+	var smsAddressID = getID(this), $smsAddress = $('#smsAddress' + smsAddressID);
+	$smsAddress.hide();
 	$.post("${request.route_path('user_update')}", {
 		token: token,
 		smsAddressID: smsAddressID,
@@ -83,7 +82,7 @@ $('.smsAddressRemove').live('click', function() {
 	}, function(data) {
 		if (!data.isOk) {
 			alert(data.message);
-			smsAddress.show();
+			$smsAddress.show();
 		}
 	});
 });
@@ -102,8 +101,8 @@ $('.smsAddressEmail').live({
 	click: function() {
 		$(this).find('.flag').remove();
 		var smsAddressID = getID(this);
-		var smsAddress = $('#smsAddress' + smsAddressID);
-		var is_active = smsAddress.hasClass('smsAddressInactive');
+		var $smsAddress = $('#smsAddress' + smsAddressID);
+		var is_active = $smsAddress.hasClass('smsAddressInactive');
 		$.post("${request.route_path('user_update')}", {
 			token: token,
 			smsAddressID: smsAddressID,
@@ -112,9 +111,9 @@ $('.smsAddressEmail').live({
 			$('#smsAddressEmail' + smsAddressID).find('.text').show();
 			if (data.isOk) {
 				if (data.is_active) {
-					smsAddress.removeClass('smsAddressInactive');
+					$smsAddress.removeClass('smsAddressInactive');
 				} else {
-					smsAddress.addClass('smsAddressInactive');
+					$smsAddress.addClass('smsAddressInactive');
 				}
 			} else {
 				alert(data.message);

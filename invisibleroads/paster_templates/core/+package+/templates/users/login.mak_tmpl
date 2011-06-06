@@ -3,7 +3,7 @@
 <%def name='title()'>Login</%def>
 
 <%def name='css()'>
-td {padding-right: 1em}
+td {padding-right: 0.5em}
 #resetPack {display: none}
 #resetForm {display: none}
 </%def>
@@ -22,13 +22,13 @@ var rejection_count = 0;
 
 // Define functions
 function isEmpty(inputID) {
-    var input = $('#' + inputID), output = $('#m_' + inputID);
-    if (input.val() == '') {
-        output.text('You must provide a ' + inputID);
-        input.focus();
+    var $input = $('#' + inputID), $output = $('#m_' + inputID);
+    if ($input.val() == '') {
+        $output.text('You must provide a ' + inputID);
+        $input.focus();
         return 1;
     } else {
-        output.text('');
+        $output.text('');
         return 0;
     }
 }

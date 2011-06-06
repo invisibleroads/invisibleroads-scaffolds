@@ -12,8 +12,8 @@ import ConfigParser
 import os
 
 from {{package}}.libraries import tools
-from {{package}}.models import initialize_sql
-from {{package}}.views import users, pages
+from {{package}}.models import initialize_sql, ApplicationError
+from {{package}}.views import users, pages, rows
 from {{package}}.parameters import *
 
 
@@ -98,6 +98,8 @@ def main(global_config, **settings):
     config.include(users)
     # Configure routes that demonstrate access control
     config.include(pages)
+    # Configure routes that demonstrate a row-based interface
+    config.include(rows)
     # Return WSGI app
     return config.make_wsgi_app()
 
@@ -107,7 +109,7 @@ def load_settings(configurationPath, basePath):
     defaultByKey = {'here': basePath}
     configParser = ConfigParser.ConfigParser(defaultByKey)
     if not configParser.read(configurationPath):
-        raise ConfigParser.Error('Could not open %s' % configurationPath)
+        raise ApplicationError('Could not open %s' % configurationPath)
     settings = {}
     for key, value in configParser.items('app:{{project}}'):
         if 'use' == key:

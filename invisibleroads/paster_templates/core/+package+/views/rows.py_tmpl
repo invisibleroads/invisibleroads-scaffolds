@@ -1,0 +1,48 @@
+'A row-based interface'
+from pyramid.view import view_config
+from pyramid.renderers import render
+from formencode import validators, Schema, Invalid
+
+from {{package}}.models import db, Row
+
+
+def includeme(config):
+    config.scan(__name__)
+    config.add_route('row_index', 'rows')
+    config.add_route('row_update', 'rows')
+
+
+@view_config(route_name='row_index', renderer='rows/index.mak', request_method='GET', permission='__no_permission_required__')
+def index(request):
+    'Show rows'
+    return dict(rows=db.query(Row).all())
+
+
+@view_config(route_name='row_update', renderer='json', request_method='POST', permission='active')
+def update(request):
+    'Update row'
+    params = request.params
+    if params.get('token') != request.session.get_csrf_token():
+        return dict(isOk=0, message='Invalid session token')
+    # Validate
+    try:
+        form = RowForm().to_python(dict(params))
+    except Invalid, error:
+        return dict(isOk=0, errorByID=error.unpack_errors())
+    # Merge
+    db.merge(Row(
+        id=params.get('id'),
+        col1=form['col1'],
+        col2=form['col2']))
+    # Return
+    return dict(isOk=1, content=render('rows/rows.mak', index(request), request))
+
+
+class RowForm(Schema):
+    'Row validator'
+
+    allow_extra_fields = True
+    filter_extra_fields = True
+
+    col1 = validators.UnicodeString(min=3, max=64, not_empty=True, strip=True)
+    col2 = validators.UnicodeString(min=3, max=64, not_empty=True, strip=True)

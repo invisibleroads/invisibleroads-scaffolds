@@ -17,6 +17,11 @@ Base = declarative_base()
 crypt = bcrypt.BCRYPTPasswordManager()
 
 
+class ApplicationError(Exception):
+    'An application error'
+    pass
+
+
 class CaseInsensitiveComparator(ColumnProperty.Comparator):
     'A case-insensitive SQLAlchemy comparator for unicode columns'
 
@@ -130,6 +135,17 @@ class SMSAddress(Base):
 
     def __str__(self):
         return "<SMSAddress(id=%s)>" % self.id
+
+
+class Row(Base):
+    'A row'
+    __tablename__ = 'rows'
+    id = Column(Integer, primary_key=True)
+    col1 = Column(Unicode(64))
+    col2 = Column(Unicode(64))
+
+    def __str__(self):
+        return "<Row(id=%s)>" % self.id
 
 
 def initialize_sql(engine):

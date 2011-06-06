@@ -1,0 +1,131 @@
+<%inherit file='/base.mak'/>
+
+<%def name='title()'>Rows</%def>
+
+<%def name='css()'>
+#tip {position: fixed; bottom: 0; right: 0}
+#form td:first-child {padding-right: 0.5em}
+</%def>
+
+<%def name='root()'>
+<link rel=stylesheet href="${request.static_url('{{package}}:static/datatables/style.css')}">
+<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.titleString.min.js')}"></script>
+<link rel=stylesheet href="${request.static_url('{{package}}:static/colorbox/style.css')}">
+<script src="${request.static_url('{{package}}:static/colorbox/jquery.colorbox-min.js')}"></script>
+</%def>
+
+<%def name='js()'>
+function computeTableHeight() {
+	return $(window).height() - 110;
+}
+var $table = $('#data').dataTable({
+	'aaSorting': [],
+	'aoColumns': [
+        {'sType': 'string'},
+		{'sType': 'string'}
+	],
+	'bPaginate': false,
+	'oLanguage': {'sSearch': 'Filter'},
+	'sScrollY': computeTableHeight()
+});
+$(window).bind('resize', function() {
+	$('.dataTables_scrollBody').height(computeTableHeight());
+	$table.fnAdjustColumnSizing();
+});
+% if IS_ACTIVE:
+var token = '${request.session.get_csrf_token()}';
+function save() {
+    $.post("", {
+    }, function(data) {
+        if (data.isOk) {
+        } else {
+			$('.lockOnSave').prop('disabled', false);
+            showMessageByID(data.errorByID);
+        }
+    });
+}
+$('tr').live({
+	mouseenter: function() {
+        var id = $(this).prop('id');
+        if (!id) return;
+        var action = (id == 'row0') ? 'add' : 'edit';
+        $('#tip').html('Doubleclick to ' + action);
+    },
+	mouseleave: function() {
+        $('#tip').html('');
+    },
+    dblclick: function() {
+        var id = $(this).prop('id');
+        if (!id) return;
+        var action = (id == 'row0') ? 'Add' : 'Edit';
+        $('#form #title').html('<b>' + action + '</b>');
+        $.fn.colorbox({
+            href: '#form', 
+            inline: true,
+            open: true,
+            onComplete: function() {
+                $formObjs.first().focus();
+            }
+        });
+    }
+});
+var $formObjs = $('#form input,select').not('#save')
+    .keydown(function(e) {
+        if (13 == e.which) {
+            var $obj = $formObjs.get($formObjs.index(this) + 1);
+            if ($obj) {
+                $obj.focus();
+            } else {
+                save();
+            }
+        }
+    });
+$('#form #save').click(save);
+% endif
+$('.dataTables_filter input').focus();
+</%def>
+
+<table id=data>
+	<thead>
+		<tr id=row0>
+			<th class=left>Column1</th>
+            <th class=left>Column2</th>
+		</tr>
+	</thead>
+	<tbody>
+	% for row in rows:
+        <tr id=row${row.id}>
+            <td class=left>${row.col1}</td>
+            <td class=left>${row.col2}</td>
+        </tr>
+	% endfor
+	</tbody>
+</table>
+
+<div id=tip></div>
+
+<div style='display: none'>
+    <div id=form>
+        <span id=title></span>
+        <table>
+            <tbody>
+                <tr>
+                    <td><label for=col1>Column1</label></td>
+                    <td><input id=col1></td>
+                </tr>
+                <tr>
+                    <td><label for=col2>Column2</label></td>
+                    <td>
+                        <select id=col2>
+                            <option value='many'>Many</option>
+                            <option value='some'>Some</option>
+                            <option value='none'>None</option>
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <input id=save type=submit value=Save>
+    </div>
+</div>

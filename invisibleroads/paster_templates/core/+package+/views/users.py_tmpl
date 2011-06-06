@@ -12,7 +12,7 @@ from recaptcha.client import captcha
 from sqlalchemy.orm import joinedload
 from beaker.cache import cache_region, region_invalidate
 
-from {{package}}.models import db, User, User_, SMSAddress
+from {{package}}.models import db, User, User_, SMSAddress, ApplicationError
 from {{package}}.libraries.tools import make_random_string, make_random_unique_string
 from {{package}}.parameters import *
 
@@ -54,7 +54,7 @@ def confirm(request):
     # Apply changes to user account
     try:
         user_ = apply_user_(request.matchdict.get('ticket', ''))
-    except UserException:
+    except ApplicationError:
         message = 'Ticket expired'
     else:
         message = 'Account updated' if user_.user_id else 'Account created'
@@ -305,7 +305,7 @@ def apply_user_(ticket):
         (User_.ticket == ticket) & 
         (User_.when_expire >= datetime.datetime.utcnow())).first()
     if not user_:
-        raise UserException('')
+        raise ApplicationError
     # If the ticket is valid,
     if user_:
         # Apply the change and reset rejection_count
@@ -386,7 +386,3 @@ class UserForm(Schema):
             strip=True),
         validators.Email(),
         Unique('email', 'That email is reserved for another account'))
-
-
-class UserException(Exception):
-    pass
