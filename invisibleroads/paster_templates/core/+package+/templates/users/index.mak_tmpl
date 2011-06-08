@@ -3,15 +3,13 @@
 <%def name='title()'>Users</%def>
 
 <%def name='css()'>
-td {text-align: center}
-.user {color: gray}
-.user.is_active {color: black}
+td {text-align:center}
+.user {color:gray}
+.user.is_active {color:black}
 </%def>
 
 <%def name='root()'>
-<link rel=stylesheet href="${request.static_url('{{package}}:static/datatables/style.css')}">
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.titleString.min.js')}"></script>
 </%def>
 
 <%def name='js()'>

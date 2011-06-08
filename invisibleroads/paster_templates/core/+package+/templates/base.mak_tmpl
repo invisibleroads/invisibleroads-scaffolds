@@ -15,6 +15,7 @@
 	<%
 	linkPacks = [
 		('Home', '/'),
+        ('Bits', '/bits'),
         ('Rows', request.route_path('row_index')),
 		('Users', request.route_path('user_index')),
 	]

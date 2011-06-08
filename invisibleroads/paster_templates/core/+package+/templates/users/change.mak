@@ -3,8 +3,8 @@
 <%def name='title()'>Account ${'Update' if user else 'Registration'}</%def>
 
 <%def name='css()'>
-td {padding-right: 0.5em}
-.smsAddressInactive .text {color: gray}
+td {padding-right:0.5em}
+.smsAddressInactive .text {color:gray}
 </%def>
 
 <%def name='js()'>

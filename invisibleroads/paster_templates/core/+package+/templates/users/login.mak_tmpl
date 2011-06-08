@@ -3,9 +3,9 @@
 <%def name='title()'>Login</%def>
 
 <%def name='css()'>
-td {padding-right: 0.5em}
-#resetPack {display: none}
-#resetForm {display: none}
+td {padding-right:0.5em}
+#resetPack {display:none}
+#resetForm {display:none}
 </%def>
 
 <%def name='toolbar()'>

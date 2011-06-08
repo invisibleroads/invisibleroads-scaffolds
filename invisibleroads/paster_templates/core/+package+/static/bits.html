@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+    <head>
+        <link rel=stylesheet href='style.css' />
+        <link rel=stylesheet href='tools.css' />
+        <style>
+            .overlay {
+                display:none;
+                z-index:10000;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Tabs -->
+        <div class=tabs>
+            <a>Tab 1</a>
+            <a>Tab 2</a>
+        </div>
+        <div class=panes>
+            <div>First</div>
+            <div>Second</div>
+        </div>
+
+        <!-- Tooltips -->
+        <span class=tipped title='The tip'>Hover</span><br>
+
+        <!-- Overlays -->
+        <span class=overlaid rel='#overlay1'>Click</span><br>
+        <div id=overlay1 class=overlay>
+            <table>
+                <tr><td>Field1</td><td><input></td></tr>
+                <tr><td>Field2</td><td><input></td></tr>
+            </table>
+        </div>
+
+        <!-- Scrollables -->
+    </body>
+    <script src='jquery-1.6.1.min.js'></script>
+    <script src='jquery.tools.min.js'></script>
+    <script>
+        $('.tabs').tabs('.panes > div', {
+            history: true
+        });
+        $('.tipped').tooltip({
+            position: 'center right',
+            offset: [0, 10]
+        });
+        $('.overlaid').overlay({
+            mask: {
+                color: '#000'
+            }
+        });
+    </script>
+</html>

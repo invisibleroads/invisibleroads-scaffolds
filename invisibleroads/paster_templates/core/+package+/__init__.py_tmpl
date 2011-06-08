@@ -96,10 +96,12 @@ def main(global_config, **settings):
     config.add_view(lambda request: Response(content_type='text/plain', body=robots_txt), name='robots.txt', permission='__no_permission_required__')
     # Configure routes for user account management
     config.include(users)
+
     # Configure routes that demonstrate access control
     config.include(pages)
     # Configure routes that demonstrate a row-based interface
     config.include(rows)
+
     # Return WSGI app
     return config.make_wsgi_app()
 

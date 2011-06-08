@@ -3,16 +3,18 @@
 <%def name='title()'>Rows</%def>
 
 <%def name='css()'>
-#tip {position: fixed; bottom: 0; right: 0}
-#form td:first-child {padding-right: 0.5em}
+#tip {position:fixed; bottom:0; right:0}
+#form {
+    display:none;
+    z-index:10000;
+    background-color:#fff;
+}
+#form td:first-child {padding-right:0.5em}
 </%def>
 
 <%def name='root()'>
-<link rel=stylesheet href="${request.static_url('{{package}}:static/datatables/style.css')}">
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.titleString.min.js')}"></script>
-<link rel=stylesheet href="${request.static_url('{{package}}:static/colorbox/style.css')}">
-<script src="${request.static_url('{{package}}:static/colorbox/jquery.colorbox-min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
 </%def>
 
 <%def name='js()'>
@@ -36,6 +38,7 @@ $(window).bind('resize', function() {
 % if IS_ACTIVE:
 var token = '${request.session.get_csrf_token()}';
 function save() {
+    /* 
     $.post("", {
     }, function(data) {
         if (data.isOk) {
@@ -44,6 +47,7 @@ function save() {
             showMessageByID(data.errorByID);
         }
     });
+    */
 }
 $('tr').live({
 	mouseenter: function() {
@@ -60,14 +64,17 @@ $('tr').live({
         if (!id) return;
         var action = (id == 'row0') ? 'Add' : 'Edit';
         $('#form #title').html('<b>' + action + '</b>');
-        $.fn.colorbox({
-            href: '#form', 
-            inline: true,
-            open: true,
-            onComplete: function() {
-                $formObjs.first().focus();
-            }
-        });
+        $('#form').overlay().load();
+    }
+});
+$('#form').overlay({
+    mask: {
+        color: '#000000',
+        loadspeed: 0,
+        opacity: 0.9
+    },
+    onLoad: function(e) {
+        $formObjs.first().focus();
     }
 });
 var $formObjs = $('#form input,select').not('#save')
@@ -105,27 +112,30 @@ $('.dataTables_filter input').focus();
 
 <div id=tip></div>
 
-<div style='display: none'>
-    <div id=form>
-        <span id=title></span>
-        <table>
-            <tbody>
-                <tr>
-                    <td><label for=col1>Column1</label></td>
-                    <td><input id=col1></td>
-                </tr>
-                <tr>
-                    <td><label for=col2>Column2</label></td>
-                    <td>
-                        <select id=col2>
-                            <option value='many'>Many</option>
-                            <option value='some'>Some</option>
-                            <option value='none'>None</option>
-                        </select>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        <input id=save type=submit value=Save>
-    </div>
+<div id=form>
+    <span id=title></span>
+    <table>
+        <tbody>
+            <tr>
+                <td><label for=col1>Column1</label></td>
+                <td>
+                    <select id=col1>
+                        <option value='many'>Many</option>
+                        <option value='some'>Some</option>
+                        <option value='none'>None</option>
+                    </select>
+                </td>
+            <tr>
+                <td><label for=col2>Column2</label></td>
+                <td>
+                    <select id=col2>
+                        <option value='many'>Many</option>
+                        <option value='some'>Some</option>
+                        <option value='none'>None</option>
+                    </select>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <input id=save type=submit value=Save>
 </div>
