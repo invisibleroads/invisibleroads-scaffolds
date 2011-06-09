@@ -39,5 +39,11 @@
 	background-color:#ddd;	
 }
 .tooltip {
+    display: none;
+}
+.overlay {
     display:none;
+    z-index:10000;
+    background:#fff;
+    padding:5px;
 }

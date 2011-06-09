@@ -3,14 +3,9 @@
     <head>
         <link rel=stylesheet href='style.css' />
         <link rel=stylesheet href='tools.css' />
-        <style>
-            .overlay {
-                display:none;
-                z-index:10000;
-            }
-        </style>
     </head>
     <body>
+
         <!-- Tabs -->
         <div class=tabs>
             <a>Tab 1</a>
@@ -30,24 +25,29 @@
             <table>
                 <tr><td>Field1</td><td><input></td></tr>
                 <tr><td>Field2</td><td><input></td></tr>
+                <tr>
+                    <td></td>
+                    <td>
+                        <input class=close type=button value=Save>
+                        <input class=close type=button value=Cancel>
+                    </td>
+                </tr>
             </table>
         </div>
 
-        <!-- Scrollables -->
     </body>
     <script src='jquery-1.6.1.min.js'></script>
     <script src='jquery.tools.min.js'></script>
     <script>
-        $('.tabs').tabs('.panes > div', {
-            history: true
-        });
+        $('.tabs').tabs('.panes > div');
         $('.tipped').tooltip({
             position: 'center right',
             offset: [0, 10]
         });
         $('.overlaid').overlay({
             mask: {
-                color: '#000'
+                color: '#000',
+                loadSpeed: 0
             }
         });
     </script>
