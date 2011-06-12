@@ -43,7 +43,7 @@
 }
 .overlay {
     display:none;
-    z-index:10000;
+    z-index:9999;
     background:#fff;
     padding:5px;
 }

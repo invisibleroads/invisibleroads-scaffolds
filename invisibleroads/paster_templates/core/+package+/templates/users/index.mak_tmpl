@@ -14,7 +14,7 @@ td {text-align:center}
 
 <%def name='js()'>
 function computeTableHeight() {
-	return $(window).height() - 110;
+    return $(window).height() - (($('tr:first').height() + 7) * 3);
 }
 var $table = $('#data').dataTable({
 	'aaSorting': [],

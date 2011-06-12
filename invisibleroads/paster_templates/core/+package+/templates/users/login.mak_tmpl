@@ -86,9 +86,9 @@ function reset() {
         'email': email
     }, function(data) {
         if (data.isOk) {
-            $('#m_password').html('<b>Please check your mailbox</b>');
+            $('#m_password').html('<span class=error>Please check your mailbox</span>');
         } else {
-            $('#m_password').html('<b>Email not found</b>');
+            $('#m_password').html('<span class=error>Email not found</span>');
             $('.lockOnReset').prop('disabled', false);
         }
     });
@@ -139,7 +139,7 @@ $('#username').focus();
 		<td id=m_password></td>
 	</tr>
 	<tr>
-		<td><label for=minutes_offset>Time</label</td>
+		<td><label for=minutes_offset>Time</label></td>
 		<td>
 			<select id=minutes_offset>
 				<%include file='offsets.mak'/>

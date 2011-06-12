@@ -3,139 +3,174 @@
 <%def name='title()'>Rows</%def>
 
 <%def name='css()'>
-#tip {position:fixed; bottom:0; right:0}
-#form {
-    display:none;
-    z-index:10000;
-    background-color:#fff;
-}
+#info {position:fixed; bottom:0; right:0}
+#form {display:none}
 #form td:first-child {padding-right:0.5em}
+.formTip {color:#fff; z-index:10000}
 </%def>
 
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
 <script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
+<link rel=stylesheet href="${request.static_url('{{package}}:static/tools.css')}" />
 </%def>
 
 <%def name='js()'>
+var $table;
 function computeTableHeight() {
-	return $(window).height() - 110;
+    return $(window).height() - (($('tr:first').height() + 7) * 3);
 }
-var $table = $('#data').dataTable({
-	'aaSorting': [],
-	'aoColumns': [
-        {'sType': 'string'},
-		{'sType': 'string'}
-	],
-	'bPaginate': false,
-	'oLanguage': {'sSearch': 'Filter'},
-	'sScrollY': computeTableHeight()
-});
+function applyDataTable() {
+    var aaSorting;
+    if ($table) {
+        $table.fnClearTable(false);
+        aaSorting = $table.fnSettings().aaSorting;
+    } else {
+        aaSorting = [];
+    }
+    $table = $('#data').dataTable({
+        'aaSorting': aaSorting,
+        'aoColumns': [
+            {'sClass': 'col1', 'sType': 'string'},
+            {'sClass': 'col2', 'sType': 'string'}
+        ],
+        'bDestroy': true,
+        'bPaginate': false,
+        'oLanguage': {'sSearch': 'Filter'},
+        'sScrollY': computeTableHeight()
+    });
+    $('.dataTables_filter input').focus();
+}
+applyDataTable();
 $(window).bind('resize', function() {
 	$('.dataTables_scrollBody').height(computeTableHeight());
 	$table.fnAdjustColumnSizing();
 });
 % if IS_ACTIVE:
 var token = '${request.session.get_csrf_token()}';
-function save() {
-    /* 
-    $.post("", {
-    }, function(data) {
-        if (data.isOk) {
-        } else {
-			$('.lockOnSave').prop('disabled', false);
-            showMessageByID(data.errorByID);
+var $form = $('#form');
+var $formObjs = $form.find('input,select').not('#save,#cancel,#id');
+var defaultByID = {};
+$formObjs.each(function() {defaultByID[this.id] = this.title});
+function showFormMessages(messageByID) {
+	var focused = false;
+	$formObjs.each(function() {
+		var id = this.id;
+        var message = messageByID[id];
+        if (message) {
+            $(this)
+                .prop('title', '<span class=error>' + message + '</span>')
+                .tooltip()
+                   .show();
+            if (!focused) {
+                $('#' + id).focus().select();
+                focused = true;
+            }
         }
-    });
-    */
+	});
 }
-$('tr').live({
+$('.dataTables_scroll tr').live({
 	mouseenter: function() {
         var id = $(this).prop('id');
         if (!id) return;
         var action = (id == 'row0') ? 'add' : 'edit';
-        $('#tip').html('Doubleclick to ' + action);
+        $('#info').html('Doubleclick to ' + action);
     },
 	mouseleave: function() {
-        $('#tip').html('');
+        $('#info').html('');
     },
     dblclick: function() {
-        var id = $(this).prop('id');
-        if (!id) return;
-        var action = (id == 'row0') ? 'Add' : 'Edit';
-        $('#form #title').html('<b>' + action + '</b>');
-        $('#form').overlay().load();
+        var $tr = $(this), id = $tr.prop('id');
+        if (!id) {
+            return;
+        } else if (id == 'row0') {
+            $formObjs.val('');
+            $form.find('#id').val('');
+        } else {
+            $formObjs.each(function() {
+                this.value = $tr.find('.' + this.id).text();
+            });
+            $form.find('#id').val(getNumber(id));
+        }
+        $form.overlay().load();
     }
 });
-$('#form').overlay({
-    mask: {
-        color: '#000000',
-        loadspeed: 0,
-        opacity: 0.9
-    },
+$form.overlay({
+    mask: {color: '#000', loadSpeed: 0},
     onLoad: function(e) {
-        $formObjs.first().focus();
+        showFormMessages({});
+        $formObjs.first().focus().select();
     }
 });
-var $formObjs = $('#form input,select').not('#save')
-    .keydown(function(e) {
-        if (13 == e.which) {
-            var $obj = $formObjs.get($formObjs.index(this) + 1);
-            if ($obj) {
-                $obj.focus();
-            } else {
-                save();
-            }
+$form.find('#save').click(function() {
+    $formObjs.end().prop('disabled', true);
+    $.post("${request.route_path('row_index')}", {
+        token: token,
+        id: $form.find('#id').val(),
+        col1: $.trim($form.find('#col1').val()),
+        col2: $.trim($form.find('#col2').val())
+    }, function(data) {
+        $formObjs.end().prop('disabled', false);
+        if (data.isOk) {
+            $form.overlay().close();
+            $table.find('tbody').html(data.content);
+            applyDataTable();
+        } else {
+            showFormMessages(data.errorByID);
         }
     });
-$('#form #save').click(save);
+});
+$formObjs.tooltip({
+    position: 'center right',
+    offset: [0, 10],
+    tipClass: 'formTip',
+    onBeforeShow: function() {
+        var $formObj = this.getTrigger(), title = $formObj.prop('title');
+        if (title) {
+            this.getTip().html(title);
+            $formObj.prop('title', '');
+        }
+    },
+    onHide: function() {
+        var $formObj = this.getTrigger();
+        $formObj.prop('title', defaultByID[$formObj.prop('id')]);
+    }
+});
 % endif
-$('.dataTables_filter input').focus();
 </%def>
 
 <table id=data>
 	<thead>
 		<tr id=row0>
-			<th class=left>Column1</th>
-            <th class=left>Column2</th>
+			<th>Column1</th>
+            <th>Column2</th>
 		</tr>
 	</thead>
 	<tbody>
-	% for row in rows:
-        <tr id=row${row.id}>
-            <td class=left>${row.col1}</td>
-            <td class=left>${row.col2}</td>
-        </tr>
-	% endfor
+        <%include file='rows.mak'/>
 	</tbody>
 </table>
 
-<div id=tip></div>
+<div id=info></div>
 
-<div id=form>
-    <span id=title></span>
-    <table>
-        <tbody>
-            <tr>
-                <td><label for=col1>Column1</label></td>
-                <td>
-                    <select id=col1>
-                        <option value='many'>Many</option>
-                        <option value='some'>Some</option>
-                        <option value='none'>None</option>
-                    </select>
-                </td>
-            <tr>
-                <td><label for=col2>Column2</label></td>
-                <td>
-                    <select id=col2>
-                        <option value='many'>Many</option>
-                        <option value='some'>Some</option>
-                        <option value='none'>None</option>
-                    </select>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <input id=save type=submit value=Save>
-</div>
+% if IS_ACTIVE:
+<table id=form class=overlay>
+    <tbody>
+        <tr>
+            <td><label for=col1>Column1</label></td>
+            <td><input id=col1 title='Use the keyboard'></td>
+        <tr>
+            <td><label for=col2>Column2</label></td>
+            <td><input id=col2 title='Type something'></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>
+                <input id=save type=button value=Save>
+                <input id=cancel class=close type=button value=Cancel>
+                <input id=id type=hidden>
+            </td>
+        </tr>
+    </tbody>
+</table>
+%endif

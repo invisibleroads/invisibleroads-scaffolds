@@ -19,7 +19,7 @@ function showMessageByID(messageByID) {
 		var id = getFieldID(this);
         var message = messageByID[id];
         if (message) {
-            $(this).html('<b>' + message + '</b>');
+            $(this).html('<span class=error>' + message + '</span>');
             if (!focused) {
                 $('#' + id).focus().select();
                 focused = true;

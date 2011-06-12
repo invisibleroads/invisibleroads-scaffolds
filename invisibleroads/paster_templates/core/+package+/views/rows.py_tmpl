@@ -9,7 +9,6 @@ from {{package}}.models import db, Row
 def includeme(config):
     config.scan(__name__)
     config.add_route('row_index', 'rows')
-    config.add_route('row_update', 'rows')
 
 
 @view_config(route_name='row_index', renderer='rows/index.mak', request_method='GET', permission='__no_permission_required__')
@@ -18,7 +17,7 @@ def index(request):
     return dict(rows=db.query(Row).all())
 
 
-@view_config(route_name='row_update', renderer='json', request_method='POST', permission='active')
+@view_config(route_name='row_index', renderer='json', request_method='POST', permission='active')
 def update(request):
     'Update row'
     params = request.params
@@ -31,7 +30,7 @@ def update(request):
         return dict(isOk=0, errorByID=error.unpack_errors())
     # Merge
     db.merge(Row(
-        id=params.get('id'),
+        id=form['id'],
         col1=form['col1'],
         col2=form['col2']))
     # Return
@@ -44,5 +43,6 @@ class RowForm(Schema):
     allow_extra_fields = True
     filter_extra_fields = True
 
+    id = validators.Int(min=1)
     col1 = validators.UnicodeString(min=3, max=64, not_empty=True, strip=True)
     col2 = validators.UnicodeString(min=3, max=64, not_empty=True, strip=True)
