@@ -42,11 +42,11 @@ def main(global_config, **settings):
     # Define methods
     def get_groups(userID, request):
         'Return access categories associated with the user'
-        # Get properties
-        properties = users.get_properties(userID)
-        if not properties:
+        # Unpack properties
+        try:
+            is_active, is_super, code = users.unpack_properties(userID, 'is_active', 'is_super', 'code')
+        except TypeError:
             return []
-        is_active, is_super, code = properties[-3:]
         # Check code
         identity = authenticationPolicy.cookie.identify(request)
         if code != users.parse_tokens(identity['tokens'])[0]:
@@ -61,8 +61,10 @@ def main(global_config, **settings):
     def make_renderer_globals(system):
         'Define template constants'
         userID = authenticated_userid(system['request'])
-        properties = users.get_properties(userID) or (u'', MINUTES_OFFSET, False, False, '')
-        nickname, minutes_offset, is_active, is_super = properties[:-1]
+        try:
+            nickname, minutes_offset, is_active, is_super = users.unpack_properties(userID, 'nickname', 'minutes_offset', 'is_active', 'is_super')
+        except TypeError:
+            nickname, minutes_offset, is_active, is_super = u'', MINUTES_OFFSET, False, False
         return dict(
             SITE_NAME=SITE_NAME, 
             SITE_VERSION=SITE_VERSION, 

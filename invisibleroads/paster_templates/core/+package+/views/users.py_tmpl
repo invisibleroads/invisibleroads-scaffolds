@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload
 from beaker.cache import cache_region, region_invalidate
 
 from {{package}}.models import db, User, User_, SMSAddress, ApplicationError
-from {{package}}.libraries.tools import make_random_string, make_random_unique_string
+from {{package}}.libraries.tools import make_random_string, make_random_unique_string, enum
 from {{package}}.parameters import *
 
 
@@ -256,10 +256,17 @@ def parse_tokens(tokens):
     return [code]
 
 
+propertyIndexByName = enum('nickname', 'minutes_offset', 'is_active', 'is_super', 'code')
 @cache_region('medium')
 def get_properties(userID):
-    'Return user properties'
+    'Return user properties as a tuple to save cache space'
     return db.query(User.nickname, User.minutes_offset, User.is_active, User.is_super, User.code).filter_by(id=userID).first()
+
+
+def unpack_properties(userID, *names):
+    'Unpack properties corresponding to userID as specified by names'
+    properties = get_properties(userID)
+    return [properties[propertyIndexByName[x]] for x in names]
 
 
 def save_user_(request, valueByName, action, user=None):

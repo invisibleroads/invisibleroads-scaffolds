@@ -46,15 +46,14 @@ def get_remote_ip(request):
            request.environ.get('REMOTE_ADDR')))
 
 
-def get_token(body):
+def get_token(html):
     'Extract token from html'
-    match = re.search("token = '(.*)'", body)
+    match = re.search("token = '(.*)'", html)
     return match.group(1) if match else ''
 
 
-def enum(*args, **kwargs):
+def enum(*args):
     """
-    Credit to Alec Thomas
-    http://stackoverflow.com/questions/36932/whats-the-best-way-to-implement-an-enum-in-python/1695250#1695250
+    enum('zero', 'one') == {'zero': 0, 'one': 1}
     """
-    return type('Enum', (), dict((y, x) for x, y in enumerate(args), **kwargs))
+    return dict((y, x) for x, y in enumerate(args))

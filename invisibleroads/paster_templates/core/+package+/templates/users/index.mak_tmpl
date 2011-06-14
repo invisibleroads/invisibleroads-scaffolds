@@ -118,7 +118,7 @@ $('.when_login').live({
     }
 });
 % endif
-$('.dataTables_filter input').focus();
+$('#data_filter input').focus();
 </%def>
 
 <%!

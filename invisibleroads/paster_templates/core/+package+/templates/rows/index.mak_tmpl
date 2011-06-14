@@ -39,7 +39,7 @@ function applyDataTable() {
         'oLanguage': {'sSearch': 'Filter'},
         'sScrollY': computeTableHeight()
     });
-    $('.dataTables_filter input').focus();
+    $('#data_filter input').focus();
 }
 applyDataTable();
 $(window).bind('resize', function() {
@@ -104,7 +104,7 @@ $form.overlay({
         $formObjs.first().focus().select();
     },
     onClose: function() {
-        $('.dataTables_filter input').focus();
+        $('#data_filter input').focus();
     }
 });
 $form.find('#save').click(function() {
