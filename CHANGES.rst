@@ -1,6 +1,8 @@
 1.7.5
 -----
 - Used argparse instead of optparse in utilities/script_process
+- Added jQuery Tools examples in static/bits.html
+- Added row-based interface example in templates/rows/index.mak_tmpl
 
 
 1.7.4

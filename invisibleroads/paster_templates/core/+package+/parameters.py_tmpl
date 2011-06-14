@@ -1,5 +1,7 @@
+# Globals
 SITE_NAME = '{{project}}'
 SITE_VERSION = '0.0'
+# Users
 USERNAME_LEN_MIN = 6
 USERNAME_LEN_MAX = 32
 PASSWORD_LEN_MIN = 6

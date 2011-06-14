@@ -122,7 +122,6 @@ $form.find('#save').click(function() {
 });
 $formObjs.tooltip({
     position: 'center right',
-    offset: [0, 10],
     tipClass: 'formTip',
     onBeforeShow: function() {
         var $formObj = this.getTrigger(), title = $formObj.prop('title');
@@ -130,6 +129,8 @@ $formObjs.tooltip({
             this.getTip().html(title);
             $formObj.prop('title', '');
         }
+		// Position tooltip 10 pixels to the right of the form
+		this.getConf().offset = [0, ($form.offset().left + $form.outerWidth()) - ($formObj.offset().left + $formObj.outerWidth()) + 10];
     },
     onHide: function() {
         var $formObj = this.getTrigger();
