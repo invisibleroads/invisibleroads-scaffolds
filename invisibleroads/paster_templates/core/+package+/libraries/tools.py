@@ -47,5 +47,14 @@ def get_remote_ip(request):
 
 
 def get_token(body):
+    'Extract token from html'
     match = re.search("token = '(.*)'", body)
     return match.group(1) if match else ''
+
+
+def enum(*args, **kwargs):
+    """
+    Credit to Alec Thomas
+    http://stackoverflow.com/questions/36932/whats-the-best-way-to-implement-an-enum-in-python/1695250#1695250
+    """
+    return type('Enum', (), dict((y, x) for x, y in enumerate(args), **kwargs))
