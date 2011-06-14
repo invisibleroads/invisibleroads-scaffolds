@@ -84,9 +84,11 @@ $('.dataTables_scroll tr').live({
         if (!id) {
             return;
         } else if (id == 'row0') {
+            // Show form for add
             $formObjs.val('');
             $form.find('#id').val('');
         } else {
+            // Show form for edit
             $formObjs.each(function() {
                 this.value = $tr.find('.' + this.id).text();
             });
@@ -97,9 +99,12 @@ $('.dataTables_scroll tr').live({
 });
 $form.overlay({
     mask: {color: '#000', loadSpeed: 0},
-    onLoad: function(e) {
+    onLoad: function() {
         showFormMessages({});
         $formObjs.first().focus().select();
+    },
+    onClose: function() {
+        $('.dataTables_filter input').focus();
     }
 });
 $form.find('#save').click(function() {
