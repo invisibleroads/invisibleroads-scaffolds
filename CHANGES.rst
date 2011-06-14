@@ -3,6 +3,7 @@
 - Used argparse instead of optparse in utilities/script_process
 - Added jQuery Tools examples in static/bits.html
 - Added row-based interface example in templates/rows/index.mak_tmpl
+- Added users.unpack_properties() for more flexible property retrieval
 
 
 1.7.4
