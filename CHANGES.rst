@@ -1,5 +1,6 @@
 1.7.5
 -----
+- Used User.role instead of User.is_super and User.is_active
 - Used argparse instead of optparse in utilities/script_process
 - Added jQuery Tools examples in static/bits.html
 - Added row-based interface example in templates/rows/index.mak_tmpl

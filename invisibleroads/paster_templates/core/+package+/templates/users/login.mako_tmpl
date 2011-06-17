@@ -1,4 +1,4 @@
-<%inherit file='/base.mak'/>
+<%inherit file='/base.mako'/>
 
 <%def name='title()'>Login</%def>
 
@@ -142,7 +142,7 @@ $('#username').focus();
 		<td><label for=minutes_offset>Time</label></td>
 		<td>
 			<select id=minutes_offset>
-				<%include file='offsets.mak'/>
+				<%include file='offsets.mako'/>
 			</select>
 		</td>
 		<td id=m_minutes_offset></td>

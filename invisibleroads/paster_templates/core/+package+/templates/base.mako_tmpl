@@ -2,7 +2,6 @@
 <html lang=en>
 <head>
     <meta charset=utf-8 />
-	<meta name=author content='Roy Hyunjin Han' />
 	<title>${SITE_NAME} ${self.title()}</title>
 	<link rel=icon href='${request.static_url('{{package}}:static/favicon.ico')}' />
 	<link rel=stylesheet href='${request.static_url('{{package}}:static/style.css')}' />
@@ -14,7 +13,6 @@
 	<div id=navigation>${self.navigation()}
 	<%
 	linkPacks = [
-		('Home', '/'),
         ('Rows', request.route_path('row_index')),
 		('Users', request.route_path('user_index')),
 	]

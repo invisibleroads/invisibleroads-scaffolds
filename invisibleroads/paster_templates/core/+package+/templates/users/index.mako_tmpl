@@ -1,0 +1,104 @@
+<%inherit file='/base.mako'/>
+
+<%def name='title()'>Users</%def>
+
+<%def name='css()'>
+td {text-align:center}
+.user {color:gray}
+.user.member {color:black}
+.user.leader {color:black}
+</%def>
+
+<%def name='root()'>
+<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
+</%def>
+
+<%def name='js()'>
+var $table;
+function computeTableHeight() {
+    return $(window).height() - (($('tr:first').height() + 7) * 3);
+}
+function applyDataTable() {
+    var aaSorting;
+    if ($table) {
+        $table.fnClearTable(false);
+        aaSorting = $table.fnSettings().aaSorting;
+    } else {
+        aaSorting = [];
+    }
+    $table = $('#data').dataTable({
+        'aaSorting': aaSorting,
+        'aoColumns': [
+            {'sClass': 'nickname', 'sType': 'string'},
+            {'sClass': 'role', 'sType': 'rel'},
+            {'sClass': 'when_login', 'sType': 'rel'}
+        ],
+        'bDestroy': true,
+        'bPaginate': false,
+        'oLanguage': {'sSearch': 'Filter'},
+        'sScrollY': computeTableHeight()
+    });
+    $('#data_filter input').focus();
+}
+applyDataTable();
+$(window).bind('resize', function() {
+	$('.dataTables_scrollBody').height(computeTableHeight());
+	$table.fnAdjustColumnSizing();
+});
+% if IS_LEADER:
+var token = '${request.session.get_csrf_token()}';
+function applyFlag(selector, class, rValue, rMessage, aValue, aMessage) {
+    $(selector).live({
+        mouseenter: function() {
+            var $x = $(this);
+            var $xRow = $x.parent('tr');
+            $x.find('.text').hide();
+            $x.append('<span class=flag>' + ($xRow.hasClass(class) ? rMessage : aMessage) + '</span>');
+        },
+        mouseleave: function() {
+            var $x = $(this);
+            $x.find('.flag').remove();
+            $x.find('.text').show();
+        },
+        click: function() {
+            var $x = $(this);
+            var $xRow = $x.parent('tr');
+            $.post("${request.route_path('user_move')}", {
+                token: token,
+                targetUserID: getID($xRow[0]),
+                role: $xRow.hasClass(class) ? rValue : aValue
+            }, function(data) {
+                if (data.isOk) {
+                    $table.find('tbody').html(data.content);
+                    applyDataTable();
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+    });
+}
+<%!
+from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
+%>
+applyFlag('.when_login:not(th, #user${USER_ID} > td)', 'member', 
+    ${ROLE_SPECTATOR}, 'Deactivate', 
+    ${ROLE_MEMBER}, 'Activate');
+applyFlag('.member > .role:not(th, #user${USER_ID} > td)', 'leader', 
+    ${ROLE_MEMBER}, 'Demote', 
+    ${ROLE_LEADER}, 'Promote');
+% endif
+</%def>
+
+<table id=data>
+	<thead>
+		<tr>
+			<th>Nickname</th>
+            <th>Role</th>
+			<th>Last Login</th>
+		</tr>
+	</thead>
+	<tbody>
+        <%include file='users.mako'/>
+	</tbody>
+</table>

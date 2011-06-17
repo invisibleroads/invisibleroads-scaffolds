@@ -1,0 +1,40 @@
+<%!  
+import whenIO 
+from {{package}}.models import ROLE_MEMBER, ROLE_LEADER
+%>
+% for user in users:
+    <tr id=user${user.id} class='user 
+    % if user.role >= ROLE_MEMBER:
+        member
+    % endif
+    % if user.role >= ROLE_LEADER:
+        leader
+    % endif
+    '>
+        <td>${user.nickname}</td>
+        <td>
+            <span class=text rel=${user.role}>
+                % if user.role >= ROLE_MEMBER:
+                    % if user.role >= ROLE_LEADER:
+                        Leader\
+                    % else:
+                        Member\
+                    % endif
+                % endif
+            </span>
+        </td>
+        <td>
+        % if user.when_login:
+            <%
+            when_login = user.when_login
+            localWhenIO = whenIO.WhenIO(user.minutes_offset)
+            %>
+            <span class=text rel="${when_login.strftime('%Y%m%d%H%M%S')}">
+                ${localWhenIO.format(when_login)} ${localWhenIO.format_offset()}
+            </span>
+        % else:
+            <span class=text rel=''></span>
+        % endif
+        </td>
+    </tr>
+% endfor

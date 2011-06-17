@@ -2,7 +2,8 @@
 import transaction
 from sqlalchemy import func, Column, ForeignKey, Integer, String, LargeBinary, Unicode, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import column_property, scoped_session, sessionmaker, relationship, synonym
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import column_property, scoped_session, sessionmaker, relationship
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.types import TypeDecorator
 from zope.sqlalchemy import ZopeTransactionExtension
@@ -12,6 +13,7 @@ from {{package}}.libraries.tools import encrypt, decrypt, make_random_string
 from {{package}}.parameters import *
 
 
+ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER = xrange(3)
 db = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
 crypt = bcrypt.BCRYPTPasswordManager()
@@ -71,19 +73,17 @@ class User(Base):
         Column(Unicode(USERNAME_LEN_MAX), unique=True), 
         comparator_factory=CaseInsensitiveComparator)
     password_ = Column('password', LargeBinary(60)) # Hash from bcrypt
-    @property
+    @hybrid_property
     def password(self):
         return self.password_
     @password.setter
     def password(self, password):
         self.password_ = crypt.encode(password)
-    password = synonym('password_', descriptor=password)
     nickname = column_property(
         Column(Unicode(NICKNAME_LEN_MAX), unique=True),
         comparator_factory=CaseInsensitiveComparator)
     email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2), unique=True) # Doubled for unicode addresses
-    is_active = Column(Boolean, default=True)
-    is_super = Column(Boolean, default=False)
+    role = Column(Integer, default=ROLE_SPECTATOR)
     rejection_count = Column(Integer, default=0)
     minutes_offset = Column(Integer, default=0)
     when_login = Column(DateTime)
@@ -106,13 +106,12 @@ class User_(Base):
         Column(Unicode(USERNAME_LEN_MAX)), 
         comparator_factory=CaseInsensitiveComparator)
     password_ = Column('password', LargeBinary(60)) # Hash from bcrypt
-    @property
+    @hybrid_property
     def password(self):
         return self.password_
     @password.setter
     def password(self, password):
         self.password_ = crypt.encode(password)
-    password = synonym('password_', descriptor=password)
     nickname = column_property(
         Column(Unicode(NICKNAME_LEN_MAX)), 
         comparator_factory=CaseInsensitiveComparator)
@@ -154,17 +153,23 @@ def initialize_sql(engine):
     db.configure(bind=engine)
     Base.metadata.bind = engine
     Base.metadata.create_all(engine)
-    # If the tables are empty,
+    # If we have no users,
     if not db.query(User).count():
-        # Prepare data
+        # Prepare sample data
         userPacks = [
-            (u'admin', make_random_string(PASSWORD_LEN_MAX), u'Admin', u'admin@example.com', True),
-            (u'user', make_random_string(PASSWORD_LEN_MAX), u'User', u'user@example.com', False), 
+            (ROLE_LEADER, u'leader'),
+            (ROLE_MEMBER, u'member'),
+            (ROLE_SPECTATOR, u'spectator'),
         ]
         # Insert data
-        userTemplate = '\nUsername\t%s\nPassword\t%s\nNickname\t%s\nEmail\t\t%s'
-        for username, password, nickname, email, is_super in userPacks:
-            print userTemplate % (username, password, nickname, email)
-            db.add(User(username=username, password=password, nickname=nickname, email=email, is_super=is_super))
+        for role, word in userPacks:
+            userD = dict(
+                username=word, 
+                password=make_random_string(PASSWORD_LEN_MAX),
+                nickname=word.title(),
+                email=word + '@example.com',
+                role=role)
+            print '\nUsername  %(username)s\nPassword  %(password)s' % userD
+            db.add(User(**userD))
         print
         transaction.commit()

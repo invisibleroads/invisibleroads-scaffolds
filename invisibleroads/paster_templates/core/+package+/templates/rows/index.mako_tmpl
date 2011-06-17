@@ -1,4 +1,4 @@
-<%inherit file='/base.mak'/>
+<%inherit file='/base.mako'/>
 
 <%def name='title()'>Rows</%def>
 
@@ -46,7 +46,7 @@ $(window).bind('resize', function() {
 	$('.dataTables_scrollBody').height(computeTableHeight());
 	$table.fnAdjustColumnSizing();
 });
-% if IS_ACTIVE:
+% if IS_MEMBER:
 var token = '${request.session.get_csrf_token()}';
 var $form = $('#form');
 var $formObjs = $form.find('input,select').not('#save,#cancel,#id');
@@ -109,7 +109,7 @@ $form.overlay({
 });
 $form.find('#save').click(function() {
     $formObjs.end().prop('disabled', true);
-    $.post("${request.route_path('row_index')}", {
+    $.post("${request.route_path('row_update')}", {
         token: token,
         id: $form.find('#id').val(),
         col1: $.trim($form.find('#col1').val()),
@@ -153,13 +153,13 @@ $formObjs.tooltip({
 		</tr>
 	</thead>
 	<tbody>
-        <%include file='rows.mak'/>
+        <%include file='rows.mako'/>
 	</tbody>
 </table>
 
 <div id=info></div>
 
-% if IS_ACTIVE:
+% if IS_MEMBER:
 <table id=form class=overlay>
     <tbody>
         <tr>

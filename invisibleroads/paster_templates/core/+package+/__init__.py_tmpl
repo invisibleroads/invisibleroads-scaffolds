@@ -1,7 +1,8 @@
 'Pyramid WSGI configuration'
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import ALL_PERMISSIONS, Allow, Authenticated, Deny, authenticated_userid
+from pyramid.security import Everyone, Authenticated, Allow, Deny, ALL_PERMISSIONS, authenticated_userid
+from pyramid.httpexceptions import HTTPFound
 from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
@@ -12,8 +13,8 @@ import ConfigParser
 import os
 
 from {{package}}.libraries import tools
-from {{package}}.models import initialize_sql, ApplicationError
-from {{package}}.views import users, pages, rows
+from {{package}}.models import initialize_sql, ApplicationError, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
+from {{package}}.views import users, rows
 from {{package}}.parameters import *
 
 
@@ -41,38 +42,38 @@ def main(global_config, **settings):
         poolclass=NullPool if sqlalchemyURL.startswith('sqlite:///') else QueuePool))
     # Define methods
     def get_groups(userID, request):
-        'Return access categories associated with the user'
+        'Define server-side permissions associated with the user'
         # Unpack properties
         try:
-            is_active, is_super, code = users.unpack_properties(userID, 'is_active', 'is_super', 'code')
+            code, role = users.unpack_properties(userID, 'code', 'role')
         except TypeError:
             return []
         # Check code
         identity = authenticationPolicy.cookie.identify(request)
         if code != users.parse_tokens(identity['tokens'])[0]:
-            return ['d']
-        # Set groups
+            return ['outcast']
+        # Get groups
         groups = []
-        if is_active:
-            groups.append('a')
-        if is_super:
-            groups.append('s')
+        if role >= ROLE_MEMBER:
+            groups.append('member')
+            if role >= ROLE_LEADER:
+                groups.append('leader')
         return groups
     def make_renderer_globals(system):
-        'Define template constants'
+        'Define client-side permissions associated with user'
         userID = authenticated_userid(system['request'])
         try:
-            nickname, minutes_offset, is_active, is_super = users.unpack_properties(userID, 'nickname', 'minutes_offset', 'is_active', 'is_super')
+            nickname, minutes_offset, role = users.unpack_properties(userID, 'nickname', 'minutes_offset', 'role')
         except TypeError:
-            nickname, minutes_offset, is_active, is_super = u'', MINUTES_OFFSET, False, False
+            nickname, minutes_offset, role = u'', MINUTES_OFFSET, ROLE_SPECTATOR
         return dict(
-            SITE_NAME=SITE_NAME, 
-            SITE_VERSION=SITE_VERSION, 
-            USER_ID=userID, 
-            USER_NICKNAME=nickname, 
-            USER_OFFSET=minutes_offset, 
-            IS_SUPER=is_super, 
-            IS_ACTIVE=is_active)
+            SITE_NAME=SITE_NAME,
+            SITE_VERSION=SITE_VERSION,
+            USER_ID=userID,
+            USER_NICKNAME=nickname,
+            USER_OFFSET=minutes_offset,
+            IS_MEMBER=role >= ROLE_MEMBER,
+            IS_LEADER=role >= ROLE_LEADER)
     # Prepare configuration
     if not settings.get('authtkt.secret'):
         settings['authtkt.secret'] = os.urandom(SECRET_LEN)
@@ -82,7 +83,6 @@ def main(global_config, **settings):
         settings=settings,
         authentication_policy=authenticationPolicy,
         authorization_policy=ACLAuthorizationPolicy(),
-        default_permission='active',
         renderer_globals_factory=make_renderer_globals,
         root_factory='{{package}}.RootFactory')
     # Configure transaction manager and mailer
@@ -99,10 +99,10 @@ def main(global_config, **settings):
     # Configure routes for user account management
     config.include(users)
 
-    # Configure routes that demonstrate access control
-    config.include(pages)
     # Configure routes that demonstrate a row-based interface
     config.include(rows)
+    # Redirect homepage
+    config.add_view(lambda request: HTTPFound(location=request.route_path('row_index')), name='', permission='__no_permission_required__')
 
     # Return WSGI app
     return config.make_wsgi_app()
@@ -141,10 +141,14 @@ def load_sensitive_settings(configurationPath, defaultByKey):
 class RootFactory(object):
     'Permission definitions'
     __acl__ = [ 
-        (Deny, 'd', ALL_PERMISSIONS),
-        (Allow, 's', 'super'),
-        (Allow, 'a', 'active'),
-        (Allow, Authenticated, 'authenticated'),
+        (Deny, 'outcast', ALL_PERMISSIONS),
+        (Allow, Everyone, 'user_index'),
+        (Allow, Everyone, 'user_register'),
+        (Allow, Authenticated, 'user_update'),
+        (Allow, Authenticated, 'user_mutate'),
+        (Allow, 'leader', 'user_move'),
+        (Allow, Everyone, 'row_index'),
+        (Allow, 'member', 'row_update'),
     ]
 
     def __init__(self, request):

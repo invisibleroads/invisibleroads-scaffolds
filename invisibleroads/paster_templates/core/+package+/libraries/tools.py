@@ -50,10 +50,3 @@ def get_token(html):
     'Extract token from html'
     match = re.search("token = '(.*)'", html)
     return match.group(1) if match else ''
-
-
-def enum(*args):
-    """
-    enum('zero', 'one') == {'zero': 0, 'one': 1}
-    """
-    return dict((y, x) for x, y in enumerate(args))

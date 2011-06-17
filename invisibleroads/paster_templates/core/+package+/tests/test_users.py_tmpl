@@ -5,7 +5,7 @@ import unittest
 from {{package}}.views import users
 from {{package}}.libraries import sms
 from {{package}}.libraries.tools import get_token
-from {{package}}.models import db, User, User_, SMSAddress
+from {{package}}.models import db, User, User_, SMSAddress, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 from {{package}}.tests import TestTemplate, ReplaceableDict, settings
 
 
@@ -20,7 +20,7 @@ class TestUsers(TestTemplate):
     def test_registration(self):
         'Make sure that registration works'
         url = self.get_url('user_register')
-        username, password, nickname, email = [self.userS[x].replace('1', '9') for x in 'username', 'password', 'nickname', 'email']
+        username, password, nickname, email = [self.userL[x].replace('1', '9') for x in 'username', 'password', 'nickname', 'email']
         params = ReplaceableDict(username=username, password=password, nickname=nickname, email=email)
         # Make sure the registration page appears properly
         self.assert_('Registration' in self.get(url).unicode_body)
@@ -28,11 +28,11 @@ class TestUsers(TestTemplate):
         registrationCount1 = db.query(User_).count()
         self.post(url, params)
         # Register with a username that already exists
-        self.assert_json(self.post(url, params.replace(username=self.userS['username'])), 0)
+        self.assert_json(self.post(url, params.replace(username=self.userL['username'])), 0)
         # Register with a nickname that already exists
-        self.assert_json(self.post(url, params.replace(nickname=self.userS['nickname'])), 0)
+        self.assert_json(self.post(url, params.replace(nickname=self.userL['nickname'])), 0)
         # Register with a email that already exists
-        self.assert_json(self.post(url, params.replace(email=self.userS['email'])), 0)
+        self.assert_json(self.post(url, params.replace(email=self.userL['email'])), 0)
         # Register with a weak password
         self.assert_json(self.post(url, params.replace(password='xxx')), 0)
         # Register with the same username but with different case
@@ -62,11 +62,11 @@ class TestUsers(TestTemplate):
         # Going directly to the login page stores the target url
         self.assert_(url_ in self.get(url, dict(url=url_)).unicode_body)
         # Bad credentials fail
-        self.assert_json(self.login(self.userI.replace(username='')), 0)
-        self.assert_json(self.login(self.userI.replace(password='')), 0)
-        self.assert_json(self.login(self.userI.replace(password=self.userI['password'] + 'x')), 0)
+        self.assert_json(self.login(self.userS.replace(username='')), 0)
+        self.assert_json(self.login(self.userS.replace(password='')), 0)
+        self.assert_json(self.login(self.userS.replace(password=self.userS['password'] + 'x')), 0)
         # Good credentials succeed
-        self.assert_json(self.login(self.userI), 1)
+        self.assert_json(self.login(self.userS), 1)
 
     def test_logout(self):
         'Make sure that logout works'
@@ -74,7 +74,7 @@ class TestUsers(TestTemplate):
         url_ = self.get_url('user_index')
         # Logging out redirects whether the user is authenticated or not
         self.assertEqual(url_, self.get(url, dict(url=url_)).location)
-        self.login(self.userI)
+        self.login(self.userS)
         self.assertEqual(url_, self.get(url, dict(url=url_)).location)
 
     def test_update(self):
@@ -84,14 +84,14 @@ class TestUsers(TestTemplate):
         self.assert_forbidden(url)
         self.assert_forbidden(url, method='POST')
         # Check that the update form is filled with the user's credentials
-        self.login(self.userI)
+        self.login(self.userS)
         body = self.get(url).unicode_body
-        self.assert_(self.userI['username'] in body)
-        self.assert_(self.userI['nickname'] in body)
-        self.assert_(self.userI['email'].lower() in body)
+        self.assert_(self.userS['username'] in body)
+        self.assert_(self.userS['nickname'] in body)
+        self.assert_(self.userS['email'].lower() in body)
         token = get_token(body)
         # Updating credentials requires a token
-        username, password, nickname, email = ['0' + self.userI[x] for x in 'username', 'password', 'nickname', 'email']
+        username, password, nickname, email = ['0' + self.userS[x] for x in 'username', 'password', 'nickname', 'email']
         params = ReplaceableDict(token=token, username=username, password=password, nickname=nickname, email=email)
         self.assert_json(self.post(url, params.replace(token='')), 0)
         self.assert_json(self.post(url, params), 1)
@@ -106,33 +106,33 @@ class TestUsers(TestTemplate):
         'Make sure that updating smsAddresses works'
         url = self.get_url('user_update')
         db.query(SMSAddress).delete()
-        userSID, userSCode, userSEmail = db.query(User.id, User.code, User.email).filter_by(username=self.userS['username']).first()
-        userAID, userACode, userAEmail = db.query(User.id, User.code, User.email).filter_by(username=self.userA['username']).first()
-        userIID, userICode, userIEmail = db.query(User.id, User.code, User.email).filter_by(username=self.userI['username']).first()
+        userL_id, userL_code, userL_email = db.query(User.id, User.code, User.email).filter_by(username=self.userL['username']).first()
+        userM_id, userM_code, userM_email = db.query(User.id, User.code, User.email).filter_by(username=self.userM['username']).first()
+        userS_id, userS_code, userS_email = db.query(User.id, User.code, User.email).filter_by(username=self.userS['username']).first()
 
         imapServer = sms.connect(self.router.registry.settings)
         # Register an invalid email address
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userSID, userSCode), fromWhom=''))
+        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userL_id, userL_code), fromWhom=''))
         # Register using an invalid userID or userCode
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (-1, userSCode), fromWhom='sms_' + userSEmail))
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userSID, -1), fromWhom='sms_' + userSEmail))
+        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (-1, userL_code), fromWhom='sms_' + userL_email))
+        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userL_id, -1), fromWhom='sms_' + userL_email))
         # Register three email addresses
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userSID, userSCode), fromWhom='sms_' + userSEmail))
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userAID, userACode), fromWhom='sms_' + userAEmail))
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userIID, userICode), fromWhom='sms_' + userIEmail))
+        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userL_id, userL_code), fromWhom='sms_' + userL_email))
+        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userM_id, userM_code), fromWhom='sms_' + userM_email))
+        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userS_id, userS_code), fromWhom='sms_' + userS_email))
         # Register an address that already exists for the given user
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userSID, userSCode), fromWhom='sms_' + userSEmail))
+        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userL_id, userL_code), fromWhom='sms_' + userL_email))
         # Remove an email address
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (0, 'xxx'), fromWhom='sms_' + userSEmail))
+        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (0, 'xxx'), fromWhom='sms_' + userL_email))
         # Process
         sms.process(self.router.registry.settings)
         # Make sure we only have two registered SMS address
         self.assertEqual(2, db.query(SMSAddress).count())
-        smsAddressA = db.query(SMSAddress).filter_by(user_id=userAID).first()
-        smsAddressI = db.query(SMSAddress).filter_by(user_id=userIID).first()
+        smsAddressA = db.query(SMSAddress).filter_by(user_id=userM_id).first()
+        smsAddressI = db.query(SMSAddress).filter_by(user_id=userS_id).first()
 
         # Get token
-        self.login(self.userI)
+        self.login(self.userS)
         token = get_token(self.get(url).unicode_body)
 
         params = ReplaceableDict(token=token, smsAddressAction='activate', smsAddressID=smsAddressI.id)
@@ -140,14 +140,14 @@ class TestUsers(TestTemplate):
         self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
         # Activate an smsAddress
         self.assert_json(self.post(url, params), 1)
-        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=userIID).first()[0], True)
+        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=userS_id).first()[0], True)
 
         params = ReplaceableDict(token=token, smsAddressAction='deactivate', smsAddressID=smsAddressI.id)
         # Deactivate an smsAddress that doesn't belong to the user
         self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
         # Deactivate an smsAddress
         self.assert_json(self.post(url, params), 1)
-        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=userIID).first()[0], False)
+        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=userS_id).first()[0], False)
 
         params = ReplaceableDict(token=token, smsAddressAction='remove', smsAddressID=smsAddressI.id)
         # Remove an smsAddress that doesn't belong to the user
@@ -162,61 +162,57 @@ class TestUsers(TestTemplate):
         self.assert_json(self.post(url, params.replace(smsAddressAction='xxx')), 0)
 
     def test_move(self):
-        'Make sure that only superusers can promote or demote other users'
+        'Make sure that only leaders can promote or demote other users'
         url = self.get_url('user_move')
         # Check that we only see the login page if the user is not logged in
         self.assert_forbidden(url, method='POST')
-        # Check that only super users can promote or demote other users
-        for userD in self.userA, self.userI:
+        # Check that only leaders can promote or demote other users
+        for userD in self.userM, self.userS:
             self.login(userD)
             self.assert_forbidden(url, method='POST')
 
-        self.login(self.userS)
-        userID = db.query(User.id).filter_by(username=self.userS['username']).first()[0]
+        self.login(self.userL)
+        userID = db.query(User.id).filter_by(username=self.userL['username']).first()[0]
         token = get_token(self.get(self.get_url('user_index')).body)
-        get_targetUser = lambda: db.query(User).filter_by(username=self.userI['username']).first()
+        get_targetUser = lambda: db.query(User).filter_by(username=self.userS['username']).first()
         targetUser = get_targetUser()
-        params = ReplaceableDict(token=token, targetUserID=targetUser.id, is_super=1, is_active=1)
+        params = ReplaceableDict(token=token, targetUserID=targetUser.id, role=ROLE_LEADER)
         # Check that a bad token fails
         self.assert_json(self.post(url, params.replace(token=token + 'x')), 0)
         # Check that a bad targetUserID fails
         self.assert_json(self.post(url, params.replace(targetUserID=0)), 0)
-        # Check that a bad attribute fails
-        self.assert_json(self.post(url, params.replace(is_super='xxx')), 0)
-        self.assert_json(self.post(url, params.replace(is_active='xxx')), 0)
-        # Check that a super user cannot promote or demote self
+        # Check that a bad role fails
+        self.assert_json(self.post(url, params.replace(role='xxx')), 0)
+        # Check that a leader cannot promote or demote self
         self.assert_json(self.post(url, params.replace(targetUserID=userID)), 0)
-        # Check that a super user can promote or demote other users
-        self.assert_json(self.post(url, params.replace(is_super=1)), 1)
+        # Check that a leader can promote or demote other users
+        self.assert_json(self.post(url, params.replace(role=ROLE_LEADER)), 1)
         targetUser = get_targetUser()
-        self.assertEqual(targetUser.is_super, True)
-        self.assert_json(self.post(url, params.replace(is_super=0)), 1)
+        self.assertEqual(targetUser.role, ROLE_LEADER)
+        self.assert_json(self.post(url, params.replace(role=ROLE_MEMBER)), 1)
         targetUser = get_targetUser()
-        self.assertEqual(targetUser.is_super, False)
-        self.assert_json(self.post(url, params.replace(is_active=1)), 1)
+        self.assertEqual(targetUser.role, ROLE_MEMBER)
+        self.assert_json(self.post(url, params.replace(role=ROLE_SPECTATOR)), 1)
         targetUser = get_targetUser()
-        self.assertEqual(targetUser.is_active, True)
-        self.assert_json(self.post(url, params.replace(is_active=0)), 1)
-        targetUser = get_targetUser()
-        self.assertEqual(targetUser.is_active, False)
+        self.assertEqual(targetUser.role, ROLE_SPECTATOR)
 
     def test_mutate(self):
         'Make sure that mutating the user works'
         url = self.get_url('user_mutate')
-        self.login(self.userI)
+        self.login(self.userS)
         token = get_token(self.get(self.get_url('user_update')).body)
         params = ReplaceableDict(token=token)
         # Check that a bad token fails
         self.assert_json(self.post(url, params.replace(token=token + 'x')), 0)
         # Check that we can mutate the user code
-        userCode = db.query(User.code).filter_by(username=self.userI['username']).first()[0]
+        userCode = db.query(User.code).filter_by(username=self.userS['username']).first()[0]
         self.assert_json(self.post(url, params), 1)
-        self.assertNotEqual(userCode, db.query(User.code).filter_by(username=self.userI['username']).first()[0])
+        self.assertNotEqual(userCode, db.query(User.code).filter_by(username=self.userS['username']).first()[0])
 
     def test_reset(self):
         'Make sure that resetting the password works'
         url = self.get_url('user_reset')
-        password, email = [self.userI[x] for x in 'password', 'email']
+        password, email = [self.userS[x] for x in 'password', 'email']
         # Trying to reset an email that does not exist returns an error
         self.assert_json(self.post(url, dict(email=email + 'x')), 0)
         # Resetting the password does not immediately change the password

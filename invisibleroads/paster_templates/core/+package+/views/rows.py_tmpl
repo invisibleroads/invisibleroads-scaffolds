@@ -9,15 +9,16 @@ from {{package}}.models import db, Row
 def includeme(config):
     config.scan(__name__)
     config.add_route('row_index', 'rows')
+    config.add_route('row_update', 'rows/update')
 
 
-@view_config(route_name='row_index', renderer='rows/index.mak', request_method='GET', permission='__no_permission_required__')
+@view_config(route_name='row_index', renderer='rows/index.mako', request_method='GET', permission='row_index')
 def index(request):
     'Show rows'
     return dict(rows=db.query(Row).all())
 
 
-@view_config(route_name='row_index', renderer='json', request_method='POST', permission='active')
+@view_config(route_name='row_update', renderer='json', request_method='POST', permission='row_update')
 def index_(request):
     'Update row'
     params = request.params
@@ -34,7 +35,7 @@ def index_(request):
         col1=form['col1'],
         col2=form['col2']))
     # Return
-    return dict(isOk=1, content=render('rows/rows.mak', index(request), request))
+    return dict(isOk=1, content=render('rows/rows.mako', index(request), request))
 
 
 class RowForm(Schema):
@@ -44,5 +45,5 @@ class RowForm(Schema):
     filter_extra_fields = True
 
     id = validators.Int(min=1)
-    col1 = validators.UnicodeString(min=3, max=64, not_empty=True, strip=True)
-    col2 = validators.UnicodeString(min=3, max=64, not_empty=True, strip=True)
+    col1 = validators.UnicodeString(min=3, max=9, not_empty=True, strip=True)
+    col2 = validators.UnicodeString(min=3, max=9, not_empty=True, strip=True)
