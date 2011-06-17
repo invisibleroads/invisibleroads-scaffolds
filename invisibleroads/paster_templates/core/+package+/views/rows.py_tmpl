@@ -19,7 +19,7 @@ def index(request):
 
 
 @view_config(route_name='row_update', renderer='json', request_method='POST', permission='row_update')
-def index_(request):
+def update(request):
     'Update row'
     params = request.params
     if params.get('token') != request.session.get_csrf_token():

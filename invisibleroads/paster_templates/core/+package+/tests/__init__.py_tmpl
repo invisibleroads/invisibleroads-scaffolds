@@ -30,8 +30,8 @@ class TestTemplate(unittest.TestCase):
         # Initialize functional test framework
         self.app = webtest.TestApp(self.router)
         self.logout()
-        # Reset users
         word = 'Спасибо'.decode('utf-8')
+        # Reset users
         self.userL = ReplaceableDict(role=ROLE_LEADER)
         self.userM = ReplaceableDict(role=ROLE_MEMBER)
         self.userS = ReplaceableDict(role=ROLE_SPECTATOR)
