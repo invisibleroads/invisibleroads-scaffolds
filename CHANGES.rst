@@ -1,8 +1,8 @@
 1.7.5
 -----
+- Restructured user roles and permissions
 - Used User.role instead of User.is_super and User.is_active
 - Used argparse instead of optparse in utilities/script_process
-- Added jQuery Tools examples in static/bits.html
 - Added row-based interface example in templates/rows/index.mak_tmpl
 - Added users.unpack_properties() for more flexible property retrieval
 
