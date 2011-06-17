@@ -52,8 +52,9 @@ function applyFlag(selector, class, rValue, rMessage, aValue, aMessage) {
         mouseenter: function() {
             var $x = $(this);
             var $xRow = $x.parent('tr');
+            var message = ($xRow.hasClass(class) ? rMessage : aMessage);
             $x.find('.text').hide();
-            $x.append('<span class=flag>' + ($xRow.hasClass(class) ? rMessage : aMessage) + '</span>');
+            $x.append('<span class=flag>' + message + '</span>');
         },
         mouseleave: function() {
             var $x = $(this);
@@ -63,18 +64,21 @@ function applyFlag(selector, class, rValue, rMessage, aValue, aMessage) {
         click: function() {
             var $x = $(this);
             var $xRow = $x.parent('tr');
-            $.post("${request.route_path('user_move')}", {
-                token: token,
-                targetUserID: getID($xRow[0]),
-                role: $xRow.hasClass(class) ? rValue : aValue
-            }, function(data) {
-                if (data.isOk) {
-                    $table.find('tbody').html(data.content);
-                    applyDataTable();
-                } else {
-                    alert(data.message);
-                }
-            });
+            var message = ($xRow.hasClass(class) ? rMessage : aMessage);
+            if (confirm(message + ' ' + $xRow.find('.nickname').text() + '?')) {
+                $.post("${request.route_path('user_move')}", {
+                    token: token,
+                    targetUserID: getID($xRow[0]),
+                    role: $xRow.hasClass(class) ? rValue : aValue
+                }, function(data) {
+                    if (data.isOk) {
+                        $table.find('tbody').html(data.content);
+                        applyDataTable();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
         }
     });
 }
