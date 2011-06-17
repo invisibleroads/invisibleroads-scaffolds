@@ -2,9 +2,9 @@
 -----
 - Restructured user roles and permissions
 - Used User.role instead of User.is_super and User.is_active
-- Used argparse instead of optparse in utilities/script_process
-- Added row-based interface example in templates/rows/index.mak_tmpl
+- Used argparse instead of optparse in utilities/script_process.py
 - Added users.unpack_properties() for more flexible property retrieval
+- Added row-based interface example
 
 
 1.7.4
