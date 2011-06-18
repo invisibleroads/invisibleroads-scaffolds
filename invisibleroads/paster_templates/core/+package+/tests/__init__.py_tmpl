@@ -8,7 +8,7 @@ import simplejson
 import transaction
 import warnings; warnings.simplefilter('error')
 
-from {{package}} import main, load_settings
+from {{package}} import main, load_settings, ApplicationError
 from {{package}}.models import db, User, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 
 
@@ -25,24 +25,30 @@ class ReplaceableDict(dict):
 class TestTemplate(unittest.TestCase):
 
     router = main({'__file__': configurationPath}, **settings)
+    app = webtest.TestApp(router)
 
     def setUp(self):
         # Initialize functional test framework
-        self.app = webtest.TestApp(self.router)
         self.logout()
         word = 'Спасибо'.decode('utf-8')
         # Reset users
         self.userL = ReplaceableDict(role=ROLE_LEADER)
         self.userM = ReplaceableDict(role=ROLE_MEMBER)
         self.userS = ReplaceableDict(role=ROLE_SPECTATOR)
-        for userID, userD in enumerate([self.userL, self.userM, self.userS], 1):
+        users = [self.userL, self.userM, self.userS]
+        for userID, userD in enumerate(users, 1):
             wordNumber = word + str(userID)
+            userD['id'] = userID
             userD['username'] = wordNumber
             userD['password'] = wordNumber
             userD['nickname'] = wordNumber
             userD['email'] = wordNumber + '@example.com'
-            db.merge(User(id=userID, **userD))
+            db.merge(User(**userD))
         transaction.commit()
+
+    def test_load_settings(self):
+        'Make sure we can load settings properly'
+        self.assertRaises(ApplicationError, load_settings, configurationPath + 'x', basePath)
 
     def get_url(self, name, **kwargs):
         'Return URL for route'

@@ -247,7 +247,10 @@ def format_tokens(user):
 
 def parse_tokens(tokens):
     'Parse user information from a cookie'
-    code = tokens[0][1:]
+    try:
+        code = tokens[0][1:]
+    except IndexError:
+        code = ''
     return [code]
 
 

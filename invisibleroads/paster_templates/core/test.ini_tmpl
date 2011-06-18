@@ -4,3 +4,4 @@ sqlalchemy.url = sqlite://
 session.data_dir = %(here)s/data/tests/sessions/data
 session.lock_dir = %(here)s/data/tests/sessions/lock
 mail.queue_path = %(here)s/data/tests/mail
+ciphers.secret = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'

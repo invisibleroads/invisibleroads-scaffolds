@@ -47,7 +47,7 @@ def main(global_config, **settings):
         try:
             code, role = users.unpack_properties(userID, 'code', 'role')
         except TypeError:
-            return []
+            return ['outcast']
         # Check code
         identity = authenticationPolicy.cookie.identify(request)
         if code != users.parse_tokens(identity['tokens'])[0]:
@@ -61,19 +61,22 @@ def main(global_config, **settings):
         return groups
     def make_renderer_globals(system):
         'Define client-side permissions associated with user'
-        userID = authenticated_userid(system['request'])
-        try:
-            nickname, minutes_offset, role = users.unpack_properties(userID, 'nickname', 'minutes_offset', 'role')
-        except TypeError:
-            nickname, minutes_offset, role = u'', MINUTES_OFFSET, ROLE_SPECTATOR
+        request = system['request']
+        userID = authenticated_userid(request)
+        groups = get_groups(userID, request)
+        if 'outcast' not in groups:
+            nickname, minutes_offset = users.unpack_properties(userID, 'nickname', 'minutes_offset')
+        else:
+            userID = None
+            nickname, minutes_offset = u'', MINUTES_OFFSET
         return dict(
             SITE_NAME=SITE_NAME,
             SITE_VERSION=SITE_VERSION,
             USER_ID=userID,
             USER_NICKNAME=nickname,
             USER_OFFSET=minutes_offset,
-            IS_MEMBER=role >= ROLE_MEMBER,
-            IS_LEADER=role >= ROLE_LEADER)
+            IS_MEMBER='member' in groups,
+            IS_LEADER='leader' in groups)
     # Prepare configuration
     if not settings.get('authtkt.secret'):
         settings['authtkt.secret'] = os.urandom(SECRET_LEN)
@@ -132,7 +135,6 @@ def load_sensitive_settings(configurationPath, defaultByKey):
     configParser  = ConfigParser.ConfigParser(defaultByKey)
     if not configParser.read(sensitivePath):
         log.warn('Could not open %s' % sensitivePath)
-        return settings
     for section in configParser.sections():
         settings.update(configParser.items(section))
     return settings

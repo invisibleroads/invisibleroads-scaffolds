@@ -1,6 +1,9 @@
 'Tests for user account management'
 import imapIO
 import unittest
+from webob.request import environ_from_url
+from pyramid.testing import DummyRequest
+from pyramid.authentication import AuthTktCookieHelper
 
 from {{package}}.views import users
 from {{package}}.libraries import sms
@@ -10,6 +13,28 @@ from {{package}}.tests import TestTemplate, ReplaceableDict, settings
 
 
 class TestUsers(TestTemplate):
+
+    def test_authentication(self):
+        'Make sure authentication is robust'
+        url = self.get_url('user_index')
+        def get_body(secret, principal, tokens):
+            request = DummyRequest(environ=environ_from_url(url))
+            headers = AuthTktCookieHelper(secret).remember(request, principal, tokens=tokens)
+            key, value = headers[0][1].split(';')[0].split('=')
+            self.app.cookies = {key: value.strip('"')}
+            return self.app.get(url).body
+        user = db.query(User).get(self.userL['id'])
+        tokens = users.format_tokens(user)
+        secret = self.router.registry.settings['authtkt.secret']
+        params = ReplaceableDict(secret=secret, principal=self.userL['id'], tokens=tokens)
+        # Fool authentication successfully
+        self.assert_('Logout' in get_body(**params))
+        # See what happens when we forge cookies poorly
+        self.assert_('Logout' not in get_body(**params.replace(secret='')))
+        self.assert_('Logout' not in get_body(**params.replace(principal=0)))
+        self.assert_('Logout' not in get_body(**params.replace(principal='x')))
+        self.assert_('Logout' not in get_body(**params.replace(tokens=[])))
+        self.assert_('Logout' not in get_body(**params.replace(tokens=['x'])))
 
     def test_index(self):
         'Assert that the user index page is visible'
@@ -64,6 +89,7 @@ class TestUsers(TestTemplate):
         # Bad credentials fail
         self.assert_json(self.login(self.userS.replace(username='')), 0)
         self.assert_json(self.login(self.userS.replace(password='')), 0)
+        self.assert_json(self.login(self.userS.replace(username='xxx')), 0)
         self.assert_json(self.login(self.userS.replace(password=self.userS['password'] + 'x')), 0)
         # Good credentials succeed
         self.assert_json(self.login(self.userS), 1)
@@ -106,30 +132,34 @@ class TestUsers(TestTemplate):
         'Make sure that updating smsAddresses works'
         url = self.get_url('user_update')
         db.query(SMSAddress).delete()
-        userL_id, userL_code, userL_email = db.query(User.id, User.code, User.email).filter_by(username=self.userL['username']).first()
-        userM_id, userM_code, userM_email = db.query(User.id, User.code, User.email).filter_by(username=self.userM['username']).first()
-        userS_id, userS_code, userS_email = db.query(User.id, User.code, User.email).filter_by(username=self.userS['username']).first()
+        userL_code = db.query(User.code).filter_by(username=self.userL['username']).first()[0]
+        userM_code = db.query(User.code).filter_by(username=self.userM['username']).first()[0]
+        userS_code = db.query(User.code).filter_by(username=self.userS['username']).first()[0]
 
         imapServer = sms.connect(self.router.registry.settings)
+        def register_smsAddress(userID, userCode, userEmail):
+            imapServer.revive('inbox', imapIO.build_message(
+                subject='%s-%s' % (userID, userCode), 
+                fromWhom='sms_' + userEmail))
         # Register an invalid email address
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userL_id, userL_code), fromWhom=''))
+        register_smsAddress(self.userL['id'], userL_code, '')
         # Register using an invalid userID or userCode
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (-1, userL_code), fromWhom='sms_' + userL_email))
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userL_id, -1), fromWhom='sms_' + userL_email))
+        register_smsAddress(-1, userL_code, self.userL['email'])
+        register_smsAddress(self.userL['id'], -1, self.userL['email'])
         # Register three email addresses
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userL_id, userL_code), fromWhom='sms_' + userL_email))
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userM_id, userM_code), fromWhom='sms_' + userM_email))
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userS_id, userS_code), fromWhom='sms_' + userS_email))
+        register_smsAddress(self.userL['id'], userL_code, self.userL['email'])
+        register_smsAddress(self.userM['id'], userM_code, self.userM['email'])
+        register_smsAddress(self.userS['id'], userS_code, self.userS['email'])
         # Register an address that already exists for the given user
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (userL_id, userL_code), fromWhom='sms_' + userL_email))
+        register_smsAddress(self.userL['id'], userL_code, self.userL['email'])
         # Remove an email address
-        imapServer.revive('inbox', imapIO.build_message(subject='%s-%s' % (0, 'xxx'), fromWhom='sms_' + userL_email))
+        register_smsAddress(0, 'xxx', self.userL['email'])
         # Process
         sms.process(self.router.registry.settings)
         # Make sure we only have two registered SMS address
         self.assertEqual(2, db.query(SMSAddress).count())
-        smsAddressA = db.query(SMSAddress).filter_by(user_id=userM_id).first()
-        smsAddressI = db.query(SMSAddress).filter_by(user_id=userS_id).first()
+        smsAddressA = db.query(SMSAddress).filter_by(user_id=self.userM['id']).first()
+        smsAddressI = db.query(SMSAddress).filter_by(user_id=self.userS['id']).first()
 
         # Get token
         self.login(self.userS)
@@ -140,14 +170,14 @@ class TestUsers(TestTemplate):
         self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
         # Activate an smsAddress
         self.assert_json(self.post(url, params), 1)
-        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=userS_id).first()[0], True)
+        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], True)
 
         params = ReplaceableDict(token=token, smsAddressAction='deactivate', smsAddressID=smsAddressI.id)
         # Deactivate an smsAddress that doesn't belong to the user
         self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
         # Deactivate an smsAddress
         self.assert_json(self.post(url, params), 1)
-        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=userS_id).first()[0], False)
+        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], False)
 
         params = ReplaceableDict(token=token, smsAddressAction='remove', smsAddressID=smsAddressI.id)
         # Remove an smsAddress that doesn't belong to the user
