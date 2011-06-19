@@ -8,7 +8,7 @@ from pyramid.authentication import AuthTktCookieHelper
 from {{package}}.views import users
 from {{package}}.libraries import sms
 from {{package}}.libraries.tools import get_token
-from {{package}}.models import db, User, User_, SMSAddress, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
+from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 from {{package}}.tests import TestTemplate, ReplaceableDict, settings
 
 
@@ -25,7 +25,7 @@ class TestUsers(TestTemplate):
             return self.app.get(url).body
         user = db.query(User).get(self.userL['id'])
         tokens = users.format_tokens(user)
-        secret = self.router.registry.settings['authtkt.secret']
+        secret = self.settings['authtkt.secret']
         params = ReplaceableDict(secret=secret, principal=self.userL['id'], tokens=tokens)
         # Fool authentication successfully
         self.assert_('Logout' in get_body(**params))
@@ -136,7 +136,12 @@ class TestUsers(TestTemplate):
         userM_code = db.query(User.code).filter_by(username=self.userM['username']).first()[0]
         userS_code = db.query(User.code).filter_by(username=self.userS['username']).first()[0]
 
-        imapServer = sms.connect(self.router.registry.settings)
+        # Test sms.connect()
+        self.assertRaises(ApplicationError, sms.connect, {})
+        self.assertRaises(ApplicationError, sms.connect, dict(self.settings.items() + 
+            [('sms.imap.host', 'x' + self.settings['sms.imap.host'])]))
+        # Connect to IMAP server
+        imapServer = sms.connect(self.settings)
         def register_smsAddress(userID, userCode, userEmail):
             imapServer.revive('inbox', imapIO.build_message(
                 subject='%s-%s' % (userID, userCode), 
@@ -155,7 +160,7 @@ class TestUsers(TestTemplate):
         # Remove an email address
         register_smsAddress(0, 'xxx', self.userL['email'])
         # Process
-        sms.process(self.router.registry.settings)
+        sms.process(self.settings)
         # Make sure we only have two registered SMS address
         self.assertEqual(2, db.query(SMSAddress).count())
         smsAddressA = db.query(SMSAddress).filter_by(user_id=self.userM['id']).first()

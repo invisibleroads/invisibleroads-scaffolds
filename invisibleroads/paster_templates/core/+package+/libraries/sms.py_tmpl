@@ -8,7 +8,7 @@ from email.utils import parseaddr
 from sqlalchemy.orm import joinedload
 from formencode import validators, Invalid
 
-from {{package}}.models import db, User, SMSAddress
+from {{package}}.models import db, User, SMSAddress, ApplicationError
 
 
 pattern_registration = re.compile(r'(\d+)\W+(.*)')
@@ -42,11 +42,11 @@ def connect(settings):
             'sms.imap.username', 
             'sms.imap.password']
     except KeyError, error:
-        raise KeyError('Missing %s in configuration file' % error)
+        raise ApplicationError('Missing %s in configuration file' % error)
     try:
         imapServer = imapIO.connect(*imapParams)
     except imapIO.IMAPError, error:
-        return error
+        raise ApplicationError('Could not connect to IMAP server')
     return imapServer
 
 
@@ -58,7 +58,7 @@ def processRegistration(email):
         return False
     userID, userCode = match.groups()
     userID = int(userID)
-    fromWhom = parseaddr(email.fromWhom)[1].decode('utf-8')
+    fromWhom = parseaddr(email.fromWhom)[1].decode('utf-8').lower()
     # Make sure we have a proper email address
     try:
         fromWhom = validators.Email(not_empty=True).to_python(fromWhom)
@@ -75,7 +75,8 @@ def processRegistration(email):
         return False
     # If we have registered the address already,
     if fromWhom in (x.email for x in user.sms_addresses):
-        return True
+        return False
     # Add
     db.add(SMSAddress(email=fromWhom, user_id=userID))
+    db.flush()
     return True

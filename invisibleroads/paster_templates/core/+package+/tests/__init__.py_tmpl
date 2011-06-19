@@ -26,6 +26,7 @@ class TestTemplate(unittest.TestCase):
 
     router = main({'__file__': configurationPath}, **settings)
     app = webtest.TestApp(router)
+    settings = router.registry.settings
 
     def setUp(self):
         # Initialize functional test framework
