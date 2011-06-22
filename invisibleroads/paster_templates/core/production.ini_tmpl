@@ -46,11 +46,11 @@ debug = false
 ;error_log = 
 ;show_exceptions_in_wsgi_errors = true
 ;smtp_server = localhost
-;error_email = janitor@example.com
-;smtp_username = janitor
-;smtp_password = "janitor's password"
+;error_email = bugs@example.com
+;smtp_username = bugs
+;smtp_password =
 ;from_address = paste@localhost
-;error_subject_prefix = "Pyramid Error"
+;error_subject_prefix =
 ;smtp_use_tls =
 ;error_message =
 

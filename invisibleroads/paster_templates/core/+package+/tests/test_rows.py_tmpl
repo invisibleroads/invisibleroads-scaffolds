@@ -1,0 +1,40 @@
+'Tests for row-based interface demo'
+from {{package}}.views import rows
+from {{package}}.models import db, Row
+from {{package}}.tests import TestTemplate, ReplaceableDict
+from {{package}}.libraries.tools import get_token
+
+
+class TestRows(TestTemplate):
+    'Test views for rows'
+
+    def test_index(self):
+        'Assert that the row index page is visible'
+        url = self.get_url('row_index')
+        # Make sure that the user index page is visible
+        self.assert_('Rows</title>' in self.get(url).unicode_body)
+
+    def test_update(self):
+        'Make sure that updating rows works'
+        url = self.get_url('row_update')
+        # Check that we only see the login page if the user is not a member
+        self.assert_forbidden(url, method='POST')
+        self.login(self.userS)
+        self.assert_forbidden(url, method='POST')
+        # Get token
+        self.login(self.userM)
+        token = get_token(self.get(self.get_url('row_index')).unicode_body)
+        params = ReplaceableDict(token=token, id=1, col1='column1', col2='column2')
+        # Updating rows requires a token
+        self.assert_json(self.post(url, params.replace(token='')), 0)
+        # Try different values to cause errors
+        self.assert_json(self.post(url, params.replace(id=0)), 0)
+        self.assert_json(self.post(url, params.replace(id='xxx')), 0)
+        self.assert_json(self.post(url, params.replace(col1='')), 0)
+        self.assert_json(self.post(url, params.replace(col1='x')), 0)
+        self.assert_json(self.post(url, params.replace(col1='x' * 10)), 0)
+        self.assert_json(self.post(url, params.replace(col2='')), 0)
+        self.assert_json(self.post(url, params.replace(col2='x')), 0)
+        self.assert_json(self.post(url, params.replace(col2='x' * 10)), 0)
+        # Update rows successfully
+        self.assert_json(self.post(url, params), 1)

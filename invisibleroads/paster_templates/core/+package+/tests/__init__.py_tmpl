@@ -7,9 +7,11 @@ import unittest
 import simplejson
 import transaction
 import warnings; warnings.simplefilter('error')
+from pyramid.request import Request
 
 from {{package}} import main, load_settings, ApplicationError
-from {{package}}.models import db, User, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
+from {{package}}.models import db, User, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER, CaseInsensitiveUnicode
+from {{package}}.libraries.tools import make_random_unique_string, get_remote_ip
 
 
 configurationPath = os.path.join(basePath, 'test.ini')
@@ -44,12 +46,8 @@ class TestTemplate(unittest.TestCase):
             userD['password'] = wordNumber
             userD['nickname'] = wordNumber
             userD['email'] = wordNumber + '@example.com'
-            db.merge(User(**userD))
+            db.merge(User(**userD.replace(rejection_count=0)))
         transaction.commit()
-
-    def test_load_settings(self):
-        'Make sure we can load settings properly'
-        self.assertRaises(ApplicationError, load_settings, configurationPath + 'x', basePath)
 
     def get_url(self, name, **kwargs):
         'Return URL for route'
@@ -63,9 +61,9 @@ class TestTemplate(unittest.TestCase):
         'Send a POST request'
         return self.app.post(url, unicode_dictionary(params))
 
-    def login(self, userD):
+    def login(self, userD, **kwargs):
         'Login using credentials'
-        return self.post(self.get_url('user_login'), userD)
+        return self.post(self.get_url('user_login'), ReplaceableDict(userD, **kwargs))
 
     def logout(self):
         'Logout'
@@ -74,8 +72,6 @@ class TestTemplate(unittest.TestCase):
     def assert_json(self, response, isOk):
         'Assert response JSON'
         data = simplejson.loads(response.unicode_body)
-        if data['isOk'] != isOk:
-            print data
         self.assertEqual(data['isOk'], isOk)
         return data
 
@@ -83,6 +79,35 @@ class TestTemplate(unittest.TestCase):
         'Return True if the page is forbidden'
         body = getattr(self, method.lower())(url).body
         return self.assertEqual('Login</title>' in body, isForbidden)
+
+
+class TestMiscellaneous(unittest.TestCase):
+
+    def test_load_settings(self):
+        'Make sure we can load settings properly'
+        self.assertRaises(ApplicationError, load_settings, configurationPath + 'x', basePath)
+
+    def test_make_random_unique_string(self):
+        'Test the limits of make_random_unique_string()'
+        self.assertRaises(RuntimeError, make_random_unique_string, 1, lambda x: False)
+
+    def test_get_remote_ip(self):
+        'Test get_remote_ip()'
+        ip = '127.0.0.1'
+        self.assertEqual(get_remote_ip(Request({'HTTP_X_REAL_IP': ip})), ip)
+        self.assertEqual(get_remote_ip(Request({'HTTP_X_FORWARDED_FOR': ip})), ip)
+        self.assertEqual(get_remote_ip(Request({'REMOTE_ADDR': ip})), ip)
+
+    def test_CaseInsensitiveUnicode(self):
+        'Test CaseInsensitiveUnicode'
+        x = CaseInsensitiveUnicode('xxx')
+        X = CaseInsensitiveUnicode('XXX')
+        self.assertEqual(x < X, False)
+        self.assertEqual(x <= X, True)
+        self.assertEqual(x == X, True)
+        self.assertEqual(x != X, False)
+        self.assertEqual(x > X, False)
+        self.assertEqual(x >= X, True)
 
 
 def unicode_dictionary(dictionary):

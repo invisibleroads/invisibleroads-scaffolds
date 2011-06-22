@@ -227,8 +227,6 @@ def move(request):
         return dict(isOk=0, message='Cannot promote or demote yourself')
     # Load role
     value = params.get('role')
-    if value is None:
-        return dict(isOk=0, message='No role specified')
     try:
         value = int(value)
     except ValueError:
@@ -247,10 +245,8 @@ def format_tokens(user):
 
 def parse_tokens(tokens):
     'Parse user information from a cookie'
-    try:
-        code = tokens[0][1:]
-    except IndexError:
-        code = ''
+    # Due to paste.auth.auth_tkt.parse_ticket(), len(tokens) >= 1
+    code = tokens[0][1:]
     return [code]
 
 

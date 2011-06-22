@@ -1,3 +1,8 @@
+1.7.6
+-----
+- Increased test coverage to 100% given SMS IMAP configuration
+
+
 1.7.5
 -----
 - Restructured user roles and permissions

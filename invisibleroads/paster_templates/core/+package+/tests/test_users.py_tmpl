@@ -10,9 +10,11 @@ from {{package}}.libraries import sms
 from {{package}}.libraries.tools import get_token
 from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 from {{package}}.tests import TestTemplate, ReplaceableDict, settings
+from {{package}} import parameters
 
 
 class TestUsers(TestTemplate):
+    'Test views for users'
 
     def test_authentication(self):
         'Make sure authentication is robust'
@@ -27,14 +29,14 @@ class TestUsers(TestTemplate):
         tokens = users.format_tokens(user)
         secret = self.settings['authtkt.secret']
         params = ReplaceableDict(secret=secret, principal=self.userL['id'], tokens=tokens)
-        # Fool authentication successfully
-        self.assert_('Logout' in get_body(**params))
         # See what happens when we forge cookies poorly
         self.assert_('Logout' not in get_body(**params.replace(secret='')))
         self.assert_('Logout' not in get_body(**params.replace(principal=0)))
         self.assert_('Logout' not in get_body(**params.replace(principal='x')))
         self.assert_('Logout' not in get_body(**params.replace(tokens=[])))
         self.assert_('Logout' not in get_body(**params.replace(tokens=['x'])))
+        # Fool authentication successfully
+        self.assert_('Logout' in get_body(**params))
 
     def test_index(self):
         'Assert that the user index page is visible'
@@ -90,9 +92,15 @@ class TestUsers(TestTemplate):
         self.assert_json(self.login(self.userS.replace(username='')), 0)
         self.assert_json(self.login(self.userS.replace(password='')), 0)
         self.assert_json(self.login(self.userS.replace(username='xxx')), 0)
-        self.assert_json(self.login(self.userS.replace(password=self.userS['password'] + 'x')), 0)
+        self.assert_json(self.login(self.userS.replace(password='xxx')), 0)
         # Good credentials succeed
         self.assert_json(self.login(self.userS), 1)
+        # Supply invalid minutes_offset
+        self.assert_json(self.login(self.userS, minutes_offset='xxx'), 1)
+        # Hit rejection limit
+        for rejectionIndex in xrange(parameters.REJECTION_LIMIT):
+            self.assert_json(self.login(self.userS.replace(password='xxx')), 0)
+        self.assert_json(self.login(self.userS), 0)
 
     def test_logout(self):
         'Make sure that logout works'
@@ -126,15 +134,24 @@ class TestUsers(TestTemplate):
         # Make sure the credentials have changed after confirmation
         self.get(self.get_url('user_confirm', ticket=db.query(User_.ticket).filter_by(email=email).order_by(User_.when_expire.desc()).first()[0]))
         self.assertEqual(db.query(User).filter_by(username=username, nickname=nickname, email=email).first().check(password), True)
+        # Use all available tickets
+        TICKET_LEN = users.TICKET_LEN 
+        users.TICKET_LEN = 0
+        db.merge(User_(ticket=''))
+        db.flush()
+        user = db.query(User).filter_by(email=email).first()
+        data = users.save_user_(DummyRequest(), params, 'update', user)
+        self.assertEqual(data['isOk'], 0)
+        users.TICKET_LEN = TICKET_LEN
 
     @unittest.skipIf(not settings.get('sms.imap.host'), 'not configured')
     def test_update_smsAddress(self):
         'Make sure that updating smsAddresses works'
         url = self.get_url('user_update')
         db.query(SMSAddress).delete()
-        userL_code = db.query(User.code).filter_by(username=self.userL['username']).first()[0]
-        userM_code = db.query(User.code).filter_by(username=self.userM['username']).first()[0]
-        userS_code = db.query(User.code).filter_by(username=self.userS['username']).first()[0]
+        userL_code = db.query(User.code).filter_by(id=self.userL['id']).first()[0]
+        userM_code = db.query(User.code).filter_by(id=self.userM['id']).first()[0]
+        userS_code = db.query(User.code).filter_by(id=self.userS['id']).first()[0]
 
         # Test sms.connect()
         self.assertRaises(ApplicationError, sms.connect, {})
@@ -170,31 +187,31 @@ class TestUsers(TestTemplate):
         self.login(self.userS)
         token = get_token(self.get(url).unicode_body)
 
-        params = ReplaceableDict(token=token, smsAddressAction='activate', smsAddressID=smsAddressI.id)
+        params = ReplaceableDict(token=token, smsAddressID=smsAddressI.id)
+        # Send an invalid command
+        self.assert_json(self.post(url, params.replace(smsAddressAction='')), 0)
+        self.assert_json(self.post(url, params.replace(smsAddressAction='xxx')), 0)
+
+        params = ReplaceableDict(token=token, smsAddressID=smsAddressI.id, smsAddressAction='activate')
         # Activate an smsAddress that doesn't belong to the user
         self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
         # Activate an smsAddress
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], True)
 
-        params = ReplaceableDict(token=token, smsAddressAction='deactivate', smsAddressID=smsAddressI.id)
+        params = ReplaceableDict(token=token, smsAddressID=smsAddressI.id, smsAddressAction='deactivate')
         # Deactivate an smsAddress that doesn't belong to the user
         self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
         # Deactivate an smsAddress
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], False)
 
-        params = ReplaceableDict(token=token, smsAddressAction='remove', smsAddressID=smsAddressI.id)
+        params = ReplaceableDict(token=token, smsAddressID=smsAddressI.id, smsAddressAction='remove')
         # Remove an smsAddress that doesn't belong to the user
         self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
         # Remove an smsAddress that does belong to the user
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress).filter_by(id=smsAddressI.id).count(), 0)
-
-        params = ReplaceableDict(token=token)
-        # Send an invalid command
-        self.assert_json(self.post(url, params.replace(smsAddressAction='')), 0)
-        self.assert_json(self.post(url, params.replace(smsAddressAction='xxx')), 0)
 
     def test_move(self):
         'Make sure that only leaders can promote or demote other users'
@@ -207,9 +224,9 @@ class TestUsers(TestTemplate):
             self.assert_forbidden(url, method='POST')
 
         self.login(self.userL)
-        userID = db.query(User.id).filter_by(username=self.userL['username']).first()[0]
+        userID = self.userL['id']
         token = get_token(self.get(self.get_url('user_index')).body)
-        get_targetUser = lambda: db.query(User).filter_by(username=self.userS['username']).first()
+        get_targetUser = lambda: db.query(User).filter_by(id=self.userS['id']).first()
         targetUser = get_targetUser()
         params = ReplaceableDict(token=token, targetUserID=targetUser.id, role=ROLE_LEADER)
         # Check that a bad token fails
@@ -240,9 +257,9 @@ class TestUsers(TestTemplate):
         # Check that a bad token fails
         self.assert_json(self.post(url, params.replace(token=token + 'x')), 0)
         # Check that we can mutate the user code
-        userCode = db.query(User.code).filter_by(username=self.userS['username']).first()[0]
+        userCode = db.query(User.code).filter_by(id=self.userS['id']).first()[0]
         self.assert_json(self.post(url, params), 1)
-        self.assertNotEqual(userCode, db.query(User.code).filter_by(username=self.userS['username']).first()[0])
+        self.assertNotEqual(userCode, db.query(User.code).filter_by(id=self.userS['id']).first()[0])
 
     def test_reset(self):
         'Make sure that resetting the password works'
@@ -251,7 +268,7 @@ class TestUsers(TestTemplate):
         # Trying to reset an email that does not exist returns an error
         self.assert_json(self.post(url, dict(email=email + 'x')), 0)
         # Resetting the password does not immediately change the password
-        self.assert_json(self.post(url, dict(email=email)), 1)
+        self.assert_json(self.post(url, dict(email=email.upper())), 1)
         self.assertEqual(db.query(User).filter_by(email=email).first().check(password), True)
         # Apply change
         self.get(self.get_url('user_confirm', ticket=db.query(User_.ticket).filter_by(email=email).order_by(User_.when_expire.desc()).first()[0]))

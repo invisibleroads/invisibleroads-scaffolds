@@ -1,11 +1,9 @@
 'Data models'
 import transaction
-from sqlalchemy import func, Column, ForeignKey, Integer, String, LargeBinary, Unicode, Boolean, DateTime
+from sqlalchemy import func, Column, ForeignKey, Boolean, Integer, String, Unicode, LargeBinary, DateTime
+from sqlalchemy.orm import scoped_session, sessionmaker, relationship
+from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import column_property, scoped_session, sessionmaker, relationship
-from sqlalchemy.orm.properties import ColumnProperty
-from sqlalchemy.types import TypeDecorator
 from zope.sqlalchemy import ZopeTransactionExtension
 from cryptacular import bcrypt
 
@@ -24,65 +22,90 @@ class ApplicationError(Exception):
     pass
 
 
-class CaseInsensitiveComparator(ColumnProperty.Comparator):
-    'A case-insensitive SQLAlchemy comparator for unicode columns'
+class CaseInsensitiveUnicode(unicode):
+
+    def __lt__(self, other):
+        return self.lower() < other.lower()
+
+    def __le__(self, other):
+        return self.lower() <= other.lower()
 
     def __eq__(self, other):
-        'Return True if the lowercase of both columns are equal'
-        return func.lower(self.__clause_element__()) == func.lower(other)
+        return self.lower() == other.lower()
+
+    def __ne__(self, other):
+        return self.lower() != other.lower()
+
+    def __gt__(self, other):
+        return self.lower() > other.lower()
+
+    def __ge__(self, other):
+        return self.lower() >= other.lower()
 
 
-class Encrypted(TypeDecorator):
-    """
-    An SQLAlchemy type that encrypts on the way in and decrypts on the way out.
-    Please note that the encryption first decodes the value into utf-8, 
-    which may inflate N unicode characters to N * 2 bytes.
-    """
+class CaseInsensitiveComparator(Comparator):
 
-    impl = LargeBinary
-
-    def process_bind_param(self, value, dialect):
-        return encrypt(value)
-
-    def process_result_value(self, value, dialect):
-        return decrypt(value)
+    def operate(self, op, other, **kwargs):
+        return op(func.lower(self.__clause_element__()), func.lower(other), **kwargs)
 
 
-class LowercaseEncrypted(TypeDecorator):
-    """
-    An SQLAlchemy type that converts the value to lowercase and 
-    encrypts on the way in and decrypts on the way out.
-    Please note that the encryption first decodes the value into utf-8, 
-    which may inflate N unicode characters to N * 2 bytes.
-    """
+class CaseInsensitiveEncryptComparator(Comparator):
 
-    impl = LargeBinary
-
-    def process_bind_param(self, value, dialect):
-        return encrypt((value or '').lower())
-
-    def process_result_value(self, value, dialect):
-        return decrypt(value)
+    def operate(self, op, other, **kwargs):
+        return op(self.__clause_element__(), encrypt(other.lower()), **kwargs)
 
 
-class User(Base):
-    'A user'
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True)
-    username = column_property(
-        Column(Unicode(USERNAME_LEN_MAX), unique=True), 
-        comparator_factory=CaseInsensitiveComparator)
-    password_ = Column('password', LargeBinary(60)) # Hash from bcrypt
+class EmailMixin(object):
+    'Mixin class for a case-insensitive encrypted email address'
+    email_ = Column(LargeBinary(EMAIL_LEN_MAX * 2)) # Doubled for unicode addresses
+    @hybrid_property
+    def email(self):
+        return CaseInsensitiveUnicode(decrypt(self.email_))
+    @email.setter
+    def email(self, email):
+        self.email_ = encrypt(email.lower())
+    @email.comparator
+    def email(cls):
+        return CaseInsensitiveEncryptComparator(cls.email_)
+
+
+class UserMixin(EmailMixin):
+    'Mixin class for common user fields'
+    username_ = Column(Unicode(USERNAME_LEN_MAX))
+    @hybrid_property
+    def username(self):
+        return CaseInsensitiveUnicode(self.username_)
+    @username.setter
+    def username(self, username):
+        self.username_ = username
+    @username.comparator
+    def username(cls):
+        return CaseInsensitiveComparator(cls.username_)
+
+    password_ = Column(LargeBinary(60))
     @hybrid_property
     def password(self):
         return self.password_
     @password.setter
     def password(self, password):
         self.password_ = crypt.encode(password)
-    nickname = column_property(
-        Column(Unicode(NICKNAME_LEN_MAX), unique=True),
-        comparator_factory=CaseInsensitiveComparator)
-    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2), unique=True) # Doubled for unicode addresses
+
+    nickname_ = Column(Unicode(NICKNAME_LEN_MAX))
+    @hybrid_property
+    def nickname(self):
+        return CaseInsensitiveUnicode(self.nickname_)
+    @nickname.setter
+    def nickname(self, nickname):
+        self.nickname_ = nickname
+    @nickname.comparator
+    def nickname(cls):
+        return CaseInsensitiveComparator(cls.nickname_)
+
+
+class User(Base, UserMixin):
+    'A user'
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
     role = Column(Integer, default=ROLE_SPECTATOR)
     rejection_count = Column(Integer, default=0)
     minutes_offset = Column(Integer, default=0)
@@ -90,50 +113,26 @@ class User(Base):
     code = Column(String(CODE_LEN), default=lambda: make_random_string(CODE_LEN))
     sms_addresses = relationship('SMSAddress')
 
-    def __str__(self):
-        return "<User(id=%s)>" % self.id
-
     def check(self, password):
         'Return True if we have a matching password'
         return crypt.check(self.password, password)
 
 
-class User_(Base):
+class User_(Base, UserMixin):
     'An unconfirmed change to a user account'
     __tablename__ = 'users_'
     id = Column(Integer, primary_key=True)
-    username = column_property(
-        Column(Unicode(USERNAME_LEN_MAX)), 
-        comparator_factory=CaseInsensitiveComparator)
-    password_ = Column('password', LargeBinary(60)) # Hash from bcrypt
-    @hybrid_property
-    def password(self):
-        return self.password_
-    @password.setter
-    def password(self, password):
-        self.password_ = crypt.encode(password)
-    nickname = column_property(
-        Column(Unicode(NICKNAME_LEN_MAX)), 
-        comparator_factory=CaseInsensitiveComparator)
-    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2)) # Doubled for unicode addresses
     user_id = Column(ForeignKey('users.id'))
     ticket = Column(String(TICKET_LEN), unique=True)
     when_expire = Column(DateTime)
 
-    def __str__(self):
-        return "<User_(id=%s)>" % self.id
 
-
-class SMSAddress(Base):
+class SMSAddress(Base, EmailMixin):
     'An SMS address'
     __tablename__ = 'sms_addresses'
     id = Column(Integer, primary_key=True)
-    email = Column(LowercaseEncrypted(EMAIL_LEN_MAX * 2)) # Doubled for unicode addresses
     user_id = Column(ForeignKey('users.id'))
     is_active = Column(Boolean, default=False)
-
-    def __str__(self):
-        return "<SMSAddress(id=%s)>" % self.id
 
 
 class Row(Base):
@@ -142,9 +141,6 @@ class Row(Base):
     id = Column(Integer, primary_key=True)
     col1 = Column(Unicode(64))
     col2 = Column(Unicode(64))
-
-    def __str__(self):
-        return "<Row(id=%s)>" % self.id
 
 
 def initialize_sql(engine):

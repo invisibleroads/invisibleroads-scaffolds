@@ -58,7 +58,7 @@ def processRegistration(email):
         return False
     userID, userCode = match.groups()
     userID = int(userID)
-    fromWhom = parseaddr(email.fromWhom)[1].decode('utf-8').lower()
+    fromWhom = parseaddr(email.fromWhom)[1].decode('utf-8')
     # Make sure we have a proper email address
     try:
         fromWhom = validators.Email(not_empty=True).to_python(fromWhom)
