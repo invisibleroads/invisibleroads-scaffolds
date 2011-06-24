@@ -46,13 +46,13 @@ class TestUsers(TestTemplate):
     def test_registration(self):
         'Make sure that registration works'
         url = self.get_url('user_register')
-        username, password, nickname, email = [self.userL[x].replace('1', '9') for x in 'username', 'password', 'nickname', 'email']
+        username, password, nickname, email = [self.userL[x].replace('1', 'A') for x in 'username', 'password', 'nickname', 'email']
         params = ReplaceableDict(username=username, password=password, nickname=nickname, email=email)
         # Make sure the registration page appears properly
         self.assert_('Registration' in self.get(url).unicode_body)
         # Register
         registrationCount1 = db.query(User_).count()
-        self.post(url, params)
+        self.assert_json(self.post(url, params), 1)
         # Register with a username that already exists
         self.assert_json(self.post(url, params.replace(username=self.userL['username'])), 0)
         # Register with a nickname that already exists
@@ -61,12 +61,11 @@ class TestUsers(TestTemplate):
         self.assert_json(self.post(url, params.replace(email=self.userL['email'])), 0)
         # Register with a weak password
         self.assert_json(self.post(url, params.replace(password='xxx')), 0)
-        # Register with the same username but with different case
-        self.post(url, params.replace(username=username.upper(), nickname=nickname + 'x', email=email + 'x'))
-        # Register with the same nickname but with different case
-        self.post(url, params.replace(username=username + 'x', nickname=nickname.upper(), email=email + 'x'))
-        # Register with the same email but with different case
-        self.post(url, params.replace(username=username + 'x', nickname=nickname + 'x', email=email.upper()))
+        # Try different case
+        params = ReplaceableDict(username=username + 'x', password=password + 'x', nickname=nickname + 'x', email=email + 'x')
+        self.assert_json(self.post(url, params.replace(username=username.upper())), 1)
+        self.assert_json(self.post(url, params.replace(nickname=nickname.upper())), 1)
+        self.assert_json(self.post(url, params.replace(email=email.upper())), 1)
         # Confirm with an invalid ticket
         self.get(self.get_url('user_confirm', ticket='xxx'))
         # Confirm registration
