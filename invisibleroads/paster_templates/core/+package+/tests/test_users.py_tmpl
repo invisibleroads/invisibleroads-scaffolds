@@ -7,9 +7,8 @@ from pyramid.authentication import AuthTktCookieHelper
 
 from {{package}}.views import users
 from {{package}}.libraries import sms
-from {{package}}.libraries.tools import get_token
 from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
-from {{package}}.tests import TestTemplate, ReplaceableDict, settings
+from {{package}}.tests import TestTemplate, ReplaceableDict, settings, get_token
 from {{package}} import parameters
 
 
@@ -219,7 +218,7 @@ class TestUsers(TestTemplate):
         # Check that we only see the login page if the user is not logged in
         self.assert_forbidden(url, method='POST')
         # Check that only leaders can promote or demote other users
-        for userD in self.userM, self.userS:
+        for userD in [self.userM, self.userS]:
             self.login(userD)
             self.assert_forbidden(url, method='POST')
 

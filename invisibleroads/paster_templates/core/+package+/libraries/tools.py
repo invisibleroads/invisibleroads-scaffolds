@@ -1,5 +1,4 @@
 'General purpose tools'
-import re
 import random
 from Crypto.Cipher import AES
 
@@ -44,9 +43,3 @@ def get_remote_ip(request):
     return request.environ.get('HTTP_X_REAL_IP', 
            request.environ.get('HTTP_X_FORWARDED_FOR',
            request.environ.get('REMOTE_ADDR')))
-
-
-def get_token(html):
-    'Extract token from html'
-    match = re.search("token = '(.*)'", html)
-    return match.group(1) if match else ''

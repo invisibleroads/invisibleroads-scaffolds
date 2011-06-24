@@ -1,8 +1,7 @@
 'Tests for row-based interface demo'
 from {{package}}.views import rows
 from {{package}}.models import db, Row
-from {{package}}.tests import TestTemplate, ReplaceableDict
-from {{package}}.libraries.tools import get_token
+from {{package}}.tests import TestTemplate, ReplaceableDict, get_token
 
 
 class TestRows(TestTemplate):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 'Test templates'
-import os; basePath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import os
+import re
 import webtest
 import shutil
 import unittest
@@ -14,6 +15,7 @@ from {{package}}.models import db, User, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADE
 from {{package}}.libraries.tools import make_random_unique_string, get_remote_ip
 
 
+basePath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 configurationPath = os.path.join(basePath, 'test.ini')
 settings = load_settings(configurationPath, basePath)
 
@@ -115,3 +117,9 @@ def unicode_dictionary(dictionary):
     if not dictionary:
         return {}
     return dict((key, value.encode('utf-8') if isinstance(value, unicode) else value) for key, value in dictionary.iteritems())
+
+
+def get_token(html):
+    'Extract token from html'
+    match = re.search("token = '(.*)'", html)
+    return match.group(1) if match else ''

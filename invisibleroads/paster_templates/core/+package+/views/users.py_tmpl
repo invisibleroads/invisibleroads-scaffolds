@@ -12,7 +12,7 @@ from recaptcha.client import captcha
 from sqlalchemy.orm import joinedload
 from beaker.cache import cache_region, region_invalidate
 
-from {{package}}.models import db, User, User_, SMSAddress, ApplicationError
+from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, Unique
 from {{package}}.libraries.tools import make_random_string, make_random_unique_string
 from {{package}}.parameters import *
 
@@ -324,27 +324,6 @@ def apply_user_(ticket):
     return user_
 
 
-class Unique(validators.FancyValidator):
-    'Validator to ensure that the value of a field is unique'
-
-    def __init__(self, fieldName, errorMessage):
-        'Store fieldName and errorMessage'
-        super(Unique, self).__init__()
-        self.fieldName = fieldName
-        self.errorMessage = errorMessage
-
-    def _to_python(self, value, user):
-        'Check whether the value is unique'
-        # If the user is new or the value changed,
-        if not user or getattr(user, self.fieldName) != value:
-            # Make sure the value is unique
-            if db.query(User).filter(getattr(User, self.fieldName)==value).first():
-                # Raise
-                raise Invalid(self.errorMessage, value, user)
-        # Return
-        return value
-
-
 class SecurePassword(validators.FancyValidator):
     'Validator to prevent weak passwords'
 
@@ -367,7 +346,7 @@ class UserForm(Schema):
             max=USERNAME_LEN_MAX,
             not_empty=True,
             strip=True),
-        Unique('username', 'That username already exists'))
+        Unique(User, 'username', 'That username already exists'))
     password = All(
         validators.UnicodeString(
             min=PASSWORD_LEN_MIN,
@@ -379,11 +358,11 @@ class UserForm(Schema):
             max=NICKNAME_LEN_MAX,
             not_empty=True,
             strip=True),
-        Unique('nickname', 'That nickname already exists'))
+        Unique(User, 'nickname', 'That nickname already exists'))
     email = All(
         validators.UnicodeString(
             max=EMAIL_LEN_MAX,
             not_empty=True,
             strip=True),
         validators.Email(),
-        Unique('email', 'That email is reserved for another account'))
+        Unique(User, 'email', 'That email is reserved for another account'))
