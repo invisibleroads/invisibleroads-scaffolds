@@ -2,7 +2,6 @@
 import os; basePath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 import sys; sys.path.append(basePath)
 import argparse
-from sqlalchemy import create_engine
 
 from {{package}} import load_settings
 from {{package}}.models import initialize_sql
@@ -33,5 +32,5 @@ def initialize(args):
     if args.verbose:
         print 'Using %s' % args.configurationPath
     settings = load_settings(args.configurationPath, basePath)
-    initialize_sql(create_engine(settings['sqlalchemy.url']))
+    initialize_sql(settings)
     return settings

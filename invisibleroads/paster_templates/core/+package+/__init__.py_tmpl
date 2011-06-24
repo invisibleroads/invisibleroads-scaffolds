@@ -6,8 +6,6 @@ from pyramid.httpexceptions import HTTPFound
 from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
-from sqlalchemy import engine_from_config
-from sqlalchemy.pool import QueuePool, NullPool
 import logging; log = logging.getLogger(__name__)
 import ConfigParser
 import os
@@ -37,9 +35,7 @@ def main(global_config, **settings):
     if 'ciphers.secret' in settings:
         tools.secret = settings['ciphers.secret']
     # Connect to database
-    sqlalchemyURL = settings['sqlalchemy.url'].strip()
-    initialize_sql(engine_from_config(settings, 'sqlalchemy.', 
-        poolclass=NullPool if sqlalchemyURL.startswith('sqlite:///') else QueuePool))
+    initialize_sql(settings)
     # Define methods
     def get_groups(userID, request):
         'Define server-side permissions associated with the user'

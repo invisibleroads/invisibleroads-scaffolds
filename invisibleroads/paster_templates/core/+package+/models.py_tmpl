@@ -1,6 +1,7 @@
 'Data models'
 import transaction
-from sqlalchemy import func, Column, ForeignKey, Boolean, Integer, String, Unicode, LargeBinary, DateTime
+from sqlalchemy import func, Column, ForeignKey, Boolean, Integer, String, Unicode, LargeBinary, DateTime, engine_from_config
+from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.ext.declarative import declarative_base
@@ -144,14 +145,15 @@ class Row(Base):
     col2 = Column(Unicode(64))
 
 
-def initialize_sql(engine):
+def initialize_sql(settings):
     'Create tables and insert data'
     # Create tables
+    engine = engine_from_config(settings, 'sqlalchemy.', poolclass=NullPool if settings['sqlalchemy.url'].startswith('sqlite:///') else QueuePool)
     db.configure(bind=engine)
     Base.metadata.bind = engine
     Base.metadata.create_all(engine)
-    # If we have no users,
-    if not db.query(User).count():
+    # If we are in development mode and we have no users,
+    if settings['debug_templates'] and not db.query(User).count():
         # Prepare sample data
         userPacks = [
             (ROLE_LEADER, u'leader'),
