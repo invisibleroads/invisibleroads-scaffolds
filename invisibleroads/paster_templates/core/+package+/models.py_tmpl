@@ -175,20 +175,20 @@ def initialize_sql(engine):
 class Unique(validators.FancyValidator):
     'Validator to ensure that the value of a field is unique'
 
-    def __init__(self, cls, fieldName, errorMessage):
+    def __init__(self, Class, fieldName, errorMessage):
         'Store class, fieldName, errorMessage'
         super(Unique, self).__init__()
-        self.cls = cls
+        self.Class = Class
         self.fieldName = fieldName
         self.errorMessage = errorMessage
 
-    def _to_python(self, value, user):
+    def _to_python(self, value, classInstance):
         'Check whether the value is unique'
-        # If the user is new or the value changed,
-        if not user or getattr(user, self.fieldName) != value:
-            query = db.query(self.cls)
+        # If the classInstance is new or the value changed,
+        if not classInstance or getattr(classInstance, self.fieldName) != value:
+            query = db.query(self.Class)
             # If the value exists, raise formencode.Invalid
-            if query.filter(getattr(self.cls, self.fieldName)==value).first():
-                raise Invalid(self.errorMessage, value, user)
+            if query.filter(getattr(self.Class, self.fieldName)==value).first():
+                raise Invalid(self.errorMessage, value, classInstance)
         # Return
         return value

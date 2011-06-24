@@ -108,13 +108,11 @@ $form.overlay({
     }
 });
 $form.find('#save').click(function() {
-    $formObjs.end().prop('disabled', true);
-    $.post("${request.route_path('row_update')}", {
-        token: token,
-        id: $form.find('#id').val(),
-        col1: $.trim($form.find('#col1').val()),
-        col2: $.trim($form.find('#col2').val())
-    }, function(data) {
+    var params = {token: token, id: $form.find('#id').val()};
+    $formObjs.each(function() {
+        params[this.id] = this.value;
+    }).end().prop('disabled', true);
+    $.post("${request.route_path('row_update')}", params, function(data) {
         $formObjs.end().prop('disabled', false);
         if (data.isOk) {
             $form.overlay().close();
