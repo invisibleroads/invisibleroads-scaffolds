@@ -153,7 +153,8 @@ def initialize_sql(settings):
     Base.metadata.bind = engine
     Base.metadata.create_all(engine)
     # If we are in development mode and we have no users,
-    if settings['debug_templates'] and not db.query(User).count():
+    userCount = db.query(User).count()
+    if settings['debug_templates'] == 'true' and not userCount:
         # Prepare sample data
         userPacks = [
             (ROLE_LEADER, u'leader'),
