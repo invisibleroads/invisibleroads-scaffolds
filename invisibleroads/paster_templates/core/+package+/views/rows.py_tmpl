@@ -44,6 +44,6 @@ class RowForm(Schema):
     allow_extra_fields = True
     filter_extra_fields = True
 
-    id = validators.Int(min=1)
+    id = validators.Int(min=1, if_missing=None)
     col1 = validators.UnicodeString(min=3, max=9, not_empty=True, strip=True)
     col2 = validators.UnicodeString(min=3, max=9, not_empty=True, strip=True)
