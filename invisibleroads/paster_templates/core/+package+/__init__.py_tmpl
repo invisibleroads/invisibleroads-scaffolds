@@ -1,4 +1,7 @@
 'Pyramid WSGI configuration'
+import os
+import ConfigParser
+import logging; log = logging.getLogger(__name__)
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Everyone, Authenticated, Allow, Deny, ALL_PERMISSIONS, authenticated_userid
@@ -6,9 +9,7 @@ from pyramid.httpexceptions import HTTPFound
 from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
-import logging; log = logging.getLogger(__name__)
-import ConfigParser
-import os
+from whenIO import WhenIO
 
 from {{package}}.libraries import tools
 from {{package}}.models import initialize_sql, ApplicationError, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
@@ -70,7 +71,7 @@ def main(global_config, **settings):
             SITE_VERSION=SITE_VERSION,
             USER_ID=userID,
             USER_NICKNAME=nickname,
-            USER_OFFSET=minutes_offset,
+            USER_WHENIO=WhenIO(minutes_offset),
             IS_MEMBER='member' in groups,
             IS_LEADER='leader' in groups)
     # Prepare configuration
