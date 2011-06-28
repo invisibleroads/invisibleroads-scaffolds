@@ -154,18 +154,15 @@ def initialize_sql(settings):
     Base.metadata.create_all(engine)
     # If we have no users,
     if not db.query(User).count():
-        # If we are in development mode,
+        userPacks = [
+            (ROLE_LEADER, u'leader'),
+        ]
+        # If we are in development mode, add more users
         if settings['debug_templates'] == 'true':
-            userPacks = [
-                (ROLE_LEADER, u'leader'),
+            userPacks.extend([
                 (ROLE_MEMBER, u'member'),
                 (ROLE_SPECTATOR, u'spectator'),
-            ]
-        # If we are in production mode,
-        else:
-            userPacks = [
-                (ROLE_LEADER, u'admin'),
-            ]
+            ])
         # Insert data
         for role, word in userPacks:
             userD = dict(
