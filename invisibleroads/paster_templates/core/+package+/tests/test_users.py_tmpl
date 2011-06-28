@@ -4,6 +4,7 @@ import unittest
 from webob.request import environ_from_url
 from pyramid.testing import DummyRequest
 from pyramid.authentication import AuthTktCookieHelper
+from urlparse import urlparse
 
 from {{package}}.views import users
 from {{package}}.libraries import sms
@@ -105,9 +106,9 @@ class TestUsers(TestTemplate):
         url = self.get_url('user_logout')
         url_ = self.get_url('user_index')
         # Logging out redirects whether the user is authenticated or not
-        self.assertEqual(url_, self.get(url, dict(url=url_)).location)
+        self.assertEqual(url_, urlparse(self.get(url, dict(url=url_)).location).path)
         self.login(self.userS)
-        self.assertEqual(url_, self.get(url, dict(url=url_)).location)
+        self.assertEqual(url_, urlparse(self.get(url, dict(url=url_)).location).path)
 
     def test_update(self):
         'Make sure that updating credentials works'

@@ -118,9 +118,7 @@ def login_(request):
     user.when_login = datetime.datetime.utcnow()
     user.rejection_count = 0
     # Set cookie
-    if not hasattr(request, 'response_headerlist'):
-        request.response_headerlist = []
-    request.response_headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
+    request.response.headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
     # Return
     return dict(isOk=1)
 
@@ -185,9 +183,7 @@ def mutate(request):
     user = db.query(User).get(userID)
     user.code = make_random_string(CODE_LEN)
     # Refresh cookie
-    if not hasattr(request, 'response_headerlist'):
-        request.response_headerlist = []
-    request.response_headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
+    request.response.headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
     # Return
     region_invalidate(get_properties, None, userID)
     return dict(isOk=1, code=user.code)
