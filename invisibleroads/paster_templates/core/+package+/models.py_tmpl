@@ -170,7 +170,7 @@ def initialize_sql(settings):
             userD = dict(
                 username=word, 
                 password=word if debug else make_random_string(PASSWORD_LEN_MAX),
-                nickname=word,
+                nickname=word.title(),
                 email=word + '@example.com',
                 role=role)
             print '\nUsername  %(username)s\nPassword  %(password)s' % userD
