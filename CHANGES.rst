@@ -1,8 +1,9 @@
 1.7.6
 -----
 - Increased test coverage to 100% given SMS IMAP configuration
-- Added User.is_member and User.is_leader hybrid properties for flexibility
 - Enforced model-side case-insensitive evaluation of encrypted email addresses
+- Fixed user account administrative interface in users/index.mako
+- Added User.is_member and User.is_leader hybrid properties for flexibility
 - Updated code to be compatible with Pyramid 1.1a4
 
 
