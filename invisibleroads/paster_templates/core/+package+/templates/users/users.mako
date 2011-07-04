@@ -1,25 +1,22 @@
 <%!  
-import whenIO 
-from {{package}}.models import ROLE_MEMBER, ROLE_LEADER
+import whenIO
 %>
 % for user in users:
     <tr id=user${user.id} class='user 
-    % if user.role >= ROLE_MEMBER:
+    % if user.is_member:
         member
     % endif
-    % if user.role >= ROLE_LEADER:
+    % if user.is_leader:
         leader
     % endif
     '>
         <td>${user.nickname}</td>
         <td>
             <span class=text rel=${user.role}>
-                % if user.role >= ROLE_MEMBER:
-                    % if user.role >= ROLE_LEADER:
-                        Leader\
-                    % else:
-                        Member\
-                    % endif
+                % if user.is_leader:
+                    Leader\
+                % elif user.is_member:
+                    Member\
                 % endif
             </span>
         </td>

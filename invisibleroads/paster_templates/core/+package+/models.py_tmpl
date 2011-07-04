@@ -119,6 +119,14 @@ class User(Base, UserMixin):
         'Return True if we have a matching password'
         return crypt.check(self.password, password)
 
+    @hybrid_property
+    def is_member(self):
+        return self.role >= ROLE_MEMBER 
+
+    @hybrid_property
+    def is_leader(self):
+        return self.role >= ROLE_LEADER
+
 
 class User_(Base, UserMixin):
     'An unconfirmed change to a user account'

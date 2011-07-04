@@ -249,13 +249,13 @@ def parse_tokens(tokens):
 @cache_region('medium')
 def get_properties(userID):
     'Return user properties as a tuple to save cache space'
-    return db.query(User.nickname, User.minutes_offset, User.role, User.code).filter_by(id=userID).first()
+    return db.query(User.nickname, User.minutes_offset, User.is_member, User.is_leader, User.code).filter_by(id=userID).first()
 
 
 def unpack_properties(userID, *names):
     'Unpack properties corresponding to userID as specified by names'
     properties = get_properties(userID)
-    propertyNames = ['nickname', 'minutes_offset', 'role', 'code']
+    propertyNames = ['nickname', 'minutes_offset', 'is_member', 'is_leader', 'code']
     return [properties[propertyNames.index(x)] for x in names]
 
 
