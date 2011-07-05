@@ -7,6 +7,8 @@ td {text-align:center}
 .user {color:gray}
 .user.member {color:black}
 .user.leader {color:black}
+.flag.inactive {color:gray; background:white}
+tr.even .flag.inactive {color:gray; background:#FBF5E6}
 </%def>
 
 <%def name='root()'>
@@ -47,14 +49,23 @@ $(window).bind('resize', function() {
 });
 % if IS_LEADER:
 var token = '${request.session.get_csrf_token()}';
-function applyFlag(selector, class, rValue, rMessage, aValue, aMessage) {
+function applyFlag(
+    selector,         // Apply flag to this jQuery selector
+    dClass, dMessage, // Display this message if the row lacks dClass
+    aClass,
+    aValue, aMessage, // Display this message if the row lacks aClass
+    rValue, rMessage  // Display this message if the row has aClass
+) {
     $(selector).live({
         mouseenter: function() {
-            var $x = $(this);
-            var $xRow = $x.parent('tr');
-            var message = ($xRow.hasClass(class) ? rMessage : aMessage);
+            var $x = $(this), $xRow = $x.parent('tr');
             $x.find('.text').hide();
-            $x.append('<span class=flag>' + message + '</span>');
+            if (!$xRow.hasClass(dClass)) {
+                $x.append('<span class="flag inactive">' + dMessage + '</span>');
+            } else {
+                var hasClass = $xRow.hasClass(aClass), message = (hasClass ? rMessage : aMessage);
+                $x.append('<span class=flag>' + message + '</span>');
+            }
         },
         mouseleave: function() {
             var $x = $(this);
@@ -62,14 +73,14 @@ function applyFlag(selector, class, rValue, rMessage, aValue, aMessage) {
             $x.find('.text').show();
         },
         click: function() {
-            var $x = $(this);
-            var $xRow = $x.parent('tr');
-            var message = ($xRow.hasClass(class) ? rMessage : aMessage);
+            var $x = $(this), $xRow = $x.parent('tr');
+            if (!$xRow.hasClass(dClass)) return;
+            var hasClass = $xRow.hasClass(aClass), message = (hasClass ? rMessage : aMessage);
             if (confirm(message + ' ' + $xRow.find('.nickname').text() + '?')) {
                 $.post("${request.route_path('user_move')}", {
                     token: token,
                     targetUserID: getID($xRow[0]),
-                    role: $xRow.hasClass(class) ? rValue : aValue
+                    role: hasClass ? rValue : aValue
                 }, function(data) {
                     if (data.isOk) {
                         $table.find('tbody').html(data.content);
@@ -85,12 +96,18 @@ function applyFlag(selector, class, rValue, rMessage, aValue, aMessage) {
 <%!
 from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 %>
-applyFlag('.when_login:not(th, #user${USER_ID} > td)', 'member', 
-    ${ROLE_SPECTATOR}, 'Deactivate', 
-    ${ROLE_MEMBER}, 'Activate');
-applyFlag('.member > .role:not(th, #user${USER_ID} > td)', 'leader', 
-    ${ROLE_MEMBER}, 'Demote', 
-    ${ROLE_LEADER}, 'Promote');
+applyFlag(
+    '.when_login:not(th, #user${USER_ID} > td)', 
+    '', '',
+    'member',
+    ${ROLE_MEMBER}, 'Activate',
+    ${ROLE_SPECTATOR}, 'Deactivate');
+applyFlag(
+    '.role:not(th, #user${USER_ID} > td)', 
+    'member', 'User deactivated',
+    'leader', 
+    ${ROLE_LEADER}, 'Promote',
+    ${ROLE_MEMBER}, 'Demote');
 % endif
 </%def>
 
