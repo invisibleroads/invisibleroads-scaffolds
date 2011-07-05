@@ -7,92 +7,21 @@ td {text-align:center}
 .user {color:gray}
 .user.member {color:black}
 .user.leader {color:black}
-.flag.inactive {color:gray; background:white}
-tr.even .flag.inactive {color:gray; background:#FBF5E6}
 </%def>
 
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.extras.js')}"></script>
 </%def>
 
 <%def name='js()'>
-var $table;
-function computeTableHeight() {
-    return $(window).height() - (($('tr:first').height() + 7) * 3);
-}
-function applyDataTable() {
-    var aaSorting;
-    if ($table) {
-        $table.fnClearTable(false);
-        aaSorting = $table.fnSettings().aaSorting;
-    } else {
-        aaSorting = [];
-    }
-    $table = $('#data').dataTable({
-        'aaSorting': aaSorting,
-        'aoColumns': [
-            {'sClass': 'nickname', 'sType': 'string'},
-            {'sClass': 'role', 'sType': 'rel'},
-            {'sClass': 'when_login', 'sType': 'rel'}
-        ],
-        'bDestroy': true,
-        'bPaginate': false,
-        'oLanguage': {'sSearch': 'Filter'},
-        'sScrollY': computeTableHeight()
-    });
-    $('#data_filter input').focus();
-}
-applyDataTable();
-$(window).bind('resize', function() {
-	$('.dataTables_scrollBody').height(computeTableHeight());
-	$table.fnAdjustColumnSizing();
-});
+applyDataTable([
+    {'sClass': 'nickname', 'sType': 'string'},
+    {'sClass': 'role', 'sType': 'rel'},
+    {'sClass': 'when_login', 'sType': 'rel'}
+]);
 % if IS_LEADER:
 var token = '${request.session.get_csrf_token()}';
-function applyFlag(
-    selector,         // Apply flag to this jQuery selector
-    dClass, dMessage, // Display this message if the row lacks dClass
-    aClass,
-    aValue, aMessage, // Display this message if the row lacks aClass
-    rValue, rMessage  // Display this message if the row has aClass
-) {
-    $(selector).live({
-        mouseenter: function() {
-            var $x = $(this), $xRow = $x.parent('tr');
-            $x.find('.text').hide();
-            if (!$xRow.hasClass(dClass)) {
-                $x.append('<span class="flag inactive">' + dMessage + '</span>');
-            } else {
-                var hasClass = $xRow.hasClass(aClass), message = (hasClass ? rMessage : aMessage);
-                $x.append('<span class=flag>' + message + '</span>');
-            }
-        },
-        mouseleave: function() {
-            var $x = $(this);
-            $x.find('.flag').remove();
-            $x.find('.text').show();
-        },
-        click: function() {
-            var $x = $(this), $xRow = $x.parent('tr');
-            if (!$xRow.hasClass(dClass)) return;
-            var hasClass = $xRow.hasClass(aClass), message = (hasClass ? rMessage : aMessage);
-            if (confirm(message + ' ' + $xRow.find('.nickname').text() + '?')) {
-                $.post("${request.route_path('user_move')}", {
-                    token: token,
-                    targetUserID: getID($xRow[0]),
-                    role: hasClass ? rValue : aValue
-                }, function(data) {
-                    if (data.isOk) {
-                        $table.find('tbody').html(data.content);
-                        applyDataTable();
-                    } else {
-                        alert(data.message);
-                    }
-                });
-            }
-        }
-    });
-}
 <%!
 from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 %>
@@ -100,14 +29,18 @@ applyFlag(
     '.when_login:not(th, #user${USER_ID} > td)', 
     '', '',
     'member',
-    ${ROLE_MEMBER}, 'Activate',
-    ${ROLE_SPECTATOR}, 'Deactivate');
+    'Activate', ${ROLE_MEMBER},
+    'Deactivate', ${ROLE_SPECTATOR},
+    "${request.route_path('user_move')}", 'role',
+    'nickname');
 applyFlag(
     '.role:not(th, #user${USER_ID} > td)', 
     'member', 'User deactivated',
-    'leader', 
-    ${ROLE_LEADER}, 'Promote',
-    ${ROLE_MEMBER}, 'Demote');
+    'leader',
+    'Promote', ${ROLE_LEADER},
+    'Demote', ${ROLE_MEMBER},
+    "${request.route_path('user_move')}", 'role',
+    'nickname');
 % endif
 </%def>
 

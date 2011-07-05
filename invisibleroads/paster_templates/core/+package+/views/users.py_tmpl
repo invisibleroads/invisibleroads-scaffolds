@@ -215,7 +215,7 @@ def move(request):
         return dict(isOk=0, message='Invalid session token')
     userID = authenticated_userid(request)
     # Load targetUser
-    targetUserID = params.get('targetUserID', 0)
+    targetUserID = params.get('id', 0)
     targetUser = db.query(User).get(targetUserID)
     if not targetUser:
         return dict(isOk=0, message='Could not find targetUserID=%s' % targetUserID)

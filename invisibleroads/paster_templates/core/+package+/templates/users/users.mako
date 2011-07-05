@@ -2,7 +2,7 @@
 import whenIO
 %>
 % for user in users:
-    <tr id=user${user.id} class='user 
+    <tr id=row${user.id} class='user 
     % if user.is_member:
         member
     % endif

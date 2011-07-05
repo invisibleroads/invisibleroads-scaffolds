@@ -2,144 +2,21 @@
 
 <%def name='title()'>Rows</%def>
 
-<%def name='css()'>
-#info {position:fixed; bottom:0; right:0}
-#form {display:none}
-#form td:first-child {padding-right:0.5em}
-.formTip {color:#fff; z-index:10000}
-</%def>
-
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.extras.js')}"></script>
 <script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
 <link rel=stylesheet href="${request.static_url('{{package}}:static/tools.css')}" />
 </%def>
 
 <%def name='js()'>
-var $table;
-function computeTableHeight() {
-    return $(window).height() - (($('tr:first').height() + 7) * 3);
-}
-function applyDataTable() {
-    var aaSorting;
-    if ($table) {
-        $table.fnClearTable(false);
-        aaSorting = $table.fnSettings().aaSorting;
-    } else {
-        aaSorting = [];
-    }
-    $table = $('#data').dataTable({
-        'aaSorting': aaSorting,
-        'aoColumns': [
-            {'sClass': 'col1', 'sType': 'string'},
-            {'sClass': 'col2', 'sType': 'string'}
-        ],
-        'bDestroy': true,
-        'bPaginate': false,
-        'oLanguage': {'sSearch': 'Filter'},
-        'sScrollY': computeTableHeight()
-    });
-    $('#data_filter input').focus();
-}
-applyDataTable();
-$(window).bind('resize', function() {
-	$('.dataTables_scrollBody').height(computeTableHeight());
-	$table.fnAdjustColumnSizing();
-});
+applyDataTable([
+    {'sClass': 'col1', 'sType': 'string'},
+    {'sClass': 'col2', 'sType': 'string'}
+]);
 % if IS_MEMBER:
 var token = '${request.session.get_csrf_token()}';
-var $form = $('#form');
-var $formObjs = $form.find('input,select').not('#save,#cancel,#id');
-var defaultByID = {};
-$formObjs.each(function() {defaultByID[this.id] = this.title});
-function showFormMessages(messageByID) {
-	var focused = false;
-	$formObjs.each(function() {
-		var id = this.id;
-        var message = messageByID[id];
-        if (message) {
-            $(this)
-                .prop('title', '<span class=error>' + message + '</span>')
-                .tooltip()
-                   .show();
-            if (!focused) {
-                $('#' + id).focus().select();
-                focused = true;
-            }
-        }
-	});
-}
-$('.dataTables_scroll tr').live({
-	mouseenter: function() {
-        var id = $(this).prop('id');
-        if (!id) return;
-        var action = (id == 'row0') ? 'add' : 'edit';
-        $('#info').html('Doubleclick to ' + action);
-    },
-	mouseleave: function() {
-        $('#info').html('');
-    },
-    dblclick: function() {
-        var $tr = $(this), id = $tr.prop('id');
-        if (!id) {
-            return;
-        } else if (id == 'row0') {
-            // Show form for add
-            $formObjs.val('');
-            $form.find('#id').val('');
-        } else {
-            // Show form for edit
-            $formObjs.each(function() {
-                this.value = $tr.find('.' + this.id).text();
-            });
-            $form.find('#id').val(getNumber(id));
-        }
-        $form.overlay().load();
-    }
-});
-$form.overlay({
-    mask: {color: '#000', loadSpeed: 0},
-    onLoad: function() {
-        showFormMessages({});
-        $formObjs.first().focus().select();
-    },
-    onClose: function() {
-        $('#data_filter input').focus();
-    }
-});
-$form.find('#save').click(function() {
-    var params = {token: token, id: $form.find('#id').val()};
-    $formObjs.each(function() {
-        params[this.id] = this.value;
-    }).end().prop('disabled', true);
-    $.post("${request.route_path('row_update')}", params, function(data) {
-        $formObjs.end().prop('disabled', false);
-        if (data.isOk) {
-            $form.overlay().close();
-            $table.find('tbody').html(data.content);
-            applyDataTable();
-        } else {
-            showFormMessages(data.errorByID);
-        }
-    });
-});
-$formObjs.tooltip({
-    position: 'center right',
-    tipClass: 'formTip',
-    onBeforeShow: function() {
-        var $formObj = this.getTrigger(), title = $formObj.prop('title');
-        if (title) {
-            this.getTip().html(title);
-            $formObj.prop('title', '');
-        }
-		// Position tooltip 10 pixels to the right of the form
-		this.getConf().offset = [0, ($form.offset().left + $form.outerWidth()) - ($formObj.offset().left + $formObj.outerWidth()) + 10];
-    },
-    onHide: function() {
-        var $formObj = this.getTrigger();
-        $formObj.prop('title', defaultByID[$formObj.prop('id')]);
-    }
-});
+loadForm("${request.route_path('row_update')}");
 % endif
 </%def>
 
@@ -154,8 +31,6 @@ $formObjs.tooltip({
         <%include file='rows.mako'/>
 	</tbody>
 </table>
-
-<div id=info></div>
 
 % if IS_MEMBER:
 <table id=form class=overlay>

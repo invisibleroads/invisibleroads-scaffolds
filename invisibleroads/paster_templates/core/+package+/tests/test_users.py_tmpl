@@ -227,15 +227,15 @@ class TestUsers(TestTemplate):
         token = get_token(self.get(self.get_url('user_index')).body)
         get_targetUser = lambda: db.query(User).filter_by(id=self.userS['id']).first()
         targetUser = get_targetUser()
-        params = ReplaceableDict(token=token, targetUserID=targetUser.id, role=ROLE_LEADER)
+        params = ReplaceableDict(token=token, id=targetUser.id, role=ROLE_LEADER)
         # Check that a bad token fails
         self.assert_json(self.post(url, params.replace(token=token + 'x')), 0)
-        # Check that a bad targetUserID fails
-        self.assert_json(self.post(url, params.replace(targetUserID=0)), 0)
+        # Check that a bad id fails
+        self.assert_json(self.post(url, params.replace(id=0)), 0)
         # Check that a bad role fails
         self.assert_json(self.post(url, params.replace(role='xxx')), 0)
         # Check that a leader cannot promote or demote self
-        self.assert_json(self.post(url, params.replace(targetUserID=userID)), 0)
+        self.assert_json(self.post(url, params.replace(id=userID)), 0)
         # Check that a leader can promote or demote other users
         self.assert_json(self.post(url, params.replace(role=ROLE_LEADER)), 1)
         targetUser = get_targetUser()
