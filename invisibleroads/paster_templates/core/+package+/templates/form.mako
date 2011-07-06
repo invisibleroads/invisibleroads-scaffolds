@@ -1,5 +1,5 @@
-<%def name='formatSelect(selectID, selectValue, optionPacks)'>
-<select id=${selectID} class=lockOnSave>
+<%def name='formatSelect(selectID, selectValue, optionPacks, tip)'>
+<select id=${selectID} title="${tip}">
 % for value, name in optionPacks:
 <option value=${value}\
 % if value == selectValue:

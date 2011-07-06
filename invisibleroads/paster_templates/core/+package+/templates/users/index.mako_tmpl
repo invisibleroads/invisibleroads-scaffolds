@@ -46,7 +46,7 @@ applyFlag(
 
 <table id=data>
 	<thead>
-		<tr>
+		<tr id=row0>
 			<th>Nickname</th>
             <th>Role</th>
 			<th>Last Login</th>

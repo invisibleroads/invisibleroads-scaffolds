@@ -30,7 +30,7 @@ function applyDataTable(aoColumns) {
 };
 // Shortcut to enable click-based data modification
 function applyFlag(
-    selector,                       // Apply flag to this jQuery selector
+    cellSelector,                   // Apply flag to this jQuery selector
     requiredClass, requiredMessage, // Display requiredMessage if row lacks requiredClass
     optionalClass,
     onMessage, onValue,             // Display onMessage if row lacks optionalClass
@@ -38,7 +38,7 @@ function applyFlag(
     postURL, postAttribute,         // Post update to this URL for this attribute
     nameClass                       // Use text of this column for confirmation prompt
 ) {
-    $(selector).live({
+    $(cellSelector).live({
         mouseenter: function() {
             var $x = $(this), $xRow = $x.parent('tr');
             $x.find('.text').hide();
@@ -76,7 +76,7 @@ function applyFlag(
     });
 }
 // Prepare form
-function loadForm(postURL) {
+function loadForm(postURL, rowSelector) {
     $form = $('#form');
     $formObjs = $form.find('input,select').not('#save,#cancel,#id');
     $formObjs.each(function() {defaultByID[this.id] = this.title});
@@ -98,7 +98,10 @@ function loadForm(postURL) {
         });
     }
     $('body').append('<div id=info></div>');
-    $('.dataTables_scroll tr').live({
+    if (typeof rowSelector == 'undefined') {
+        rowSelector = '.dataTables_scroll tr';
+    }
+    $(rowSelector).live({
         mouseenter: function() {
             var id = $(this).prop('id');
             if (!id) return;
@@ -118,7 +121,14 @@ function loadForm(postURL) {
                 $form.find('#id').val('');
             } else {
                 // Show form for edit
-                $formObjs.each(function() {this.value = $tr.find('.' + this.id).text()});
+                $formObjs.each(function() {
+                    var $td = $tr.find('.' + this.id);
+                    var value = $td.attr('rel');
+                    if (typeof value == 'undefined') {
+                        value = $.trim($td.text());
+                    }
+                    this.value = value;
+                $formObjs.each(function() {this.value = $.trim($tr.find('.' + this.id).text())});
                 $form.find('#id').val(getNumber(id));
             }
             $form.overlay().load();
@@ -132,7 +142,8 @@ function loadForm(postURL) {
         },
         onClose: function() {
             $('#data_filter input').focus();
-        }
+        },
+        closeOnClick: false
     });
     $form.find('#save').click(function() {
         var params = {token: token, id: $form.find('#id').val()};
