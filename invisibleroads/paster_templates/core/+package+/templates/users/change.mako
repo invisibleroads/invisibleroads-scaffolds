@@ -37,7 +37,7 @@ $('.message').each(function() {
 });
 // Define button behavior
 function save() {
-    $('#form input,select').prop('disabled', true);
+    $('#accountForm input,select').prop('disabled', true);
 	$.post("${request.route_path('user_update' if user else 'user_register')}", {
 	% if user:
 		token: token,
@@ -51,7 +51,7 @@ function save() {
         if (data.isOk) {
 			messageByID['status'] = "Please check your email to ${'finalize changes to' if user else 'create'} your account.";
         } else {
-            $('#form input,select').prop('disabled', false);
+            $('#accountForm input,select').prop('disabled', false);
             messageByID = data.errorByID;
         }
         showFormMessages(messageByID);
@@ -121,7 +121,7 @@ $('#smsAddresses .email').live({
 	}
 });
 % endif
-// Let ENTER key traverse and submit form
+// Let ENTER key traverse and submit data
 $('#username').keydown(function(e) {if (13 == e.which) $('#password').focus()});
 $('#password').keydown(function(e) {if (13 == e.which) $('#nickname').focus()});
 $('#nickname').keydown(function(e) {if (13 == e.which) $('#email').focus()});
@@ -134,7 +134,7 @@ $('#username').focus();
 ${'Update your account' if user else 'Register for an account'}
 </%def>
 
-<table id=form>
+<table id=accountForm>
 	<tr>
 		<td><label for=username>Username</label></td>
 		<td><input id=username autocomplete=off\
