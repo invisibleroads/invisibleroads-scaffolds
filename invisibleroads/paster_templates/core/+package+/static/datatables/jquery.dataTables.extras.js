@@ -118,7 +118,7 @@ function loadForm(postURL, rowSelector) {
             } else if (id == 'row0') {
                 // Show form for add
                 $formObjs.val('');
-                $form.find('#id').val('');
+                $form.find('#id').val('').trigger('showAdd');
             } else {
                 // Show form for edit
                 $formObjs.each(function() {
@@ -128,8 +128,8 @@ function loadForm(postURL, rowSelector) {
                         value = $.trim($td.text());
                     }
                     this.value = value;
-                $formObjs.each(function() {this.value = $.trim($tr.find('.' + this.id).text())});
-                $form.find('#id').val(getNumber(id));
+                });
+                $form.find('#id').val(getNumber(id)).trigger('showEdit');
             }
             $form.overlay().load();
         }
@@ -178,6 +178,7 @@ function loadForm(postURL, rowSelector) {
             $formObj.prop('title', defaultByID[$formObj.prop('id')]);
         }
     });
+    return $form;
 }
 // Enable sorting by rel attribute
 $.fn.dataTableExt.oSort['rel-asc']=function(a,b){var x=a.match(/rel="(.*?)"/)[1].toLowerCase();var y=b.match(/rel="(.*?)"/)[1].toLowerCase();return((x<y)?-1:((x>y)?1:0));};$.fn.dataTableExt.oSort['rel-desc']=function(a,b){var x=a.match(/rel="(.*?)"/)[1].toLowerCase();var y=b.match(/rel="(.*?)"/)[1].toLowerCase();return((x<y)?1:((x>y)?-1:0));};
