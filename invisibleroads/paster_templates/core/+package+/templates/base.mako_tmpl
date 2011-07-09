@@ -41,7 +41,7 @@
 <div id=main>
 	${next.body()}
 </div>
-<script src="${request.static_url('{{package}}:static/jquery-1.6.1.min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/jquery-1.6.2.min.js')}"></script>
 ${self.root()}
 <script>
 	function getNumber(x) {return /\d+/.exec(x)[0]}
