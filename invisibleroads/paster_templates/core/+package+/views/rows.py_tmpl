@@ -30,9 +30,6 @@ def update(request):
     except Invalid, error:
         return dict(isOk=0, errorByID=error.unpack_errors())
     # Merge
-    for key in form.keys():
-        if form[key] is None:
-            del form[key]
     db.merge(Row(
         id=form['id'],
         col1=form['col1'],

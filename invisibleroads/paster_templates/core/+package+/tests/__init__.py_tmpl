@@ -36,12 +36,12 @@ class TestTemplate(unittest.TestCase):
         # Initialize functional test framework
         self.logout()
         word = 'Спасибо'.decode('utf-8')
-        # Reset users
+        # Reset testUsers
         self.userL = ReplaceableDict(role=ROLE_LEADER)
         self.userM = ReplaceableDict(role=ROLE_MEMBER)
         self.userS = ReplaceableDict(role=ROLE_SPECTATOR)
-        users = [self.userL, self.userM, self.userS]
-        for userID, userD in enumerate(users, 1):
+        testUsers = [self.userL, self.userM, self.userS]
+        for userID, userD in enumerate(testUsers, 1):
             wordNumber = word + str(userID)
             userD['id'] = userID
             userD['username'] = wordNumber
