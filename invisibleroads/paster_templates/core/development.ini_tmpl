@@ -30,9 +30,9 @@ sms.email = sms@example.com
 ; sms.imap.port = 25
 ; sms.imap.username =
 ; sms.imap.password =
+mail.default_sender = {{project}} <support@example.com>
 ; 
 ; [app:qp]
-mail.default_sender = {{project}} <support@example.com>
 ; hostname = localhost
 ; port = 25
 ; username =
