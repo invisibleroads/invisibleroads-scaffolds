@@ -33,12 +33,14 @@ sms.email = sms@example.com
 ; 
 ; [app:qp]
 mail.default_sender = {{project}} <support@example.com>
-; mail.host = localhost
-; mail.port = 25
-; mail.username = 
-; mail.password = 
-; mail.tls = false
-; mail.ssl = false
+; hostname = localhost
+; port = 25
+; username =
+; password =
+; force_tls = true
+; no_tls = false
+; queue_path = data/mail
+; debug_smtp = false
 
 [filter:weberror]
 use = egg:WebError#error_catcher
