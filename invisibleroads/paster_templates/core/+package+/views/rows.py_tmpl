@@ -14,7 +14,7 @@ def includeme(config):
 
 @view_config(route_name='row_index', renderer='rows/index.mako', request_method='GET', permission='row_index')
 def index(request):
-    'Show rows'
+    'List rows'
     return dict(rows=db.query(Row).all())
 
 

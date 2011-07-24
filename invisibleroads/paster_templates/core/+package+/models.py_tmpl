@@ -1,6 +1,6 @@
 'Data models'
 import transaction
-from sqlalchemy import func, Column, ForeignKey, Boolean, Integer, String, Unicode, LargeBinary, DateTime, engine_from_config
+from sqlalchemy import Column, ForeignKey, Boolean, Integer, String, Unicode, LargeBinary, DateTime, engine_from_config, func
 from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
@@ -14,9 +14,9 @@ from {{package}}.parameters import *
 
 
 ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER = xrange(3)
+crypt = bcrypt.BCRYPTPasswordManager()
 db = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
-crypt = bcrypt.BCRYPTPasswordManager()
 
 
 class ApplicationError(Exception):

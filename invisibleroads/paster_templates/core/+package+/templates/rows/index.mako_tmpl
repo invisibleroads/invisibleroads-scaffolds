@@ -38,6 +38,7 @@ loadForm("${request.route_path('row_update')}");
         <tr>
             <td><label for=col1>Column1</label></td>
             <td><input id=col1 title='Use the keyboard'></td>
+        </tr>
         <tr>
             <td><label for=col2>Column2</label></td>
             <td><input id=col2 title='Type something'></td>

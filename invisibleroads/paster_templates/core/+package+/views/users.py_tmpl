@@ -32,7 +32,7 @@ def includeme(config):
 
 @view_config(route_name='user_index', renderer='users/index.mako', permission='user_index')
 def index(request):
-    'Show information about people registered in the database'
+    'List users'
     return dict(users=db.query(User).order_by(User.when_login.desc()).all())
 
 
