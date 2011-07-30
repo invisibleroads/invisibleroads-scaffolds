@@ -21,10 +21,12 @@ def index(request):
 @view_config(route_name='row_update', renderer='json', request_method='POST', permission='row_update')
 def update(request):
     'Update row'
+    # Prevent download prompt for iframe file uploads
+    request.response.content_type = 'text/plain'
+    # Validate
     params = request.params
     if params.get('token') != request.session.get_csrf_token():
         return dict(isOk=0, message='Invalid session token')
-    # Validate
     try:
         form = RowForm().to_python(dict(params))
     except Invalid, error:

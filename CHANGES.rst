@@ -1,3 +1,8 @@
+1.7.7
+-----
+- Updated loadForm() to enable ajax file uploads in jquery.dataTables.extras.js
+
+
 1.7.6
 -----
 - Increased test coverage to 100% given SMS IMAP configuration

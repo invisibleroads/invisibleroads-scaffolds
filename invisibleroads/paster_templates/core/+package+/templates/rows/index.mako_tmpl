@@ -4,7 +4,7 @@
 
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.extras.js')}"></script>
+<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.extras.min.js')}"></script>
 <script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
 <link rel=stylesheet href="${request.static_url('{{package}}:static/tools.css')}" />
 </%def>
@@ -16,7 +16,7 @@ applyDataTable([
 ]);
 % if IS_MEMBER:
 var token = '${request.session.get_csrf_token()}';
-loadForm("${request.route_path('row_update')}");
+loadForm();
 % endif
 </%def>
 
@@ -33,24 +33,26 @@ loadForm("${request.route_path('row_update')}");
 </table>
 
 % if IS_MEMBER:
-<table id=form class=overlay>
+<form id=form class=overlay action="${request.route_path('row_update')}" method=post>
+<table>
     <tbody>
         <tr>
             <td><label for=col1>Column1</label></td>
-            <td><input id=col1 title='Use the keyboard'></td>
+            <td><input name=col1 title='Use the keyboard'></td>
         </tr>
         <tr>
             <td><label for=col2>Column2</label></td>
-            <td><input id=col2 title='Type something'></td>
+            <td><input name=col2 title='Type something'></td>
         </tr>
         <tr>
             <td></td>
             <td>
-                <input id=save type=button value=Save>
+                <input id=save type=submit value=Save>
                 <input id=cancel class=close type=button value=Cancel>
-                <input id=id type=hidden>
             </td>
         </tr>
     </tbody>
 </table>
+<input name=id type=hidden>
+</form>
 % endif

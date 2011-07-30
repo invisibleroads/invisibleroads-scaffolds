@@ -1,4 +1,4 @@
-var $table, $form, $formObjs, defaultByID = {}, dataColumns;
+var $table, $form, $formObjs, defaultByName = {}, dataColumns;
 // Enable sorting and filtering
 function applyDataTable(aoColumns) {
     var aaSorting;
@@ -75,28 +75,43 @@ function applyFlag(
         }
     });
 }
-// Prepare form
-function loadForm(postURL, rowSelector) {
-    $form = $('#form');
-    $formObjs = $form.find('input,select').not('#save,#cancel,#id');
-    $formObjs.each(function() {defaultByID[this.id] = this.title});
-    function showFormMessages(messageByID) {
-        var focused = false;
-        $formObjs.each(function() {
-            var id = this.id;
-            var message = messageByID[id];
-            if (message) {
-                $(this)
-                    .prop('title', '<span class=error>' + message + '</span>')
-                    .tooltip()
-                    .show();
-                if (!focused) {
-                    $('#' + id).focus().select();
-                    focused = true;
-                }
-            }
-        });
+// Submit form fields and files via AJAX
+$.fn.ajaxForm = function(options) {
+    var options = $.extend({}, $.fn.ajaxForm.defaults, options);
+    var iframeID = 'ajaxForm', $iframe = $('#' + iframeID), $forms = $(this);
+    if (!$iframe.length) {
+        $iframe = $('<iframe>', {name: iframeID, style: 'display:none'});
+        $('body').append($iframe);
     }
+    return $forms.each(function() {
+        var $form = $(this);
+        $form
+            .prop('target', iframeID)
+            .prop('enctype', 'multipart/form-data')
+            .prop('encoding', 'multipart/form-data')
+            .submit(function() {
+                options.prepare.apply($form[0]);
+                $iframe.one('load', function() {
+                    var iframeText = $iframe.contents().find('body').text(), iframeJSON;
+                    try {
+                        iframeJSON = eval('(' + iframeText + ')');
+                    } catch(error) {
+                        $.ajaxSettings.error(undefined, 'parsererror');
+                    }
+                    options.success.apply($form[0], [iframeJSON]);
+                });
+            });
+    });
+};
+$.fn.ajaxForm.defaults = {
+    prepare: function() {},
+    success: function(data) {}
+};
+// Prepare form
+function loadForm(rowSelector) {
+    $form = $('#form');
+    $formObjs = $form.find('input,select').not('#save,#cancel,[name=id]');
+    $formObjs.each(function() {defaultByName[this.name] = this.title});
     $('body').append('<div id=info></div>');
     if (typeof rowSelector == 'undefined') {
         rowSelector = '.dataTables_scroll tr';
@@ -118,18 +133,18 @@ function loadForm(postURL, rowSelector) {
             } else if (id == 'row0') {
                 // Show form for add
                 $formObjs.val('');
-                $form.find('#id').val('').trigger('showAdd');
+                $form.find('[name=id]').val('').trigger('showAdd');
             } else {
                 // Show form for edit
                 $formObjs.each(function() {
-                    var $td = $tr.find('.' + this.id);
+                    var $td = $tr.find('.' + this.name);
                     var value = $td.attr('rel');
                     if (typeof value == 'undefined') {
                         value = $.trim($td.text());
                     }
                     this.value = value;
                 });
-                $form.find('#id').val(getNumber(id)).trigger('showEdit');
+                $form.find('[name=id]').val(getNumber(id)).trigger('showEdit');
             }
             $form.overlay().load();
         }
@@ -145,13 +160,14 @@ function loadForm(postURL, rowSelector) {
         },
         closeOnClick: false
     });
-    $form.find('#save').click(function() {
-        var params = {token: token, id: $form.find('#id').val()};
-        $formObjs.each(function() {
-            params[this.id] = this.value;
-        }).end().prop('disabled', true);
-        $.post(postURL, params, function(data) {
-            $formObjs.end().prop('disabled', false);
+    $form.ajaxForm({
+        prepare: function() {
+            if (!$form.find('[name=token]').length) {
+                $form.append('<input name=token type=hidden value="' + token + '">');
+            }
+            $form.find('#save').prop('disabled', true);
+        },
+        success: function(data) {
             if (data.isOk) {
                 $form.overlay().close();
                 $table.find('tbody').html(data.content);
@@ -159,7 +175,8 @@ function loadForm(postURL, rowSelector) {
             } else {
                 showFormMessages(data.errorByID);
             }
-        });
+            $form.find('#save').prop('disabled', false);
+        }
     });
     $formObjs.tooltip({
         position: 'center right',
@@ -175,10 +192,27 @@ function loadForm(postURL, rowSelector) {
         },
         onHide: function() {
             var $formObj = this.getTrigger();
-            $formObj.prop('title', defaultByID[$formObj.prop('id')]);
+            $formObj.prop('title', defaultByName[$formObj.prop('name')]);
         }
     });
     return $form;
+}
+// Show form errors
+function showFormMessages(messageByName) {
+    var focused = false;
+    $formObjs.each(function() {
+        var name = this.name, message = messageByName[name];
+        if (message) {
+            $(this)
+                .prop('title', '<span class=error>' + message + '</span>')
+                .tooltip()
+                .show();
+            if (!focused) {
+                $('[name=' + name + ']').focus().select();
+                focused = true;
+            }
+        }
+    });
 }
 // Enable sorting by rel attribute
 $.fn.dataTableExt.oSort['rel-asc']=function(a,b){var x=a.match(/rel="(.*?)"/)[1].toLowerCase();var y=b.match(/rel="(.*?)"/)[1].toLowerCase();return((x<y)?-1:((x>y)?1:0));};$.fn.dataTableExt.oSort['rel-desc']=function(a,b){var x=a.match(/rel="(.*?)"/)[1].toLowerCase();var y=b.match(/rel="(.*?)"/)[1].toLowerCase();return((x<y)?1:((x>y)?-1:0));};

@@ -11,7 +11,7 @@ td {text-align:center}
 
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.extras.js')}"></script>
+<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.extras.min.js')}"></script>
 </%def>
 
 <%def name='js()'>
