@@ -16,7 +16,7 @@ session.key = {{project}}
 session.httponly = true
 session.data_dir = %(here)s/data/sessions/data
 session.lock_dir = %(here)s/data/sessions/lock
-mail.queue_path = %(here)s/data/mail
+mail.queue_path = %(here)s/data/messages
 
 # Store sensitive information in .production.ini
 ; [app:{{project}}]
@@ -39,7 +39,7 @@ mail.default_sender = {{project}} <support@example.com>
 ; password =
 ; force_tls = true
 ; no_tls = false
-; queue_path = data/mail
+; queue_path = data/messages
 ; debug_smtp = false
 
 [filter:weberror]
