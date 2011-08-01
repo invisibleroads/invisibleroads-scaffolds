@@ -13,7 +13,7 @@ from pyramid_beaker import session_factory_from_settings, set_cache_regions_from
 from whenIO import WhenIO
 
 from {{package}}.libraries import tools
-from {{package}}.models import initialize_sql, ApplicationError, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
+from {{package}}.models import initialize_sql, ApplicationError
 from {{package}}.views import users, rows
 from {{package}}.parameters import *
 
