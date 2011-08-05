@@ -17,12 +17,9 @@ td {padding-right:0.5em}
 </%def>
 
 <%def name='js()'>
-// Define global variables
-var rejection_count = 0;
-
-// Define functions
-function isEmpty(inputID) {
-    var $input = $('#' + inputID), $output = $('#m_' + inputID);
+var rejection_count = 0, username = $('#username'), password = $('#password');
+function isEmpty($input) {
+    var inputID = $input.prop('id'), $output = $('#m_' + inputID);
     if ($input.val() == '') {
         $output.text('You must provide a ' + inputID);
         $input.focus();
@@ -33,26 +30,23 @@ function isEmpty(inputID) {
     }
 }
 function login() {
-    // Validate
     var errorCount = 0;
-    errorCount = errorCount + isEmpty('username');
-    errorCount = errorCount + isEmpty('password');
+    errorCount = errorCount + isEmpty(username);
+    errorCount = errorCount + isEmpty(password);
     if (errorCount) {
         $('#resetPack').hide();
         return;
     }
-    // Initialize
     var loginData = {
-        'username': $('#username').val(),
-        'password': $('#password').val(),
+        'username': username.val(),
+        'password': password.val(),
         'minutes_offset': $('#minutes_offset').val()
     }
-    // Get recaptcha
-    if ($('#recaptcha_challenge_field').length) {
-        loginData['recaptcha_challenge'] = $('#recaptcha_challenge_field').val();
-        loginData['recaptcha_response'] = $('#recaptcha_response_field').val();
+    var $rc = $('#recaptcha_challenge_field'), $rr = $('#recaptcha_response_field');
+    if ($rc.length) {
+        loginData['recaptcha_challenge'] = $rc.val();
+        loginData['recaptcha_response'] = $rr.val();
     }
-    // Attempt login
     $.post("${request.route_path('user_login')}", loginData, function(data) {
         if (data.isOk) {
             window.location = "${url}";
@@ -74,13 +68,11 @@ function login() {
     });
 }
 function reset() {
-    // Check that the email is not empty
     var email = $.trim($('#resetEmail').val());
     if (!email) {
         $('#resetEmail').focus();
         return;
     }
-    // Post
     $('.lockOnReset').prop('disabled', true);
     $.post("${request.route_path('user_reset')}", {
         'email': email
@@ -93,23 +85,19 @@ function reset() {
         }
     });
 }
-
-// Prepare reset form
 $('#resetLink').click(function() {
     $('#resetLink').hide();
     $('#resetForm').show();
     $('#resetEmail').val('').keydown(function(e) {if (13 == e.which) reset()}).focus();
 });
 $('#reset').click(reset);
-
-// Prepare login form
 $('#login').click(login);
-$('#username').keydown(function(e) {if (13 == e.which) $('#password').focus()});
-$('#password').keydown(function(e) {if (13 == e.which) login()});
-
-// Configure
+username.keydown(function(e) {if (13 == e.which) password.focus()});
+password.keydown(function(e) {if (13 == e.which) login()});
 $('#minutes_offset').val(new Date().getTimezoneOffset());
-$('#username').focus();
+if (username.val() == '') {
+    username.focus();
+}
 </%def>
 
 <table>

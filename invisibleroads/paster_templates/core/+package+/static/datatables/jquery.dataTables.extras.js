@@ -110,7 +110,7 @@ $.fn.ajaxForm.defaults = {
 // Prepare form
 function loadForm(rowSelector) {
     $form = $('#form');
-    $formObjs = $form.find('input,select').not('#save,#cancel,[name=id]');
+    $formObjs = $form.find('.field');
     $formObjs.each(function() {defaultByName[this.name] = this.title});
     $('body').append('<div id=info></div>');
     if (typeof rowSelector == 'undefined') {
@@ -133,7 +133,7 @@ function loadForm(rowSelector) {
             } else if (id == 'row0') {
                 // Show form for add
                 $formObjs.val('');
-                $form.find('[name=id]').val('').trigger('showAdd');
+                $form.find('[name=id]').val('').trigger('showAdd', [$tr]);
             } else {
                 // Show form for edit
                 $formObjs.each(function() {
@@ -144,7 +144,7 @@ function loadForm(rowSelector) {
                     }
                     this.value = value;
                 });
-                $form.find('[name=id]').val(getNumber(id)).trigger('showEdit');
+                $form.find('[name=id]').val(getNumber(id)).trigger('showEdit', [$tr]);
             }
             $form.overlay().load();
         }
@@ -156,6 +156,7 @@ function loadForm(rowSelector) {
             $formObjs.first().focus().select();
         },
         onClose: function() {
+            $('.formTip').hide();
             $('#data_filter input').focus();
         },
         closeOnClick: false
@@ -181,6 +182,9 @@ function loadForm(rowSelector) {
     $formObjs.tooltip({
         position: 'center right',
         tipClass: 'formTip',
+        events: {
+            file: 'focus mouseenter,blur mouseleave'
+        },
         onBeforeShow: function() {
             var $formObj = this.getTrigger(), title = $formObj.prop('title');
             if (title) {
