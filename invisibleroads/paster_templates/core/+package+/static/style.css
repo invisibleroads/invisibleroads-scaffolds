@@ -23,6 +23,7 @@ a {text-decoration:none}
 table {border-collapse:collapse}
 tr.even {background:#FBF5E6}
 tr.even .flag.inactive {color:gray; background:#FBF5E6}
+tr.even .link.off {color:darkblue; background:#FBF5E6}
 .sorting {background:url('datatables/sort_both.png') no-repeat center right}
 .sorting_asc {background:url('datatables/sort_asc.png') no-repeat center right}
 .sorting_asc_disabled {background:url('datatables/sort_asc_disabled.png') no-repeat center right}

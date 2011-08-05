@@ -14,9 +14,9 @@ var token = '${request.session.get_csrf_token()}';
 % endif
 // Save default descriptions
 function getFieldID(x) {return x.id.match(/m_(.*)/)[1]}
-function showFormMessages(messageByID) {
+function showFormMessages($fields, messageByID) {
 	var focused = false;
-	$('.message').each(function() {
+	$fields.each(function() {
 		var id = getFieldID(this);
         var message = messageByID[id];
         if (message) {
@@ -54,7 +54,7 @@ function save() {
             $('#accountForm input,select').prop('disabled', false);
             messageByID = data.errorByID;
         }
-        showFormMessages(messageByID);
+        showFormMessages($('.message'), messageByID);
     });
 }
 $('#save').click(save);

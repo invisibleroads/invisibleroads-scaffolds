@@ -47,8 +47,8 @@ loadForm();
         <tr>
             <td></td>
             <td>
-                <input id=save type=submit value=Save>
-                <input id=cancel class=close type=button value=Cancel>
+                <input type=submit class=save value=Save>
+                <input type=button class=close value=Cancel>
             </td>
         </tr>
     </tbody>

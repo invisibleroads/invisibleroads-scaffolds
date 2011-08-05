@@ -152,7 +152,7 @@ function loadForm(rowSelector) {
     $form.overlay({
         mask: {color: '#000', loadSpeed: 0},
         onLoad: function() {
-            showFormMessages({});
+            showFormMessages($formObjs, {});
             $formObjs.first().focus().select();
         },
         onClose: function() {
@@ -166,7 +166,7 @@ function loadForm(rowSelector) {
             if (!$form.find('[name=token]').length) {
                 $form.append('<input name=token type=hidden value="' + token + '">');
             }
-            $form.find('#save').prop('disabled', true);
+            $form.find('.save').prop('disabled', true);
         },
         success: function(data) {
             if (data.isOk) {
@@ -174,9 +174,9 @@ function loadForm(rowSelector) {
                 $table.find('tbody').html(data.content);
                 applyDataTable();
             } else {
-                showFormMessages(data.errorByID);
+                showFormMessages($formObjs, data.errorByID);
             }
-            $form.find('#save').prop('disabled', false);
+            $form.find('.save').prop('disabled', false);
         }
     });
     $formObjs.tooltip({
@@ -202,9 +202,9 @@ function loadForm(rowSelector) {
     return $form;
 }
 // Show form errors
-function showFormMessages(messageByName) {
+function showFormMessages($fields, messageByName) {
     var focused = false;
-    $formObjs.each(function() {
+    $fields.each(function() {
         var name = this.name, message = messageByName[name];
         if (message) {
             $(this)
