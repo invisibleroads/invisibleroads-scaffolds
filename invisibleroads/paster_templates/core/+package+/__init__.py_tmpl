@@ -36,6 +36,10 @@ def main(global_config, **settings):
         settings.update(load_sensitive_settings(global_config['__file__'], global_config))
     if 'ciphers.secret' in settings:
         tools.secret = settings['ciphers.secret']
+    try:
+        os.makedirs(os.path.dirname(settings['mail.queue_path']))
+    except OSError: # pragma: no cover
+        pass
     # Connect to database
     initialize_sql(settings)
     # Define methods

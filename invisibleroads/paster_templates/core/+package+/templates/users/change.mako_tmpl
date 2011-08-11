@@ -1,0 +1,113 @@
+<%inherit file='/base.mako'/>
+
+<%def name='title()'>Account ${'Update' if user else 'Registration'}</%def>
+
+<%def name='css()'>
+td {padding-right:0.5em}
+.smsAddress {color:gray}
+.smsAddress.active {color:black}
+.formTip {color:black}
+</%def>
+
+<%def name='root()'>
+<script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/jquery.extras.min.js')}"></script>
+</%def>
+
+<%def name='js()'>
+$.fn.fixWidth = function() {
+    var $x = $(this);
+    return $x.width($x.width());
+}
+% if user:
+var token = '${request.session.get_csrf_token()}';
+$('#smsAddresses .email').clickToggle({
+    optionalClass: 'active',
+    onMessage: 'Activate',
+    offMessage: 'Deactivate',
+    postURL: "${request.route_path('user_update')}",
+    postAttribute: 'is_active',
+    nameClass: 'email',
+    onSuccess: function(data) {
+        $('#smsAddresses .email').fixWidth();
+    }
+}).fixWidth();
+$('#smsAddresses .trash').clickToggle({
+    optionalClass: 'smsAddress',
+    offMessage: 'Remove',
+    postURL: "${request.route_path('user_update')}",
+    nameClass: 'email'
+});
+$('[name=mutate]').click(function() {
+	$.post("${request.route_path('user_mutate')}", {
+		token: token
+	}, function(data) {
+		if (data.isOk) {
+			$('#userCode').html(data.code);
+		} else {
+            alert(data.message);
+		}
+	});
+});
+% endif
+$('#form').prepareForm().bind('onSuccess', function() {
+    $(this).find('[name]').not('[name=mutate]').prop('disabled', true);
+    setTipByName($('[name=email]'), {
+        email: "Please check your email to ${'finalize changes to' if user else 'create'} your account."
+    });
+}).width($('#form').find('table').width());
+var username = $('[name=username]'), password = $('[name=password]'), nickname = $('[name=nickname]'), email = $('[name=email]');
+username.focusNext(password);
+password.focusNext(nickname);
+nickname.focusNext(email);
+email.keydown(function(e) {
+    if (13 == e.which) {
+        e.preventDefault();
+        $('form').submit();
+    }
+});
+if (username.val() == '') username.focus();
+</%def>
+
+<%def name='toolbar()'>
+${'Update your account' if user else 'Register for an account'}
+</%def>
+
+<form id=form action="${request.route_path('user_update' if user else 'user_register')}" method=post>
+<table>
+	<tr>
+		<td>Username</td>
+		<td><input name=username autocomplete=off value="${user.username if user else ''}" title='What you use to login'></td>
+	</tr>
+	<tr>
+		<td>Password</td>
+		<td><input name=password type=password autocomplete=off title='So you have some privacy'></td>
+	</tr>
+	<tr>
+		<td>Nickname</td>
+		<td><input name=nickname autocomplete=off value="${user.nickname if user else ''}" title='How others see you'></td>
+	</tr>
+	<tr>
+		<td>Email</td>
+		<td><input name=email autocomplete=off value="${user.email if user else ''}" title='To confirm changes to your account'></td>
+	</tr>
+	<tr>
+		<td></td>
+		<td>
+			<input name=save type=submit value="${'Update' if user else 'Register'}" title='Send confirmation'>
+		% if user:
+			<input name=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
+		% endif
+		</td>
+	</tr>
+</table>
+</form>
+
+% if user:
+<p>For SMS alerts, send a text message to ${request.registry.settings['sms.email']} with ${user.id}-<span id=userCode>${user.code}</span> as the subject.</p>
+<table id=smsAddresses>
+    <tbody>
+        <%include file='smsAddresses.mako'/>
+    </tbody>
+</table>
+% endif

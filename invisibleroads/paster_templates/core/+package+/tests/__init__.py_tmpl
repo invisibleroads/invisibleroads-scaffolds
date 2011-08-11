@@ -25,6 +25,13 @@ class ReplaceableDict(dict):
     def replace(self, **kwargs):
         return ReplaceableDict(self.items() + kwargs.items())
 
+    def hide(self, *keys):
+        x = self.copy()
+        for key in keys:
+            if key in x:
+                del x[key]
+        return x
+
 
 class TestTemplate(unittest.TestCase):
 

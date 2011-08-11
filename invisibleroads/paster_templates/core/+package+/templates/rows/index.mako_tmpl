@@ -4,25 +4,27 @@
 
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.extras.min.js')}"></script>
 <script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/jquery.extras.min.js')}"></script>
 <link rel=stylesheet href="${request.static_url('{{package}}:static/tools.css')}" />
 </%def>
 
 <%def name='js()'>
-applyDataTable([
-    {'sClass': 'col1', 'sType': 'string'},
-    {'sClass': 'col2', 'sType': 'string'}
-]);
+var $table = $('#table').dataTableCustom({
+    aoColumns: [
+        {'sClass': 'col1', 'sType': 'string'},
+        {'sClass': 'col2', 'sType': 'string'}
+    ]
+});
 % if IS_MEMBER:
 var token = '${request.session.get_csrf_token()}';
-loadForm();
+$('#form').prepareTableOverlayForm($table);
 % endif
 </%def>
 
-<table id=data>
+<table id=table>
 	<thead>
-		<tr id=row0>
+		<tr>
 			<th>Column1</th>
             <th>Column2</th>
 		</tr>
@@ -37,11 +39,11 @@ loadForm();
 <table>
     <tbody>
         <tr>
-            <td><label for=col1>Column1</label></td>
+            <td>Column1</td>
             <td><input name=col1 title='Use the keyboard'></td>
         </tr>
         <tr>
-            <td><label for=col2>Column2</label></td>
+            <td>Column2</td>
             <td><input name=col2 title='Type something'></td>
         </tr>
         <tr>
@@ -53,6 +55,5 @@ loadForm();
         </tr>
     </tbody>
 </table>
-<input name=id type=hidden>
 </form>
 % endif

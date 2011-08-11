@@ -12,7 +12,7 @@ import whenIO
     '>
         <td>${user.nickname}</td>
         <td>
-            <span class=text rel=${user.role}>
+            <span rel=${user.role}>
                 % if user.is_leader:
                     Leader\
                 % elif user.is_member:
@@ -26,11 +26,11 @@ import whenIO
             when_login = user.when_login
             localWhenIO = whenIO.WhenIO(user.minutes_offset)
             %>
-            <span class=text rel="${when_login.strftime('%Y%m%d%H%M%S')}">
+            <span rel="${when_login.strftime('%Y%m%d%H%M%S')}">
                 ${localWhenIO.format(when_login)} ${localWhenIO.format_offset()}
             </span>
         % else:
-            <span class=text rel=''></span>
+            <span rel=''></span>
         % endif
         </td>
     </tr>

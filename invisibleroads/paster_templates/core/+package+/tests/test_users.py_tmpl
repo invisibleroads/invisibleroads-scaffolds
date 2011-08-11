@@ -186,29 +186,24 @@ class TestUsers(TestTemplate):
         self.login(self.userS)
         token = get_token(self.get(url).unicode_body)
 
-        params = ReplaceableDict(token=token, smsAddressID=smsAddressI.id)
-        # Send an invalid command
-        self.assert_json(self.post(url, params.replace(smsAddressAction='')), 0)
-        self.assert_json(self.post(url, params.replace(smsAddressAction='xxx')), 0)
-
-        params = ReplaceableDict(token=token, smsAddressID=smsAddressI.id, smsAddressAction='activate')
+        params = ReplaceableDict(token=token, id=smsAddressI.id, is_active=1)
         # Activate an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
+        self.assert_json(self.post(url, params.replace(id=smsAddressA.id)), 0)
         # Activate an smsAddress
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], True)
 
-        params = ReplaceableDict(token=token, smsAddressID=smsAddressI.id, smsAddressAction='deactivate')
+        params = ReplaceableDict(token=token, id=smsAddressI.id, is_active=0)
         # Deactivate an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
+        self.assert_json(self.post(url, params.replace(id=smsAddressA.id)), 0)
         # Deactivate an smsAddress
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], False)
 
-        params = ReplaceableDict(token=token, smsAddressID=smsAddressI.id, smsAddressAction='remove')
+        params = ReplaceableDict(token=token, id=smsAddressI.id)
         # Remove an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, params.replace(smsAddressID=smsAddressA.id)), 0)
-        # Remove an smsAddress that does belong to the user
+        self.assert_json(self.post(url, params.replace(id=smsAddressA.id)), 0)
+        # Remove an smsAddress that belongs to the user
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress).filter_by(id=smsAddressI.id).count(), 0)
 
@@ -234,6 +229,8 @@ class TestUsers(TestTemplate):
         self.assert_json(self.post(url, params.replace(id=0)), 0)
         # Check that a bad role fails
         self.assert_json(self.post(url, params.replace(role='xxx')), 0)
+        # Check that a missing role fails
+        self.assert_json(self.post(url, params.hide('role')), 0)
         # Check that a leader cannot promote or demote self
         self.assert_json(self.post(url, params.replace(id=userID)), 0)
         # Check that a leader can promote or demote other users

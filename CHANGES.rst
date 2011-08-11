@@ -1,6 +1,9 @@
 1.7.7
 -----
-- Updated loadForm() to enable ajax file uploads in jquery.dataTables.extras.js
+- Added AJAX style file uploads
+- Rewrote javascript for form enhancements
+- Rewrote javascript for table enhancements
+- Updated SMS address management interface in users/change.mako
 
 
 1.7.6

@@ -11,42 +11,50 @@ td {text-align:center}
 
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.extras.min.js')}"></script>
+<script src="${request.static_url('{{package}}:static/jquery.extras.min.js')}"></script>
 </%def>
 
 <%def name='js()'>
-applyDataTable([
-    {'sClass': 'nickname', 'sType': 'string'},
-    {'sClass': 'role', 'sType': 'rel'},
-    {'sClass': 'when_login', 'sType': 'rel'}
-]);
+var $table = $('#table').dataTableCustom({
+    aoColumns: [
+        {'sClass': 'nickname', 'sType': 'string'},
+        {'sClass': 'role', 'sType': 'rel-numeric'},
+        {'sClass': 'when_login', 'sType': 'rel-string'}
+    ]
+});
 % if IS_LEADER:
 var token = '${request.session.get_csrf_token()}';
 <%!
 from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 %>
-applyFlag(
-    '.when_login:not(th, #user${USER_ID} > td)', 
-    '', '',
-    'member',
-    'Activate', ${ROLE_MEMBER},
-    'Deactivate', ${ROLE_SPECTATOR},
-    "${request.route_path('user_move')}", 'role',
-    'nickname');
-applyFlag(
-    '.role:not(th, #user${USER_ID} > td)', 
-    'member', 'User deactivated',
-    'leader',
-    'Promote', ${ROLE_LEADER},
-    'Demote', ${ROLE_MEMBER},
-    "${request.route_path('user_move')}", 'role',
-    'nickname');
+$('.when_login:not(th, #row${USER_ID} > td)').clickToggle({
+    optionalClass: 'member',
+    onMessage: 'Activate',
+    onValue: ${ROLE_MEMBER},
+    offMessage: 'Deactivate',
+    offValue: ${ROLE_SPECTATOR},
+    postURL: "${request.route_path('user_move')}",
+    postAttribute: 'role',
+    nameClass: 'nickname'
+});
+$('.role:not(th, #row${USER_ID} > td)').clickToggle({
+    requiredClass: 'member',
+    requiredMessage: 'User deactivated',
+    optionalClass: 'leader',
+    onMessage: 'Promote',
+    onValue: ${ROLE_LEADER},
+    offMessage: 'Demote',
+    offValue: ${ROLE_MEMBER},
+    postURL: "${request.route_path('user_move')}",
+    postAttribute: 'role',
+    nameClass: 'nickname'
+});
 % endif
 </%def>
 
-<table id=data>
+<table id=table>
 	<thead>
-		<tr id=row0>
+		<tr>
 			<th>Nickname</th>
             <th>Role</th>
 			<th>Last Login</th>

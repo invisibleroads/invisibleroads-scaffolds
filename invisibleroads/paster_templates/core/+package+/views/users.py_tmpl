@@ -148,28 +148,25 @@ def update_(request):
     if 'username' in params:
         return save_user_(request, dict(params), 'update', db.query(User).get(userID))
     # Make sure the smsAddressID belongs to the user
-    smsAddressID = params.get('smsAddressID')
+    smsAddressID = params.get('id')
     smsAddress = db.query(SMSAddress).filter(
         (SMSAddress.id == smsAddressID) & 
         (SMSAddress.user_id == userID)).first()
     if not smsAddress:
         return dict(isOk=0, message='Could not find smsAddressID=%s for userID=%s' % (smsAddressID, userID))
     # Load
-    smsAddressAction = params.get('smsAddressAction')
-    # If the user is activating an SMS address,
-    if 'activate' == smsAddressAction:
-        smsAddress.is_active = True
-        return dict(isOk=1)
-    # If the user is deactivating an SMS address,
-    if 'deactivate' == smsAddressAction:
-        smsAddress.is_active = False
-        return dict(isOk=1)
+    try:
+        is_active = int(params.get('is_active'))
+    except (TypeError, ValueError):
+        is_active = None
+    # If the user is activating or deactivating an SMS address,
+    if is_active is not None:
+        smsAddress.is_active = is_active
     # If the user is removing an SMS address,
-    elif 'remove' == smsAddressAction:
+    else:
         db.delete(smsAddress)
-        return dict(isOk=1)
-    # If the command is not recognized,
-    return dict(isOk=0, message='Command not recognized')
+    # Return
+    return dict(isOk=1, content=render('users/smsAddresses.mako', update(request), request))
 
 
 @view_config(route_name='user_mutate', renderer='json', request_method='POST', permission='user_mutate')
@@ -220,12 +217,12 @@ def move(request):
     if not targetUser:
         return dict(isOk=0, message='Could not find targetUserID=%s' % targetUserID)
     if int(userID) == int(targetUserID):
-        return dict(isOk=0, message='Cannot promote or demote yourself')
+        return dict(isOk=0, message='Cannot change your own role')
     # Load role
     value = params.get('role')
     try:
         value = int(value)
-    except ValueError:
+    except (TypeError, ValueError):
         return dict(isOk=0, message='Could not parse role=%s' % value)
     targetUser.role = value
     # Return
