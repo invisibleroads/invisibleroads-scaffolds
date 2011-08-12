@@ -143,12 +143,14 @@ $.fn.clickToggle = function(options) {
         mouseenter: function() {
             var $td = $(this), $tr = $td.parents('tr');
             mask($td);
-            if (!$tr.hasClass(options.requiredClass)) {
-                $td.append('<span class="flag inactive">' + options.requiredMessage + '</span>');
-            } else {
-                var hasOptional = $tr.hasClass(options.optionalClass);
-                var message = (hasOptional ? options.offMessage : options.onMessage);
-                $td.append('<span class=flag>' + message + '</span>');
+            if (!$td.find('.flag').length) {
+                if (!$tr.hasClass(options.requiredClass)) {
+                    $td.append('<span class="flag inactive">' + options.requiredMessage + '</span>');
+                } else {
+                    var hasOptional = $tr.hasClass(options.optionalClass);
+                    var message = (hasOptional ? options.offMessage : options.onMessage);
+                    $td.append('<span class=flag>' + message + '</span>');
+                }
             }
             $(this).css('cursor', 'pointer');
         },

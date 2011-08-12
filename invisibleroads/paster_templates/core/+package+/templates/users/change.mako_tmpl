@@ -12,6 +12,7 @@ td {padding-right:0.5em}
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
 <script src="${request.static_url('{{package}}:static/jquery.extras.min.js')}"></script>
+<link rel=stylesheet href="${request.static_url('{{package}}:static/tools.css')}" />
 </%def>
 
 <%def name='js()'>
