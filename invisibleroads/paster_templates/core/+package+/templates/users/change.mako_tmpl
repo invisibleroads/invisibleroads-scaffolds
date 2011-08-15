@@ -63,8 +63,8 @@ password.focusNext(nickname);
 nickname.focusNext(email);
 email.keydown(function(e) {
     if (13 == e.which) {
-        e.preventDefault();
         $('form').submit();
+        return false;
     }
 });
 if (username.val() == '') username.focus();

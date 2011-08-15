@@ -35,21 +35,20 @@ $.fn.ajaxForm = function(options) {
             .submit(function(e) {
                 options.onSubmit.apply($form[0]);
                 if (!$form.find('[type=file]').length) {
-                    e.preventDefault();
                     $.post($form.prop('action'), $form.serialize(), function(data) {
                         options.onResponse.apply($form[0], [data]);
                     });
-                } else {
-                    $iframe.one('load', function() {
-                        var iframeText = $iframe.contents().find('body').text(), iframeJSON;
-                        try {
-                            iframeJSON = eval('(' + iframeText + ')');
-                        } catch(error) {
-                            $.ajaxSettings.error(null, 'parsererror');
-                        }
-                        options.onResponse.apply($form[0], [iframeJSON]);
-                    });
+                    return false;
                 }
+                $iframe.one('load', function() {
+                    var iframeText = $iframe.contents().find('body').text(), iframeJSON;
+                    try {
+                        iframeJSON = eval('(' + iframeText + ')');
+                    } catch(error) {
+                        $.ajaxSettings.error(null, 'parsererror');
+                    }
+                    options.onResponse.apply($form[0], [iframeJSON]);
+                });
             });
     });
 };
@@ -60,8 +59,8 @@ $.fn.ajaxForm.defaults = {
 $.fn.focusNext = function($field) {
     $(this).keydown(function(e) {
         if (13 == e.which) {
-            e.preventDefault();
-            $field.focus()
+            $field.focus();
+            return false;
         }
     });
 }
