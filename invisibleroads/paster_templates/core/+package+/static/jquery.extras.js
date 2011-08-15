@@ -21,7 +21,10 @@ function setTipByName($fields, tipByName) {
 }
 // Submit form fields and files
 $.fn.ajaxForm = function(options) {
-    options = $.extend({}, $.fn.ajaxForm.defaults, options);
+    options = $.extend({}, {
+        onSubmit: function() {},
+        onResponse: function(data) {}
+    }, options);
     var iframeName = 'ajaxForm', $iframe = $('[name=' + iframeName + ']');
     if (!$iframe.length) {
         $iframe = $('<iframe name=' + iframeName + ' style="display:none">').appendTo('body');
@@ -51,10 +54,6 @@ $.fn.ajaxForm = function(options) {
                 });
             });
     });
-};
-$.fn.ajaxForm.defaults = {
-    onSubmit: function() {},
-    onResponse: function(data) {}
 };
 $.fn.focusNext = function($field) {
     $(this).keydown(function(e) {
@@ -126,7 +125,19 @@ $.fn.prepareOverlayForm = function() {
 }
 // Apply click-based table data modification
 $.fn.clickToggle = function(options) {
-    options = $.extend({}, $.fn.clickToggle.defaults, options);
+    options = $.extend({}, {
+        requiredClass: '',       // Display requiredMessage if row lacks requiredClass
+        requiredMessage: '',
+        optionalClass: '',
+        onMessage: '',           // Display onMessage if row lacks optionalClass
+        onValue: 1,             
+        offMessage: '',          // Display offMessage if row has optionalClass
+        offValue: 0,         
+        postURL: '',             // Post update to this URL for this attribute
+        postAttribute: '',         
+        nameClass: '',           // Use text of this column for confirmation prompt
+        onSuccess: function(data) {}
+    }, options);
     function mask($x) {
         var $content = $x.find('.content');
         if ($content.length) return;
@@ -187,19 +198,6 @@ $.fn.clickToggle = function(options) {
             }
         }
     });
-};
-$.fn.clickToggle.defaults = {
-    requiredClass: '',       // Display requiredMessage if row lacks requiredClass
-    requiredMessage: '',
-    optionalClass: '',
-    onMessage: '',           // Display onMessage if row lacks optionalClass
-    onValue: 1,             
-    offMessage: '',          // Display offMessage if row has optionalClass
-    offValue: 0,         
-    postURL: '',             // Post update to this URL for this attribute
-    postAttribute: '',         
-    nameClass: '',           // Use text of this column for confirmation prompt
-    onSuccess: function(data) {}
 };
 
 if (typeof $.fn.dataTable != 'undefined') {
@@ -299,7 +297,12 @@ $.fn.dataTableExt.oSort['rel-string-desc'] = function(a, b) {
 };
 // Apply sorting and filtering
 $.fn.dataTableCustom = function(options) {
-    options = $.extend({}, $.fn.dataTableCustom.defaults, options);
+    options = $.extend({}, {
+        aoColumns: null,
+        computeTableHeight: function() {
+            return $('#main').height() - $('#header').height() * 2;
+        }
+    }, options);
     return $(this).each(function() {
         var $table = $(this), pot = $table.data('dataTableCustom'), $dataTable, aaSorting, aoColumns, computeTableHeight;
         if (typeof pot == 'undefined') {
@@ -329,12 +332,6 @@ $.fn.dataTableCustom = function(options) {
         $table.data('dataTableCustom', {$dataTable: $dataTable, aoColumns: aoColumns, computeTableHeight: computeTableHeight});
         $('#' + tableID + '_filter input').focus();
     });
-};
-$.fn.dataTableCustom.defaults = {
-    aoColumns: null,
-    computeTableHeight: function() {
-        return $('#main').height() - $('#header').height() * 2;
-    }
 };
 
 }
