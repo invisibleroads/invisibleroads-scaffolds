@@ -67,8 +67,8 @@ class EmailMixin(object):
     def email(self, email):
         self.email_ = encrypt(email.lower())
     @email.comparator
-    def email(cls):
-        return CaseInsensitiveEncryptComparator(cls.email_)
+    def email(Class):
+        return CaseInsensitiveEncryptComparator(Class.email_)
 
 
 class UserMixin(EmailMixin):
@@ -81,8 +81,8 @@ class UserMixin(EmailMixin):
     def username(self, username):
         self.username_ = username
     @username.comparator
-    def username(cls):
-        return CaseInsensitiveComparator(cls.username_)
+    def username(Class):
+        return CaseInsensitiveComparator(Class.username_)
 
     password_ = Column(LargeBinary(60))
     @hybrid_property
@@ -100,8 +100,8 @@ class UserMixin(EmailMixin):
     def nickname(self, nickname):
         self.nickname_ = nickname
     @nickname.comparator
-    def nickname(cls):
-        return CaseInsensitiveComparator(cls.nickname_)
+    def nickname(Class):
+        return CaseInsensitiveComparator(Class.nickname_)
 
 
 class User(Base, UserMixin):
