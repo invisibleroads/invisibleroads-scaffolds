@@ -64,6 +64,18 @@ $.fn.focusNext = function($field) {
     });
 }
 $.fn.prepareForm = function() {
+    function showReplace($tr) {
+        var $form = $(this), $replace = $form.find('.replace');
+        if (!$replace.length) return;
+        $replace.siblings('input').prop('disabled', true).hide();
+        $replace.show();
+    }
+    function hideReplace($tr) {
+        var $form = $(this), $replace = $form.find('.replace');
+        if (!$replace.length) return;
+        $replace.hide();
+        $replace.siblings('input').prop('disabled', false).show();
+    }
     return $(this).each(function() {
         var $form = $(this), $fields = $form.find('[name]'), tipByName = getTipByName($fields);
         $fields.tooltip({
@@ -97,10 +109,19 @@ $.fn.prepareForm = function() {
                 if (data.isOk) {
                     $form.trigger('onSuccess', [data]);
                 } else {
-                    setTipByName($fields, data.errorByID);
+                    if (data.message) {
+                        alert(data.message);
+                    } else {
+                        setTipByName($fields, data.errorByID);
+                    }
                 }
                 $form.find('.save').prop('disabled', false);
             }
+        }).bind({
+            showAdd: hideReplace,
+            showEdit: showReplace
+        }).find('.replace').click(function() {
+            hideReplace.apply($(this).parents('form'), [null]);
         });
     });
 }

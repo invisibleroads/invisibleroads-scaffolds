@@ -11,12 +11,13 @@ cache.type = memory
 cache.short.expire = 1800
 cache.medium.expire = 7200
 cache.long.expire = 86400
+data.path = %(here)s/data
 session.type = file
 session.key = {{project}}
 session.httponly = true
-session.data_dir = %(here)s/data/sessions/data
-session.lock_dir = %(here)s/data/sessions/lock
-mail.queue_path = %(here)s/data/messages
+session.data_dir = %(data.path)s/sessions/data
+session.lock_dir = %(data.path)s/sessions/lock
+mail.queue_path = %(data.path)s/messages
 
 # Store sensitive information in .production.ini
 ; [app:{{project}}]

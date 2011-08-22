@@ -101,14 +101,11 @@ def main(global_config, **settings):
     # Configure static assets
     config.add_static_view('static', '{{package}}:static')
     config.add_view(lambda request: Response(content_type='text/plain', body=robots_txt), name='robots.txt', permission='__no_permission_required__')
-    # Configure routes for user account management
+    # Configure routes
     config.include(users)
-
-    # Configure routes that demonstrate a row-based interface
     config.include(rows)
     # Redirect homepage
     config.add_view(lambda request: HTTPFound(location=request.route_path('row_index')), name='', permission='__no_permission_required__')
-
     # Return WSGI app
     return config.make_wsgi_app()
 

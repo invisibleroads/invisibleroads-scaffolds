@@ -8,6 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from zope.sqlalchemy import ZopeTransactionExtension
 from cryptacular import bcrypt
 from formencode import validators, Invalid
+from pyramid.settings import asbool
 
 from {{package}}.libraries.tools import encrypt, decrypt, make_random_string
 from {{package}}.parameters import *
@@ -155,7 +156,7 @@ class Row(Base):
 
 def initialize_sql(settings):
     'Create tables and insert data'
-    debug = settings['debug_templates'] == 'true'
+    modeDebug = asbool(settings['debug_templates'])
     # Create tables
     engine = engine_from_config(settings, 'sqlalchemy.', poolclass=NullPool if settings['sqlalchemy.url'].startswith('sqlite:///') else QueuePool)
     db.configure(bind=engine)
@@ -167,7 +168,7 @@ def initialize_sql(settings):
             (ROLE_LEADER, u'admin'),
         ]
         # If we are in development mode, use different data
-        if debug:
+        if modeDebug:
             userPacks = [
                 (ROLE_LEADER, u'leader'),
                 (ROLE_MEMBER, u'member'),
@@ -177,7 +178,7 @@ def initialize_sql(settings):
         for role, word in userPacks:
             userD = dict(
                 username=word, 
-                password=word if debug else make_random_string(PASSWORD_LEN_MAX),
+                password=word if modeDebug else make_random_string(PASSWORD_LEN_MAX),
                 nickname=word.title(),
                 email=word + '@example.com',
                 role=role)
