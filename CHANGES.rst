@@ -1,3 +1,8 @@
+1.7.8
+-----
+- Updated forms to use vertical format
+
+
 1.7.7
 -----
 - Added AJAX style file uploads
