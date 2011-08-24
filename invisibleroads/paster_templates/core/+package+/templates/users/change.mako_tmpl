@@ -56,7 +56,7 @@ $('#form').prepareForm().bind('onSuccess', function() {
     setTipByName($('[name=email]'), {
         email: "Please check your email to ${'finalize changes to' if user else 'create'} your account."
     });
-}).width($('#form').children().width());
+}).width($('#form').find('input').width());
 var username = $('[name=username]'), password = $('[name=password]'), nickname = $('[name=nickname]'), email = $('[name=email]');
 username.focusNext(password);
 password.focusNext(nickname);
