@@ -36,24 +36,14 @@ $('#form').prepareTableOverlayForm($table);
 
 % if IS_MEMBER:
 <form id=form class=overlay action="${request.route_path('row_update')}" method=post>
-<table>
-    <tbody>
-        <tr>
-            <td>Column1</td>
-            <td><input name=col1 title='Use the keyboard'></td>
-        </tr>
-        <tr>
-            <td>Column2</td>
-            <td><input name=col2 title='Type something'></td>
-        </tr>
-        <tr>
-            <td></td>
-            <td>
-                <input type=submit class=save value=Save>
-                <input type=button class=close value=Cancel>
-            </td>
-        </tr>
-    </tbody>
-</table>
+<div>
+    <label for=col1>Column1</label><br>
+    <input id=col1 name=col1 title='Use the keyboard'>
+</div>
+<div>
+    <label for=col2>Column2</label><br>
+    <input id=col2 name=col2 title='Type something'>
+</div>
+<input type=submit class=save value=Save title='Press ESC to cancel'>
 </form>
 % endif

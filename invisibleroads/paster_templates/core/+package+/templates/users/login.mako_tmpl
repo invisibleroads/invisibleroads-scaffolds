@@ -6,6 +6,7 @@
 td {padding-right:0.5em}
 #resetPack {display:none}
 #resetForm {display:none}
+#minutes_offset {display:none}
 </%def>
 
 <%def name='toolbar()'>
@@ -17,30 +18,33 @@ td {padding-right:0.5em}
 </%def>
 
 <%def name='js()'>
-var rejection_count = 0, username = $('#username'), password = $('#password');
-function isEmpty($input) {
-    var inputID = $input.prop('id'), $output = $('#m_' + inputID);
-    if ($input.val() == '') {
-        $output.text('You must provide a ' + inputID);
-        $input.focus();
-        return 1;
-    } else {
-        $output.text('');
-        return 0;
-    }
-}
+var rejection_count = 0, $username = $('#username'), $password = $('#password'), $minutes_offset = $('#minutes_offset');
 function login() {
-    var errorCount = 0;
-    errorCount = errorCount + isEmpty(username);
-    errorCount = errorCount + isEmpty(password);
+    var errorCount = 0, focused = false;
+    function isEmpty($input) {
+        var inputID = $input.prop('id'), $output = $('#m_' + inputID);
+        if ($input.val() == '') {
+            $output.text('You must provide a ' + inputID);
+            if (!focused) { 
+                focused = true;
+                $input.focus();
+            }
+            return 1;
+        } else {
+            $output.text('');
+            return 0;
+        }
+    }
+    errorCount = errorCount + isEmpty($username);
+    errorCount = errorCount + isEmpty($password);
     if (errorCount) {
         $('#resetPack').hide();
         return;
     }
     var loginData = {
-        'username': username.val(),
-        'password': password.val(),
-        'minutes_offset': $('#minutes_offset').val()
+        'username': $username.val(),
+        'password': $password.val(),
+        'minutes_offset': $minutes_offset.val()
     }
     var $rc = $('#recaptcha_challenge_field'), $rr = $('#recaptcha_response_field');
     if ($rc.length) {
@@ -51,13 +55,10 @@ function login() {
         if (data.isOk) {
             window.location = "${url}";
         } else {
-            // Give feedback
             $('#resetPack').show();
-            $('#resetLink').show();
+            $('#reset_').show();
             $('#resetForm').hide();
-            // Update rejection count
             rejection_count = data.rejection_count ? data.rejection_count : rejection_count + 1;
-            // If there have been too many rejections,
             if (rejection_count >= ${REJECTION_LIMIT}) {
                 Recaptcha.create("${request.registry.settings.get('recaptcha.public', '')}", 'recaptcha', {
                     theme: 'red',
@@ -85,56 +86,52 @@ function reset() {
         }
     });
 }
-$('#resetLink').click(function() {
-    $('#resetLink').hide();
+$('#reset_').click(function() {
+    $(this).hide();
     $('#resetForm').show();
-    $('#resetEmail').val('').keydown(function(e) {if (13 == e.which) reset()}).focus();
+    $('#resetEmail').val('your.email@example.com').keydown(function(e) {if (13 == e.which) reset()}).select().focus();
 });
 $('#reset').click(reset);
 $('#login').click(login);
-username.keydown(function(e) {if (13 == e.which) password.focus()});
-password.keydown(function(e) {if (13 == e.which) login()});
-$('#minutes_offset').val(new Date().getTimezoneOffset());
-if (username.val() == '') username.focus();
+$('#' + $minutes_offset.prop('id') + '_').click(function() {
+    $(this).hide();
+    $minutes_offset.show().focus();
+});
+$minutes_offset.val(new Date().getTimezoneOffset());
+$username.keydown(function(e) {if (13 == e.which) $password.focus()});
+$password.keydown(function(e) {if (13 == e.which) login()});
+if ($username.val() == '') $username.focus();
 </%def>
 
-<table>
-	<tr>
-		<td>Username</td>
-		<td><input id=username></td>
-		<td>
-			<span id=m_username>
-            % if request.route_path('user_login') != request.path:
-                Elevated privileges required
-            % endif
-				${', '.join(request.session.pop_flash())}
-			</span>
-			<span id=resetPack>
-				<a id=resetLink class='hover link off'>Did you forget your login?</a>
-				<span id=resetForm>
-					Email
-					<input class=lockOnReset id=resetEmail>
-					<input class=lockOnReset id=reset type=button value=Reset>
-				</span>
-			</span>
-		</td>
-	</tr>
-	<tr>
-		<td>Password</td>
-		<td><input id=password type=password></td>
-		<td id=m_password></td>
-	</tr>
-	<tr>
-		<td>Time</td>
-		<td>
-			<select id=minutes_offset>
-				<%include file='offsets.mako'/>
-			</select>
-		</td>
-		<td id=m_minutes_offset></td>
-	</tr>
-</table>
+<form>
+<div>
+    <label for=username>Username</label><br>
+    <input id=username>
+    <span id=m_username>
+    % if request.route_path('user_login') != request.path:
+        Elevated privileges required
+    % endif
+        ${', '.join(request.session.pop_flash())}
+    </span>
+    <span id=resetPack>
+        <a id=reset_ class='hover link off'>Did you forget your login?</a>
+        <span id=resetForm>
+            <input class=lockOnReset id=resetEmail>
+            <input class=lockOnReset id=reset type=button value=Reset>
+        </span>
+    </span>
+</div>
+<div>
+    <label for=password>Password</label><br>
+    <input id=password type=password>
+    <span id=m_password></span>
+</div>
 <div id=recaptcha></div>
 <input id=login type=button value=Login><br>
+</form>
 <br>
-<a href='/docs' class='hover link off'>Read documentation for ${SITE_NAME} ${SITE_VERSION}</a>
+<a href='/docs' class='hover link off'>Read documentation for ${SITE_NAME} ${SITE_VERSION}</a><br>
+<a id=minutes_offset_ class='hover link off'>Change timezone</a>
+<select id=minutes_offset>
+    <%include file='offsets.mako'/>
+</select>

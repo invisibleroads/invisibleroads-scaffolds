@@ -1,19 +1,20 @@
 // Get and set tooltips
-function getTipByName($fields) {
+function getTipByName($fieldsWithTips) {
     var tipByName = {};
-    $fields.each(function() {
+    $fieldsWithTips.each(function() {
         tipByName[this.name] = this.title;
     });
     return tipByName;
 }
-function setTipByName($fields, tipByName) {
+function setTipByName($fieldsWithTips, tipByName) {
     var focused = false;
-    $fields.each(function() {
+    $fieldsWithTips.each(function() {
         var name = this.name, tip = tipByName[name];
         if (tip) {
-            $(this).prop('title', '<span class=error>' + tip + '</span>').tooltip().show();
+            var $field = $(this);
+            $field.prop('title', '<span class=error>' + tip + '</span>').tooltip().show();
             if (!focused) {
-                $('[name=' + name + ']').focus().select();
+                $field.focus().select();
                 focused = true;
             }
         }
@@ -77,8 +78,8 @@ $.fn.prepareForm = function() {
         $replace.siblings('input').prop('disabled', false).show();
     }
     return $(this).each(function() {
-        var $form = $(this), $fields = $form.find('[name]'), tipByName = getTipByName($fields);
-        $fields.tooltip({
+        var $form = $(this), $fieldsWithTips = $form.find('[title]'), tipByName = getTipByName($fieldsWithTips);
+        $fieldsWithTips.tooltip({
             position: 'center right',
             tipClass: 'formTip',
             events: {file: 'focus mouseenter,blur mouseleave'},
@@ -112,7 +113,7 @@ $.fn.prepareForm = function() {
                     if (data.message) {
                         alert(data.message);
                     } else {
-                        setTipByName($fields, data.errorByID);
+                        setTipByName($fieldsWithTips, data.errorByID);
                     }
                 }
                 $form.find('.save').prop('disabled', false);
@@ -127,11 +128,11 @@ $.fn.prepareForm = function() {
 }
 $.fn.prepareOverlayForm = function() {
     return $(this).prepareForm().each(function() {
-        var $form = $(this), $fields = $form.find('[name]');
+        var $form = $(this), $fieldsWithTips = $form.find('[title]'), $fields = $form.find('[name]');
         $form.overlay({
             mask: {color: '#000', loadSpeed: 0},
             onLoad: function() {
-                setTipByName($fields, {});
+                setTipByName($fieldsWithTips, {});
                 $fields.first().focus().select();
             },
             onClose: function() {

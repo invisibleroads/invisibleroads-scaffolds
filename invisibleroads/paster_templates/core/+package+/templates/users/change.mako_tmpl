@@ -56,7 +56,7 @@ $('#form').prepareForm().bind('onSuccess', function() {
     setTipByName($('[name=email]'), {
         email: "Please check your email to ${'finalize changes to' if user else 'create'} your account."
     });
-}).width($('#form').find('table').width());
+}).width($('#form').children().width());
 var username = $('[name=username]'), password = $('[name=password]'), nickname = $('[name=nickname]'), email = $('[name=email]');
 username.focusNext(password);
 password.focusNext(nickname);
@@ -75,33 +75,26 @@ ${'Update your account' if user else 'Register for an account'}
 </%def>
 
 <form id=form action="${request.route_path('user_update' if user else 'user_register')}" method=post>
-<table>
-	<tr>
-		<td>Username</td>
-		<td><input name=username autocomplete=off value="${user.username if user else ''}" title='What you use to login'></td>
-	</tr>
-	<tr>
-		<td>Password</td>
-		<td><input name=password type=password autocomplete=off title='So you have some privacy'></td>
-	</tr>
-	<tr>
-		<td>Nickname</td>
-		<td><input name=nickname autocomplete=off value="${user.nickname if user else ''}" title='How others see you'></td>
-	</tr>
-	<tr>
-		<td>Email</td>
-		<td><input name=email autocomplete=off value="${user.email if user else ''}" title='To confirm changes to your account'></td>
-	</tr>
-	<tr>
-		<td></td>
-		<td>
-			<input name=save type=submit value="${'Update' if user else 'Register'}" title='Send confirmation'>
-		% if user:
-			<input name=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
-		% endif
-		</td>
-	</tr>
-</table>
+<div>
+    <label for=username>Username</label><br>
+    <input id=username name=username autocomplete=off value="${user.username if user else ''}" title='What you use to login'>
+</div>
+<div>
+    <label for=password>Password</label><br>
+    <input id=password name=password type=password autocomplete=off title='So you have some privacy'>
+</div>
+<div>
+    <label for=nickname>Nickname</label><br>
+    <input id=nickname name=nickname autocomplete=off value="${user.nickname if user else ''}" title='How others see you'>
+</div>
+<div>
+    <label for=email>Email</label><br>
+    <input id=email name=email autocomplete=off value="${user.email if user else ''}" title='To confirm changes to your account'>
+</div>
+<input name=save type=submit value="${'Update' if user else 'Register'}" title='Send confirmation'>
+% if user:
+<input name=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
+% endif
 </form>
 
 % if user:
