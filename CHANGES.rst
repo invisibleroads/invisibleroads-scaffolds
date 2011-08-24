@@ -4,6 +4,7 @@
 - Rewrote javascript for form enhancements
 - Rewrote javascript for table enhancements
 - Updated SMS address management interface in users/change.mako
+- Fixed evaluation of settings['debug_templates']
 
 
 1.7.6
