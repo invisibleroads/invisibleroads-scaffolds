@@ -44,6 +44,6 @@ $('#form').prepareTableOverlayForm($table);
     <label for=col2>Column2</label><br>
     <input id=col2 name=col2 title='Type something'>
 </div>
-<input type=submit class=save value=Save title='Press ESC to cancel'>
+<input class=save type=submit value=Save title='Press ESC to cancel'>
 </form>
 % endif

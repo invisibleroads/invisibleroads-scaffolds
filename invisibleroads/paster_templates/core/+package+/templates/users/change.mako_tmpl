@@ -39,7 +39,7 @@ $('#smsAddresses .trash').clickToggle({
     postURL: "${request.route_path('user_update')}",
     nameClass: 'email'
 });
-$('#mutate').click(function() {
+$('#form .mutate').click(function() {
 	$.post("${request.route_path('user_mutate')}", {
 		token: token
 	}, function(data) {
@@ -52,7 +52,7 @@ $('#mutate').click(function() {
 });
 % endif
 $('#form').prepareForm().bind('onSuccess', function() {
-    $(this).find('input').not('#mutate').prop('disabled', true);
+    $(this).find('input').not('.mutate').prop('disabled', true);
     setTipByName($('#email'), {
         email: "Please check your email to ${'finalize changes to' if user else 'create'} your account."
     });
@@ -91,9 +91,9 @@ ${'Update your account' if user else 'Register for an account'}
     <label for=email>Email</label><br>
     <input id=email name=email autocomplete=off value="${user.email if user else ''}" title='To confirm changes to your account'>
 </div>
-<input id=save type=submit value="${'Update' if user else 'Register'}" title='Send confirmation'>
+<input class=save type=submit value="${'Update' if user else 'Register'}" title='Send confirmation'>
 % if user:
-<input id=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
+<input class=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
 % endif
 </form>
 
