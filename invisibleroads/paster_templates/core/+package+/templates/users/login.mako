@@ -14,7 +14,7 @@ td {padding-right:0.5em}
 </%def>
 
 <%def name='root()'>
-<script src="${request.static_url('{{package}}:static/recaptcha_ajax.js')}"></script>
+<script src="http://www.google.com/recaptcha/api/js/recaptcha_ajax.js"></script>
 </%def>
 
 <%def name='js()'>

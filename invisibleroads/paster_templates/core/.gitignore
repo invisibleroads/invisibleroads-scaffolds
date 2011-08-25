@@ -1,6 +1,6 @@
 build
 dist
-*.db
+*.db*
 *.swp
 *.pyc
 *.egg-info

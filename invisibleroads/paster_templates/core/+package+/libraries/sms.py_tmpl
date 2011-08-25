@@ -21,7 +21,7 @@ def process(settings):
     # Walk messages in inbox sorted by arrival time,
     for email in imapServer.walk('inbox', sortCriterion='ARRIVAL'):
         # If the user is trying to register an SMS address,
-        if processRegistration(email):
+        if process_registration(email):
             countByKey['Registrations'] += 1
         # Mark email as deleted
         email.deleted = True
@@ -50,7 +50,7 @@ def connect(settings):
     return imapServer
 
 
-def processRegistration(email):
+def process_registration(email):
     'Process an SMS address registration'
     # Get userID and code
     match = pattern_registration.match(email.subject)

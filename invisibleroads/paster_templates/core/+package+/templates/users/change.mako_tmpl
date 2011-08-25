@@ -39,7 +39,7 @@ $('#smsAddresses .trash').clickToggle({
     postURL: "${request.route_path('user_update')}",
     nameClass: 'email'
 });
-$('[name=mutate]').click(function() {
+$('#mutate').click(function() {
 	$.post("${request.route_path('user_mutate')}", {
 		token: token
 	}, function(data) {
@@ -52,22 +52,22 @@ $('[name=mutate]').click(function() {
 });
 % endif
 $('#form').prepareForm().bind('onSuccess', function() {
-    $(this).find('[name]').not('[name=mutate]').prop('disabled', true);
-    setTipByName($('[name=email]'), {
+    $(this).find('input').not('#mutate').prop('disabled', true);
+    setTipByName($('#email'), {
         email: "Please check your email to ${'finalize changes to' if user else 'create'} your account."
     });
 }).width($('#form').find('input').width());
-var username = $('[name=username]'), password = $('[name=password]'), nickname = $('[name=nickname]'), email = $('[name=email]');
-username.focusNext(password);
-password.focusNext(nickname);
-nickname.focusNext(email);
-email.keydown(function(e) {
+var $username = $('#username'), $password = $('#password'), $nickname = $('#nickname'), $email = $('#email');
+$username.focusNext($password);
+$password.focusNext($nickname);
+$nickname.focusNext($email);
+$email.keydown(function(e) {
     if (13 == e.which) {
-        $('form').submit();
+        $('#form').submit();
         return false;
     }
 });
-if (username.val() == '') username.focus();
+if ($username.val() == '') $username.focus();
 </%def>
 
 <%def name='toolbar()'>
@@ -91,9 +91,9 @@ ${'Update your account' if user else 'Register for an account'}
     <label for=email>Email</label><br>
     <input id=email name=email autocomplete=off value="${user.email if user else ''}" title='To confirm changes to your account'>
 </div>
-<input name=save type=submit value="${'Update' if user else 'Register'}" title='Send confirmation'>
+<input id=save type=submit value="${'Update' if user else 'Register'}" title='Send confirmation'>
 % if user:
-<input name=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
+<input id=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
 % endif
 </form>
 
