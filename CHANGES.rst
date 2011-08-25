@@ -1,6 +1,7 @@
 1.7.8
 -----
 - Updated forms to use vertical format
+- Updated code to be compatible with Pyramid 1.2a1
 
 
 1.7.7

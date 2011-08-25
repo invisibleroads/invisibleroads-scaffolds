@@ -8,7 +8,7 @@ from pyramid.config import Configurator
 from pyramid.events import BeforeRender
 from pyramid.httpexceptions import HTTPFound
 from pyramid.response import Response
-from pyramid.security import Everyone, Authenticated, Allow, Deny, ALL_PERMISSIONS, authenticated_userid
+from pyramid.security import Everyone, Authenticated, Allow, Deny, authenticated_userid, ALL_PERMISSIONS, NO_PERMISSION_REQUIRED
 from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
 from whenIO import WhenIO
 
@@ -63,7 +63,7 @@ def main(global_config, **settings):
         return groups
     def add_renderer_globals(event):
         'Define client-side permissions associated with user'
-        request = event._system['request']
+        request = event['request']
         userID = authenticated_userid(request)
         groups = get_groups(userID, request)
         if 'outcast' not in groups:
@@ -100,12 +100,12 @@ def main(global_config, **settings):
     set_cache_regions_from_settings(settings)
     # Configure static assets
     config.add_static_view('static', '{{package}}:static')
-    config.add_view(lambda request: Response(content_type='text/plain', body=robots_txt), name='robots.txt', permission='__no_permission_required__')
+    config.add_view(lambda request: Response(content_type='text/plain', body=robots_txt), name='robots.txt', permission=NO_PERMISSION_REQUIRED)
     # Configure routes
-    config.include(users)
-    config.include(rows)
+    config.include(users, route_prefix='users')
+    config.include(rows, route_prefix='rows')
     # Redirect homepage
-    config.add_view(lambda request: HTTPFound(location=request.route_path('row_index')), name='', permission='__no_permission_required__')
+    config.add_view(lambda request: HTTPFound(location=request.route_path('row_index')), name='', permission=NO_PERMISSION_REQUIRED)
     # Return WSGI app
     return config.make_wsgi_app()
 

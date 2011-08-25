@@ -8,8 +8,8 @@ from {{package}}.models import db, Row
 
 def includeme(config):
     config.scan(__name__)
-    config.add_route('row_index', 'rows')
-    config.add_route('row_update', 'rows/update')
+    config.add_route('row_index', '')
+    config.add_route('row_update', 'update')
 
 
 @view_config(route_name='row_index', renderer='rows/index.mako', request_method='GET', permission='row_index')

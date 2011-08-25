@@ -4,6 +4,7 @@ from pyramid.view import view_config
 from pyramid.security import remember, forget, authenticated_userid
 from pyramid.httpexceptions import HTTPFound
 from pyramid.renderers import render
+from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
 from email.utils import formataddr
@@ -19,15 +20,15 @@ from {{package}}.parameters import *
 
 def includeme(config):
     config.scan(__name__)
-    config.add_route('user_index', 'users')
-    config.add_route('user_register', 'users/register')
-    config.add_route('user_confirm', 'users/confirm/{ticket}')
-    config.add_route('user_login', 'users/login')
-    config.add_route('user_logout', 'users/logout')
-    config.add_route('user_update', 'users/update')
-    config.add_route('user_mutate', 'users/mutate')
-    config.add_route('user_reset', 'users/reset')
-    config.add_route('user_move', 'users/move')
+    config.add_route('user_index', '')
+    config.add_route('user_register', 'register')
+    config.add_route('user_confirm', 'confirm/{ticket}')
+    config.add_route('user_login', 'login')
+    config.add_route('user_logout', 'logout')
+    config.add_route('user_update', 'update')
+    config.add_route('user_mutate', 'mutate')
+    config.add_route('user_reset', 'reset')
+    config.add_route('user_move', 'move')
 
 
 @view_config(route_name='user_index', renderer='users/index.mako', permission='user_index')
@@ -48,7 +49,7 @@ def register_(request):
     return save_user_(request, dict(request.params), 'registration')
 
 
-@view_config(route_name='user_confirm', permission='__no_permission_required__')
+@view_config(route_name='user_confirm', permission=NO_PERMISSION_REQUIRED)
 def confirm(request):
     'Confirm changes'
     # Apply changes to user account
@@ -70,8 +71,8 @@ def confirm(request):
     return HTTPFound(location=request.route_path('user_login'))
 
 
-@view_config(route_name='user_login', renderer='users/login.mako', request_method='GET', permission='__no_permission_required__')
-@view_config(renderer='users/login.mako', context='pyramid.exceptions.Forbidden', permission='__no_permission_required__')
+@view_config(route_name='user_login', renderer='users/login.mako', request_method='GET', permission=NO_PERMISSION_REQUIRED)
+@view_config(renderer='users/login.mako', context='pyramid.exceptions.Forbidden', permission=NO_PERMISSION_REQUIRED)
 def login(request):
     'Show login form'
     # If the user accessed the login page directly,
@@ -86,7 +87,7 @@ def login(request):
     return dict(url=url, REJECTION_LIMIT=REJECTION_LIMIT)
 
 
-@view_config(route_name='user_login', renderer='json', request_method='POST', permission='__no_permission_required__')
+@view_config(route_name='user_login', renderer='json', request_method='POST', permission=NO_PERMISSION_REQUIRED)
 def login_(request):
     'Process login credentials'
     # Make shortcuts
@@ -123,7 +124,7 @@ def login_(request):
     return dict(isOk=1)
 
 
-@view_config(route_name='user_logout', permission='__no_permission_required__')
+@view_config(route_name='user_logout', permission=NO_PERMISSION_REQUIRED)
 def logout(request):
     'Logout'
     return HTTPFound(location=request.params.get('url', '/'), headers=forget(request))
@@ -186,7 +187,7 @@ def mutate(request):
     return dict(isOk=1, code=user.code)
 
 
-@view_config(route_name='user_reset', renderer='json', request_method='POST', permission='__no_permission_required__')
+@view_config(route_name='user_reset', renderer='json', request_method='POST', permission=NO_PERMISSION_REQUIRED)
 def reset(request):
     'Reset password'
     # Get email
