@@ -113,9 +113,9 @@ def login_(request):
             return dict(isOk=0, rejection_count=user.rejection_count)
     # Save user
     try:
-        user.minutes_offset = int(params.get('minutes_offset', MINUTES_OFFSET))
+        user.timezone_offset = int(params.get('timezone_offset', TIMEZONE_OFFSET_MINUTES))
     except ValueError:
-        user.minutes_offset = MINUTES_OFFSET
+        user.timezone_offset = TIMEZONE_OFFSET_MINUTES
     user.when_login = datetime.datetime.utcnow()
     user.rejection_count = 0
     # Set cookie
@@ -247,13 +247,13 @@ def parse_tokens(tokens):
 @cache_region('medium')
 def get_properties(userID):
     'Return user properties as a tuple to save cache space'
-    return db.query(User.nickname, User.minutes_offset, User.is_member, User.is_leader, User.code).filter_by(id=userID).first()
+    return db.query(User.nickname, User.timezone_offset, User.is_member, User.is_leader, User.code).filter_by(id=userID).first()
 
 
 def unpack_properties(userID, *names):
     'Unpack properties corresponding to userID as specified by names'
     properties = get_properties(userID)
-    propertyNames = ['nickname', 'minutes_offset', 'is_member', 'is_leader', 'code']
+    propertyNames = ['nickname', 'timezone_offset', 'is_member', 'is_leader', 'code']
     return [properties[propertyNames.index(x)] for x in names]
 
 
@@ -278,7 +278,7 @@ def save_user_(request, valueByName, action, user=None):
         email=form['email'],
         user_id=user.id if user else None,
         ticket=ticket,
-        when_expire=datetime.datetime.utcnow() + datetime.timedelta(hours=TICKET_HOURS))
+        when_expire=datetime.datetime.utcnow() + datetime.timedelta(hours=TICKET_LIFE_HOURS))
     db.add(user_)
     # Send message
     get_mailer(request).send_to_queue(Message(
@@ -288,7 +288,7 @@ def save_user_(request, valueByName, action, user=None):
             'form': form,
             'ticket': ticket,
             'action': action,
-            'TICKET_HOURS': TICKET_HOURS,
+            'TICKET_LIFE_HOURS': TICKET_LIFE_HOURS,
         }, request)))
     # Return
     return dict(isOk=1)

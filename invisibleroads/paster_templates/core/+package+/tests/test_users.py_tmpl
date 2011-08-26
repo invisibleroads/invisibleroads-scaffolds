@@ -94,8 +94,8 @@ class TestUsers(TestTemplate):
         self.assert_json(self.login(self.userS.replace(password='xxx')), 0)
         # Good credentials succeed
         self.assert_json(self.login(self.userS), 1)
-        # Supply invalid minutes_offset
-        self.assert_json(self.login(self.userS, minutes_offset='xxx'), 1)
+        # Supply invalid timezone_offset
+        self.assert_json(self.login(self.userS, timezone_offset='xxx'), 1)
         # Hit rejection limit
         for rejectionIndex in xrange(parameters.REJECTION_LIMIT):
             self.assert_json(self.login(self.userS.replace(password='xxx')), 0)

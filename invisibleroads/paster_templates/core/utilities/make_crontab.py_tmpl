@@ -1,0 +1,50 @@
+'Command-line script to generate server crontab file'
+import os
+
+import script_process
+from {{package}} import parameters
+
+
+def run(settings):
+    'Generate server crontab file'
+    basePath = os.path.abspath(settings['here'])
+    headerCommand = 'source %s/bin/activate; cd %s' % (
+        os.environ['VIRTUAL_ENV'],
+        basePath)
+    lines = [
+        '# Start server',
+        '%s * * * * %s; paster serve --daemon production.ini >> paster.log 2>&1' % (
+            format_minutes(parameters.SERVER_INTERVAL_MINUTES, minuteStart=15), 
+            headerCommand),
+        '# Check outbox',
+        '%s * * * * %s; qp --config .production.ini >> qp.log 2>&1' % (
+            format_minutes(parameters.OUTBOX_INTERVAL_MINUTES, minuteStart=10), 
+            headerCommand),
+        '# Process SMS',
+        '%s * * * * %s; python utilities/sms.py -c production.ini >> sms.log 2>&1' % (
+            format_minutes(parameters.SMS_INTERVAL_MINUTES, minuteStart=5), 
+            headerCommand),
+    ]
+    crontabPath = os.path.join(basePath, 'server.crt')
+    open(crontabPath, 'wt').write('\n'.join(lines))
+    return 'Generated %s' % crontabPath
+
+
+def format_minutes(intervalMinutes, minuteStart=0):
+    'Format minutes for crontab'
+    if intervalMinutes == 1:
+        return '*'
+    return '%s-59/%s' % (minuteStart, intervalMinutes)
+
+
+# If we are running standalone,
+if __name__ == '__main__':
+    # Parse
+    argumentParser = script_process.ArgumentParser(
+        description='Generate server.crt')
+    args = argumentParser.parse_args()
+    # Run
+    message = run(script_process.initialize(args))
+    # Say
+    if args.verbose:
+        print message

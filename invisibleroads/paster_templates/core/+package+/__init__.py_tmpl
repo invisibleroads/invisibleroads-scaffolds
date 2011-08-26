@@ -67,16 +67,16 @@ def main(global_config, **settings):
         userID = authenticated_userid(request)
         groups = get_groups(userID, request)
         if 'outcast' not in groups:
-            nickname, minutes_offset = users.unpack_properties(userID, 'nickname', 'minutes_offset')
+            nickname, timezone_offset = users.unpack_properties(userID, 'nickname', 'timezone_offset')
         else:
             userID = None
-            nickname, minutes_offset = u'', MINUTES_OFFSET
+            nickname, timezone_offset = u'', TIMEZONE_OFFSET_MINUTES
         event.update(dict(
             SITE_NAME=SITE_NAME,
             SITE_VERSION=SITE_VERSION,
             USER_ID=userID,
             USER_NICKNAME=nickname,
-            USER_WHENIO=WhenIO(minutes_offset),
+            USER_WHENIO=WhenIO(timezone_offset),
             IS_MEMBER='member' in groups,
             IS_LEADER='leader' in groups))
     # Prepare configuration

@@ -35,6 +35,6 @@
     # Start production server
     paster serve --daemon production.ini
 
-    # Edit and install crontab
-    vim deployment/server.crt
-    crontab deployment/server.crt
+    # Generate and install crontab
+    python utilities/make_crontab.py -c production.ini
+    crontab server.crt

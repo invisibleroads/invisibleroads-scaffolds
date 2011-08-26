@@ -3,6 +3,7 @@ dist
 *.db*
 *.swp
 *.pyc
+*.crt
 *.egg-info
 .*.ini
 .coverage
