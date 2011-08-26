@@ -20,6 +20,7 @@ $.fn.fixWidth = function() {
     var $x = $(this);
     return $x.width($x.width());
 }
+var $form = $('#form');
 % if user:
 var token = '${request.session.get_csrf_token()}';
 $('#smsAddresses .email').clickToggle({
@@ -39,7 +40,7 @@ $('#smsAddresses .trash').clickToggle({
     postURL: "${request.route_path('user_update')}",
     nameClass: 'email'
 });
-$('#form .mutate').click(function() {
+$form.find('.mutate').click(function() {
 	$.post("${request.route_path('user_mutate')}", {
 		token: token
 	}, function(data) {
@@ -51,19 +52,19 @@ $('#form .mutate').click(function() {
 	});
 });
 % endif
-$('#form').prepareForm().bind('onSuccess', function() {
+$form.prepareForm().bind('onSuccess', function() {
     $(this).find('input').not('.mutate').prop('disabled', true);
     setTipByName($('#email'), {
         email: "Please check your email to ${'finalize changes to' if user else 'create'} your account."
     });
-}).width($('#form').find('input').width());
-var $username = $('#username'), $password = $('#password'), $nickname = $('#nickname'), $email = $('#email');
+}).width($form.find('input').width());
+var $username = $('[name=username]'), $password = $('[name=password]'), $nickname = $('[name=nickname]'), $email = $('[name=email]');
 $username.focusNext($password);
 $password.focusNext($nickname);
 $nickname.focusNext($email);
 $email.keydown(function(e) {
     if (13 == e.which) {
-        $('#form').submit();
+        $form.submit();
         return false;
     }
 });
@@ -76,20 +77,20 @@ ${'Update your account' if user else 'Register for an account'}
 
 <form id=form action="${request.route_path('user_update' if user else 'user_register')}" method=post>
 <div>
-    <label for=username>Username</label><br>
-    <input id=username name=username autocomplete=off value="${user.username if user else ''}" title='What you use to login'>
+    Username<br>
+    <input name=username autocomplete=off value="${user.username if user else ''}" title='What you use to login'>
 </div>
 <div>
-    <label for=password>Password</label><br>
-    <input id=password name=password type=password autocomplete=off title='So you have some privacy'>
+    Password<br>
+    <input name=password autocomplete=off type=password title='So you have some privacy'>
 </div>
 <div>
-    <label for=nickname>Nickname</label><br>
-    <input id=nickname name=nickname autocomplete=off value="${user.nickname if user else ''}" title='How others see you'>
+    Nickname<br>
+    <input name=nickname autocomplete=off value="${user.nickname if user else ''}" title='How others see you'>
 </div>
 <div>
-    <label for=email>Email</label><br>
-    <input id=email name=email autocomplete=off value="${user.email if user else ''}" title='To confirm changes to your account'>
+    Email<br>
+    <input name=email autocomplete=off value="${user.email if user else ''}" title='To confirm changes to your account'>
 </div>
 <input class=save type=submit value="${'Update' if user else 'Register'}" title='Send confirmation'>
 % if user:

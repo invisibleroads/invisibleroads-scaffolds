@@ -74,7 +74,7 @@ function reset() {
         $('#resetEmail').focus();
         return;
     }
-    $('.lockOnReset').prop('disabled', true);
+    $('#resetForm input').prop('disabled', true);
     $.post("${request.route_path('user_reset')}", {
         'email': email
     }, function(data) {
@@ -82,7 +82,7 @@ function reset() {
             $('#m_password').html('<span class=error>Please check your mailbox</span>');
         } else {
             $('#m_password').html('<span class=error>Email not found</span>');
-            $('.lockOnReset').prop('disabled', false);
+            $('#resetForm input').prop('disabled', false);
         }
     });
 }
@@ -105,7 +105,7 @@ if ($username.val() == '') $username.focus();
 
 <form>
 <div>
-    <label for=username>Username</label><br>
+    Username<br>
     <input id=username>
     <span id=m_username>
     % if request.route_path('user_login') != request.path:
@@ -116,13 +116,13 @@ if ($username.val() == '') $username.focus();
     <span id=resetPack>
         <a id=reset_ class='hover link off'>Did you forget your login?</a>
         <span id=resetForm>
-            <input class=lockOnReset id=resetEmail>
-            <input class=lockOnReset id=reset type=button value=Reset>
+            <input id=resetEmail>
+            <input id=reset type=button value=Reset>
         </span>
     </span>
 </div>
 <div>
-    <label for=password>Password</label><br>
+    Password<br>
     <input id=password type=password>
     <span id=m_password></span>
 </div>
