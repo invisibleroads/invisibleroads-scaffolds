@@ -7,7 +7,6 @@ import shutil
 import unittest
 import simplejson
 import transaction
-import warnings; warnings.simplefilter('error')
 from pyramid.request import Request
 
 from {{package}} import main, load_settings, ApplicationError
@@ -18,19 +17,6 @@ from {{package}}.libraries.tools import make_random_unique_string, get_remote_ip
 basePath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 configurationPath = os.path.join(basePath, 'test.ini')
 settings = load_settings(configurationPath, basePath)
-
-
-class ReplaceableDict(dict):
-    
-    def replace(self, **kwargs):
-        return ReplaceableDict(self.items() + kwargs.items())
-
-    def hide(self, *keys):
-        x = self.copy()
-        for key in keys:
-            if key in x:
-                del x[key]
-        return x
 
 
 class TestTemplate(unittest.TestCase):
@@ -44,9 +30,9 @@ class TestTemplate(unittest.TestCase):
         self.logout()
         word = 'Спасибо'.decode('utf-8')
         # Reset testUsers
-        self.userL = ReplaceableDict(role=ROLE_LEADER)
-        self.userM = ReplaceableDict(role=ROLE_MEMBER)
-        self.userS = ReplaceableDict(role=ROLE_SPECTATOR)
+        self.userL = dict(role=ROLE_LEADER)
+        self.userM = dict(role=ROLE_MEMBER)
+        self.userS = dict(role=ROLE_SPECTATOR)
         testUsers = [self.userL, self.userM, self.userS]
         for userID, userD in enumerate(testUsers, 1):
             wordNumber = word + str(userID)
@@ -55,7 +41,7 @@ class TestTemplate(unittest.TestCase):
             userD['password'] = wordNumber
             userD['nickname'] = wordNumber
             userD['email'] = wordNumber + '@example.com'
-            db.merge(User(**userD.replace(rejection_count=0)))
+            db.merge(User(**dict(userD, rejection_count=0)))
         transaction.commit()
 
     def get_url(self, name, **kwargs):
@@ -72,7 +58,7 @@ class TestTemplate(unittest.TestCase):
 
     def login(self, userD, **kwargs):
         'Login using credentials'
-        return self.post(self.get_url('user_login'), ReplaceableDict(userD, **kwargs))
+        return self.post(self.get_url('user_login'), dict(userD, **kwargs))
 
     def logout(self):
         'Logout'
@@ -80,7 +66,7 @@ class TestTemplate(unittest.TestCase):
 
     def assert_json(self, response, isOk):
         'Assert response JSON'
-        data = simplejson.loads(response.unicode_body)
+        data = simplejson.loads(response.text)
         self.assertEqual(data['isOk'], isOk)
         return data
 

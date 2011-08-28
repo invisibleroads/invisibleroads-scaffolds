@@ -1,7 +1,7 @@
 'Tests for row-based interface demo'
 from {{package}}.views import rows
 from {{package}}.models import db, Row
-from {{package}}.tests import TestTemplate, ReplaceableDict, get_token
+from {{package}}.tests import TestTemplate, get_token
 
 
 class TestRows(TestTemplate):
@@ -11,7 +11,7 @@ class TestRows(TestTemplate):
         'Assert that the row index page is visible'
         url = self.get_url('row_index')
         # Make sure that the user index page is visible
-        self.assert_('Rows</title>' in self.get(url).unicode_body)
+        self.assert_('Rows</title>' in self.get(url).text)
 
     def test_update(self):
         'Make sure that updating rows works'
@@ -22,18 +22,18 @@ class TestRows(TestTemplate):
         self.assert_forbidden(url, method='POST')
         # Get token
         self.login(self.userM)
-        token = get_token(self.get(self.get_url('row_index')).unicode_body)
-        params = ReplaceableDict(token=token, id=1, col1='column1', col2='column2')
+        token = get_token(self.get(self.get_url('row_index')).text)
+        params = dict(token=token, id=1, col1='column1', col2='column2')
         # Updating rows requires a token
-        self.assert_json(self.post(url, params.replace(token='')), 0)
+        self.assert_json(self.post(url, dict(params, token='')), 0)
         # Try different values to cause errors
-        self.assert_json(self.post(url, params.replace(id=0)), 0)
-        self.assert_json(self.post(url, params.replace(id='xxx')), 0)
-        self.assert_json(self.post(url, params.replace(col1='')), 0)
-        self.assert_json(self.post(url, params.replace(col1='x')), 0)
-        self.assert_json(self.post(url, params.replace(col1='x' * 10)), 0)
-        self.assert_json(self.post(url, params.replace(col2='')), 0)
-        self.assert_json(self.post(url, params.replace(col2='x')), 0)
-        self.assert_json(self.post(url, params.replace(col2='x' * 10)), 0)
+        self.assert_json(self.post(url, dict(params, id=0)), 0)
+        self.assert_json(self.post(url, dict(params, id='xxx')), 0)
+        self.assert_json(self.post(url, dict(params, col1='')), 0)
+        self.assert_json(self.post(url, dict(params, col1='x')), 0)
+        self.assert_json(self.post(url, dict(params, col1='x' * 10)), 0)
+        self.assert_json(self.post(url, dict(params, col2='')), 0)
+        self.assert_json(self.post(url, dict(params, col2='x')), 0)
+        self.assert_json(self.post(url, dict(params, col2='x' * 10)), 0)
         # Update rows successfully
         self.assert_json(self.post(url, params), 1)

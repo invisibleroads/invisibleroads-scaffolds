@@ -9,7 +9,7 @@ from urlparse import urlparse
 from {{package}}.views import users
 from {{package}}.libraries import sms
 from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
-from {{package}}.tests import TestTemplate, ReplaceableDict, settings, get_token
+from {{package}}.tests import TestTemplate, settings, get_token
 from {{package}} import parameters
 
 
@@ -28,13 +28,13 @@ class TestUsers(TestTemplate):
         user = db.query(User).get(self.userL['id'])
         tokens = users.format_tokens(user)
         secret = self.settings['authtkt.secret']
-        params = ReplaceableDict(secret=secret, principal=self.userL['id'], tokens=tokens)
+        params = dict(secret=secret, principal=self.userL['id'], tokens=tokens)
         # See what happens when we forge cookies poorly
-        self.assert_('Logout' not in get_body(**params.replace(secret='')))
-        self.assert_('Logout' not in get_body(**params.replace(principal=0)))
-        self.assert_('Logout' not in get_body(**params.replace(principal='x')))
-        self.assert_('Logout' not in get_body(**params.replace(tokens=[])))
-        self.assert_('Logout' not in get_body(**params.replace(tokens=['x'])))
+        self.assert_('Logout' not in get_body(**dict(params, secret='')))
+        self.assert_('Logout' not in get_body(**dict(params, principal=0)))
+        self.assert_('Logout' not in get_body(**dict(params, principal='x')))
+        self.assert_('Logout' not in get_body(**dict(params, tokens=[])))
+        self.assert_('Logout' not in get_body(**dict(params, tokens=['x'])))
         # Fool authentication successfully
         self.assert_('Logout' in get_body(**params))
 
@@ -42,31 +42,31 @@ class TestUsers(TestTemplate):
         'Assert that the user index page is visible'
         url = self.get_url('user_index')
         # Make sure that the user index page is visible
-        self.assert_('Users</title>' in self.get(url).unicode_body)
+        self.assert_('Users</title>' in self.get(url).text)
 
     def test_registration(self):
         'Make sure that registration works'
         url = self.get_url('user_register')
         username, password, nickname, email = [self.userL[x].replace('1', 'A') for x in 'username', 'password', 'nickname', 'email']
-        params = ReplaceableDict(username=username, password=password, nickname=nickname, email=email)
+        params = dict(username=username, password=password, nickname=nickname, email=email)
         # Make sure the registration page appears properly
-        self.assert_('Registration' in self.get(url).unicode_body)
+        self.assert_('Registration' in self.get(url).text)
         # Register
         registrationCount1 = db.query(User_).count()
         self.assert_json(self.post(url, params), 1)
         # Register with a username that already exists
-        self.assert_json(self.post(url, params.replace(username=self.userL['username'])), 0)
+        self.assert_json(self.post(url, dict(params, username=self.userL['username'])), 0)
         # Register with a nickname that already exists
-        self.assert_json(self.post(url, params.replace(nickname=self.userL['nickname'])), 0)
+        self.assert_json(self.post(url, dict(params, nickname=self.userL['nickname'])), 0)
         # Register with a email that already exists
-        self.assert_json(self.post(url, params.replace(email=self.userL['email'])), 0)
+        self.assert_json(self.post(url, dict(params, email=self.userL['email'])), 0)
         # Register with a weak password
-        self.assert_json(self.post(url, params.replace(password='xxx')), 0)
+        self.assert_json(self.post(url, dict(params, password='xxx')), 0)
         # Try different case
-        params = ReplaceableDict(username=username + 'x', password=password + 'x', nickname=nickname + 'x', email=email + 'x')
-        self.assert_json(self.post(url, params.replace(username=username.upper())), 1)
-        self.assert_json(self.post(url, params.replace(nickname=nickname.upper())), 1)
-        self.assert_json(self.post(url, params.replace(email=email.upper())), 1)
+        params = dict(username=username + 'x', password=password + 'x', nickname=nickname + 'x', email=email + 'x')
+        self.assert_json(self.post(url, dict(params, username=username.upper())), 1)
+        self.assert_json(self.post(url, dict(params, nickname=nickname.upper())), 1)
+        self.assert_json(self.post(url, dict(params, email=email.upper())), 1)
         # Confirm with an invalid ticket
         self.get(self.get_url('user_confirm', ticket='xxx'))
         # Confirm registration
@@ -86,19 +86,19 @@ class TestUsers(TestTemplate):
         # Going to a forbidden page displays the login page
         self.assert_forbidden(url_)
         # Going directly to the login page stores the target url
-        self.assert_(url_ in self.get(url, dict(url=url_)).unicode_body)
+        self.assert_(url_ in self.get(url, dict(url=url_)).text)
         # Bad credentials fail
-        self.assert_json(self.login(self.userS.replace(username='')), 0)
-        self.assert_json(self.login(self.userS.replace(password='')), 0)
-        self.assert_json(self.login(self.userS.replace(username='xxx')), 0)
-        self.assert_json(self.login(self.userS.replace(password='xxx')), 0)
+        self.assert_json(self.login(self.userS, username=''), 0)
+        self.assert_json(self.login(self.userS, password=''), 0)
+        self.assert_json(self.login(self.userS, username='xxx'), 0)
+        self.assert_json(self.login(self.userS, password='xxx'), 0)
         # Good credentials succeed
         self.assert_json(self.login(self.userS), 1)
         # Supply invalid timezone_offset
         self.assert_json(self.login(self.userS, timezone_offset='xxx'), 1)
         # Hit rejection limit
         for rejectionIndex in xrange(parameters.REJECTION_LIMIT):
-            self.assert_json(self.login(self.userS.replace(password='xxx')), 0)
+            self.assert_json(self.login(self.userS, password='xxx'), 0)
         self.assert_json(self.login(self.userS), 0)
 
     def test_logout(self):
@@ -118,15 +118,15 @@ class TestUsers(TestTemplate):
         self.assert_forbidden(url, method='POST')
         # Check that the update form is filled with the user's credentials
         self.login(self.userS)
-        body = self.get(url).unicode_body
+        body = self.get(url).text
         self.assert_(self.userS['username'] in body)
         self.assert_(self.userS['nickname'] in body)
         self.assert_(self.userS['email'].lower() in body)
         token = get_token(body)
         # Updating credentials requires a token
         username, password, nickname, email = ['0' + self.userS[x] for x in 'username', 'password', 'nickname', 'email']
-        params = ReplaceableDict(token=token, username=username, password=password, nickname=nickname, email=email)
-        self.assert_json(self.post(url, params.replace(token='')), 0)
+        params = dict(token=token, username=username, password=password, nickname=nickname, email=email)
+        self.assert_json(self.post(url, dict(params, token='')), 0)
         self.assert_json(self.post(url, params), 1)
         # Make sure the credentials have not changed yet
         self.assertEqual(db.query(User).filter_by(username=username, nickname=nickname, email=email).count(), 0)
@@ -184,25 +184,25 @@ class TestUsers(TestTemplate):
 
         # Get token
         self.login(self.userS)
-        token = get_token(self.get(url).unicode_body)
+        token = get_token(self.get(url).body)
 
-        params = ReplaceableDict(token=token, id=smsAddressI.id, is_active=1)
+        params = dict(token=token, id=smsAddressI.id, is_active=1)
         # Activate an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, params.replace(id=smsAddressA.id)), 0)
+        self.assert_json(self.post(url, dict(params, id=smsAddressA.id)), 0)
         # Activate an smsAddress
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], True)
 
-        params = ReplaceableDict(token=token, id=smsAddressI.id, is_active=0)
+        params = dict(token=token, id=smsAddressI.id, is_active=0)
         # Deactivate an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, params.replace(id=smsAddressA.id)), 0)
+        self.assert_json(self.post(url, dict(params, id=smsAddressA.id)), 0)
         # Deactivate an smsAddress
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], False)
 
-        params = ReplaceableDict(token=token, id=smsAddressI.id)
+        params = dict(token=token, id=smsAddressI.id)
         # Remove an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, params.replace(id=smsAddressA.id)), 0)
+        self.assert_json(self.post(url, dict(params, id=smsAddressA.id)), 0)
         # Remove an smsAddress that belongs to the user
         self.assert_json(self.post(url, params), 1)
         self.assertEqual(db.query(SMSAddress).filter_by(id=smsAddressI.id).count(), 0)
@@ -222,25 +222,27 @@ class TestUsers(TestTemplate):
         token = get_token(self.get(self.get_url('user_index')).body)
         get_targetUser = lambda: db.query(User).filter_by(id=self.userS['id']).first()
         targetUser = get_targetUser()
-        params = ReplaceableDict(token=token, id=targetUser.id, role=ROLE_LEADER)
+        params = dict(token=token, id=targetUser.id, role=ROLE_LEADER)
         # Check that a bad token fails
-        self.assert_json(self.post(url, params.replace(token=token + 'x')), 0)
+        self.assert_json(self.post(url, dict(params, token=token + 'x')), 0)
         # Check that a bad id fails
-        self.assert_json(self.post(url, params.replace(id=0)), 0)
+        self.assert_json(self.post(url, dict(params, id=0)), 0)
         # Check that a bad role fails
-        self.assert_json(self.post(url, params.replace(role='xxx')), 0)
+        self.assert_json(self.post(url, dict(params, role='xxx')), 0)
         # Check that a missing role fails
-        self.assert_json(self.post(url, params.hide('role')), 0)
+        paramsCopy = dict(params)
+        del paramsCopy['role']
+        self.assert_json(self.post(url, paramsCopy), 0)
         # Check that a leader cannot promote or demote self
-        self.assert_json(self.post(url, params.replace(id=userID)), 0)
+        self.assert_json(self.post(url, dict(params, id=userID)), 0)
         # Check that a leader can promote or demote other users
-        self.assert_json(self.post(url, params.replace(role=ROLE_LEADER)), 1)
+        self.assert_json(self.post(url, dict(params, role=ROLE_LEADER)), 1)
         targetUser = get_targetUser()
         self.assertEqual(targetUser.role, ROLE_LEADER)
-        self.assert_json(self.post(url, params.replace(role=ROLE_MEMBER)), 1)
+        self.assert_json(self.post(url, dict(params, role=ROLE_MEMBER)), 1)
         targetUser = get_targetUser()
         self.assertEqual(targetUser.role, ROLE_MEMBER)
-        self.assert_json(self.post(url, params.replace(role=ROLE_SPECTATOR)), 1)
+        self.assert_json(self.post(url, dict(params, role=ROLE_SPECTATOR)), 1)
         targetUser = get_targetUser()
         self.assertEqual(targetUser.role, ROLE_SPECTATOR)
 
@@ -249,9 +251,9 @@ class TestUsers(TestTemplate):
         url = self.get_url('user_mutate')
         self.login(self.userS)
         token = get_token(self.get(self.get_url('user_update')).body)
-        params = ReplaceableDict(token=token)
+        params = dict(token=token)
         # Check that a bad token fails
-        self.assert_json(self.post(url, params.replace(token=token + 'x')), 0)
+        self.assert_json(self.post(url, dict(params, token=token + 'x')), 0)
         # Check that we can mutate the user code
         userCode = db.query(User.code).filter_by(id=self.userS['id']).first()[0]
         self.assert_json(self.post(url, params), 1)
