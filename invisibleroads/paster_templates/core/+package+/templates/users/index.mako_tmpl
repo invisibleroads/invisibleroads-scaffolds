@@ -55,7 +55,7 @@ $('.role:not(th, #row${USER_ID} > td)').clickToggle({
 <table id=table>
 	<thead>
 		<tr>
-			<th>Nickname</th>
+			<th>User</th>
             <th>Role</th>
 			<th>Last Login</th>
 		</tr>
