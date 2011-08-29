@@ -47,12 +47,12 @@ ${self.root()}
 	function getNumber(x) {return /\d+/.exec(x)[0]}
 	function getID(obj) {return getNumber(obj.id)}
     $('.hover').live({
-        mouseenter: function() {$(this).removeClass('off').addClass('on')},
-        mouseleave: function() {$(this).removeClass('on').addClass('off')}
+        mouseenter:function() {$(this).removeClass('off').addClass('on')},
+        mouseleave:function() {$(this).removeClass('on').addClass('off')}
     });
     $.ajaxSetup({
-        dataType: 'json',
-        error: function(jqXHR, textStatus, errorThrown) {
+        dataType:'json',
+        error:function(jqXHR, textStatus, errorThrown) {
             if ('parsererror' == textStatus) {
                 window.location = "${request.route_path('user_login')}?url=" + window.location.pathname;
             }

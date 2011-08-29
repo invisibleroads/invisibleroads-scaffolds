@@ -12,8 +12,8 @@
 <%def name='js()'>
 var $table = $('#table').dataTableCustom({
     aoColumns: [
-        {'sClass': 'col1', 'sType': 'string'},
-        {'sClass': 'col2', 'sType': 'string'}
+        {sClass:'col1', sType:'string'},
+        {sClass:'col2', sType:'string'}
     ]
 });
 % if IS_MEMBER:

@@ -17,9 +17,9 @@ td {text-align:center}
 <%def name='js()'>
 var $table = $('#table').dataTableCustom({
     aoColumns: [
-        {'sClass': 'nickname', 'sType': 'string'},
-        {'sClass': 'role', 'sType': 'rel-numeric'},
-        {'sClass': 'when_login', 'sType': 'rel-string'}
+        {sClass:'nickname', sType:'string'},
+        {sClass:'role', sType:'rel-numeric'},
+        {sClass:'when_login', sType:'rel-string'}
     ]
 });
 % if IS_LEADER:
@@ -28,26 +28,26 @@ var token = '${request.session.get_csrf_token()}';
 from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 %>
 $('.when_login:not(th, #row${USER_ID} > td)').clickToggle({
-    optionalClass: 'member',
-    onMessage: 'Activate',
-    onValue: ${ROLE_MEMBER},
-    offMessage: 'Deactivate',
-    offValue: ${ROLE_SPECTATOR},
-    postURL: "${request.route_path('user_move')}",
-    postAttribute: 'role',
-    nameClass: 'nickname'
+    optionalClass:'member',
+    onMessage:'Activate',
+    onValue:${ROLE_MEMBER},
+    offMessage:'Deactivate',
+    offValue:${ROLE_SPECTATOR},
+    postURL:"${request.route_path('user_move')}",
+    postAttribute:'role',
+    nameClass:'nickname'
 });
 $('.role:not(th, #row${USER_ID} > td)').clickToggle({
-    requiredClass: 'member',
-    requiredMessage: 'User deactivated',
-    optionalClass: 'leader',
-    onMessage: 'Promote',
-    onValue: ${ROLE_LEADER},
-    offMessage: 'Demote',
-    offValue: ${ROLE_MEMBER},
-    postURL: "${request.route_path('user_move')}",
-    postAttribute: 'role',
-    nameClass: 'nickname'
+    requiredClass:'member',
+    requiredMessage:'User deactivated',
+    optionalClass:'leader',
+    onMessage:'Promote',
+    onValue:${ROLE_LEADER},
+    offMessage:'Demote',
+    offValue:${ROLE_MEMBER},
+    postURL:"${request.route_path('user_move')}",
+    postAttribute:'role',
+    nameClass:'nickname'
 });
 % endif
 </%def>

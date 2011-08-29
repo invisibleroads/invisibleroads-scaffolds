@@ -42,9 +42,9 @@ function login() {
         return;
     }
     var loginData = {
-        'username': $username.val(),
-        'password': $password.val(),
-        'timezone_offset': $timezone_offset.val()
+        'username':$username.val(),
+        'password':$password.val(),
+        'timezone_offset':$timezone_offset.val()
     }
     var $rc = $('#recaptcha_challenge_field'), $rr = $('#recaptcha_response_field');
     if ($rc.length) {
@@ -76,7 +76,7 @@ function reset() {
     }
     $('#resetForm input').prop('disabled', true);
     $.post("${request.route_path('user_reset')}", {
-        'email': email
+        'email':email
     }, function(data) {
         if (data.isOk) {
             $('#m_password').html('<span class=error>Please check your mailbox</span>');

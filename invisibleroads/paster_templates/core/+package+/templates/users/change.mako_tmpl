@@ -24,25 +24,25 @@ var $form = $('#form');
 % if user:
 var token = '${request.session.get_csrf_token()}';
 $('#smsAddresses .email').clickToggle({
-    optionalClass: 'active',
-    onMessage: 'Activate',
-    offMessage: 'Deactivate',
-    postURL: "${request.route_path('user_update')}",
-    postAttribute: 'is_active',
-    nameClass: 'email',
-    onSuccess: function(data) {
+    optionalClass:'active',
+    onMessage:'Activate',
+    offMessage:'Deactivate',
+    postURL:"${request.route_path('user_update')}",
+    postAttribute:'is_active',
+    nameClass:'email',
+    onSuccess:function(data) {
         $('#smsAddresses .email').fixWidth();
     }
 }).fixWidth();
 $('#smsAddresses .trash').clickToggle({
-    optionalClass: 'smsAddress',
-    offMessage: 'Remove',
-    postURL: "${request.route_path('user_update')}",
-    nameClass: 'email'
+    optionalClass:'smsAddress',
+    offMessage:'Remove',
+    postURL:"${request.route_path('user_update')}",
+    nameClass:'email'
 });
 $form.find('.mutate').click(function() {
 	$.post("${request.route_path('user_mutate')}", {
-		token: token
+		token:token
 	}, function(data) {
 		if (data.isOk) {
 			$('#userCode').html(data.code);
@@ -55,7 +55,7 @@ $form.find('.mutate').click(function() {
 $form.prepareForm().bind('onSuccess', function() {
     $(this).find('input').not('.mutate').prop('disabled', true);
     setTipByName($('#email'), {
-        email: "Please check your email to ${'finalize changes to' if user else 'create'} your account."
+        email:"Please check your email to ${'finalize changes to' if user else 'create'} your account."
     });
 }).width($form.find('input').width());
 var $username = $('[name=username]'), $password = $('[name=password]'), $nickname = $('[name=nickname]'), $email = $('[name=email]');

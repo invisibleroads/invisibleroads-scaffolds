@@ -23,8 +23,8 @@ function setTipByName($fieldsWithTips, tipByName) {
 // Submit form fields and files
 $.fn.ajaxForm = function(options) {
     options = $.extend({}, {
-        onSubmit: function() {},
-        onResponse: function(data) {}
+        onSubmit:function() {},
+        onResponse:function(data) {}
     }, options);
     var iframeName = 'ajaxForm', $iframe = $('[name=' + iframeName + ']');
     if (!$iframe.length) {
@@ -80,10 +80,10 @@ $.fn.prepareForm = function() {
     return $(this).each(function() {
         var $form = $(this), $fieldsWithTips = $form.find('[title]'), tipByName = getTipByName($fieldsWithTips);
         $fieldsWithTips.tooltip({
-            position: 'center right',
-            tipClass: 'formTip',
-            events: {file: 'focus mouseenter,blur mouseleave'},
-            onBeforeShow: function() {
+            position:'center right',
+            tipClass:'formTip',
+            events:{file:'focus mouseenter,blur mouseleave'},
+            onBeforeShow:function() {
                 var $field = this.getTrigger(), title = $field.prop('title');
                 if (title) {
                     this.getTip().html(title);
@@ -92,13 +92,13 @@ $.fn.prepareForm = function() {
                 // Position tooltip 10 pixels to the right of the form
                 this.getConf().offset = [0, ($form.offset().left + $form.outerWidth()) - ($field.offset().left + $field.outerWidth()) + 10];
             },
-            onHide: function() {
+            onHide:function() {
                 var $field = this.getTrigger();
                 $field.prop('title', tipByName[$field.prop('name')]);
             }
         });
         $form.ajaxForm({
-            onSubmit: function() {
+            onSubmit:function() {
                 if (!$form.find('[name=token]').length) {
                     try {
                         $form.append('<input name=token type=hidden value="' + token + '">');
@@ -106,7 +106,7 @@ $.fn.prepareForm = function() {
                 }
                 $form.find('.save').prop('disabled', true);
             },
-            onResponse: function(data) {
+            onResponse:function(data) {
                 if (data.isOk) {
                     $form.trigger('onSuccess', [data]);
                 } else {
@@ -119,8 +119,8 @@ $.fn.prepareForm = function() {
                 $form.find('.save').prop('disabled', false);
             }
         }).bind({
-            showAdd: hideReplace,
-            showEdit: showReplace
+            showAdd:hideReplace,
+            showEdit:showReplace
         }).find('.replace').click(function() {
             hideReplace.apply($(this).parents('form'), [null]);
         });
@@ -130,15 +130,15 @@ $.fn.prepareOverlayForm = function() {
     return $(this).prepareForm().each(function() {
         var $form = $(this), $fieldsWithTips = $form.find('[title]'), $fields = $form.find('[name]');
         $form.overlay({
-            mask: {color: '#000', loadSpeed: 0},
-            onLoad: function() {
+            mask:{color:'#000', loadSpeed:0},
+            onLoad:function() {
                 setTipByName($fieldsWithTips, {});
                 $fields.first().focus().select();
             },
-            onClose: function() {
+            onClose:function() {
                 $('.formTip').hide();
             },
-            closeOnClick: false
+            closeOnClick:false
         });
         $form.bind('onSuccess', function(e, data) {
             $form.overlay().close();
@@ -148,17 +148,17 @@ $.fn.prepareOverlayForm = function() {
 // Apply click-based table data modification
 $.fn.clickToggle = function(options) {
     options = $.extend({}, {
-        requiredClass: '',       // Display requiredMessage if row lacks requiredClass
-        requiredMessage: '',
-        optionalClass: '',
-        onMessage: '',           // Display onMessage if row lacks optionalClass
-        onValue: 1,             
-        offMessage: '',          // Display offMessage if row has optionalClass
-        offValue: 0,         
-        postURL: '',             // Post update to this URL for this attribute
-        postAttribute: '',         
-        nameClass: '',           // Use text of this column for confirmation prompt
-        onSuccess: function(data) {}
+        requiredClass:'',       // Display requiredMessage if row lacks requiredClass
+        requiredMessage:'',
+        optionalClass:'',
+        onMessage:'',           // Display onMessage if row lacks optionalClass
+        onValue:1,             
+        offMessage:'',          // Display offMessage if row has optionalClass
+        offValue:0,         
+        postURL:'',             // Post update to this URL for this attribute
+        postAttribute:'',         
+        nameClass:'',           // Use text of this column for confirmation prompt
+        onSuccess:function(data) {}
     }, options);
     function mask($x) {
         var $content = $x.find('.content');
@@ -172,7 +172,7 @@ $.fn.clickToggle = function(options) {
         }
     }
     return $(this).live({
-        mouseenter: function() {
+        mouseenter:function() {
             var $td = $(this), $tr = $td.parents('tr');
             mask($td);
             if (!$td.find('.flag').length) {
@@ -186,12 +186,12 @@ $.fn.clickToggle = function(options) {
             }
             $(this).css('cursor', 'pointer');
         },
-        mouseleave: function() {
+        mouseleave:function() {
             var $td = $(this);
             unmask($td);
             $(this).css('cursor', 'auto');
         },
-        click: function() {
+        click:function() {
             var $td = $(this), $tr = $td.parents('tr');
             if (!$tr.hasClass(options.requiredClass)) {
                 return;
@@ -200,7 +200,7 @@ $.fn.clickToggle = function(options) {
                 var message = (hasOptional ? options.offMessage : options.onMessage);
                 unmask($td);
                 if (confirm(message + ' ' + $tr.find('.' + options.nameClass).text() + '?')) {
-                    var params = {token: token, id: getID($tr[0])};
+                    var params = {token:token, id:getID($tr[0])};
                     params[options.postAttribute] = hasOptional ? options.offValue : options.onValue;
                     $.post(options.postURL, params, function(data) {
                         if (data.isOk) {
@@ -229,7 +229,7 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
     // Get $info or make one if it doesn't exist
     var $info = $('#info');
     if (!$info.length) {
-        $info = $('<div>', {id: 'info'}).appendTo('body');
+        $info = $('<div>', {id:'info'}).appendTo('body');
     }
     return $(this).prepareOverlayForm().each(function() {
         var $form = $(this), $fields = $form.find('[name]');
@@ -243,7 +243,7 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
             $rows = $('#' + tableID + '_wrapper tr');
         }
         $rows.live({
-            mouseenter: function() {
+            mouseenter:function() {
                 var $tr = $(this), message;
                 if ($tr.find('th').length) {
                     message = 'add';
@@ -255,11 +255,11 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
                 $info.html('Doubleclick to ' + message);
                 $(this).css('cursor', 'pointer');
             },
-            mouseleave: function() {
+            mouseleave:function() {
                 $info.html('');
                 $(this).css('cursor', 'auto');
             },
-            dblclick: function() {
+            dblclick:function() {
                 var $tr = $(this);
                 if ($tr.find('th').length) {
                     // Show form for add
@@ -320,8 +320,8 @@ $.fn.dataTableExt.oSort['rel-string-desc'] = function(a, b) {
 // Apply sorting and filtering
 $.fn.dataTableCustom = function(options) {
     options = $.extend({}, {
-        aoColumns: null,
-        computeTableHeight: function() {
+        aoColumns:null,
+        computeTableHeight:function() {
             return $('#main').height() - $('#header').height() * 2;
         }
     }, options);
@@ -339,19 +339,19 @@ $.fn.dataTableCustom = function(options) {
             computeTableHeight = pot['computeTableHeight'];
         }
         $dataTable = $table.dataTable({
-            aaSorting: aaSorting, 
-            aoColumns: aoColumns, 
-            bDestroy: true, 
-            bPaginate: false, 
-            oLanguage: {sSearch: 'Filter'}, 
-            sScrollY: computeTableHeight()
+            aaSorting:aaSorting, 
+            aoColumns:aoColumns, 
+            bDestroy:true, 
+            bPaginate:false, 
+            oLanguage:{sSearch: 'Filter'}, 
+            sScrollY:computeTableHeight()
         });
         var tableID = $table.prop('id'), eventType = 'resize.' + tableID;
         $(window).unbind(eventType).bind(eventType, function() {
             $dataTable.parents('.dataTables_scrollBody').height(computeTableHeight());
             $dataTable.fnAdjustColumnSizing();
         });
-        $table.data('dataTableCustom', {$dataTable: $dataTable, aoColumns: aoColumns, computeTableHeight: computeTableHeight});
+        $table.data('dataTableCustom', {$dataTable:$dataTable, aoColumns:aoColumns, computeTableHeight:computeTableHeight});
         $('#' + tableID + '_filter input').focus();
     });
 };
