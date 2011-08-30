@@ -47,7 +47,7 @@ def main(global_config, **settings):
         'Define server-side permissions associated with the user'
         # Unpack properties
         try:
-            code, is_member, is_leader = users.unpack_properties(userID, 'code', 'is_member', 'is_leader')
+            code, isMember, isLeader = users.unpack_properties(userID, 'code', 'isMember', 'isLeader')
         except TypeError:
             return ['outcast']
         # Check code
@@ -56,9 +56,9 @@ def main(global_config, **settings):
             return ['outcast']
         # Get groups
         groups = []
-        if is_member:
+        if isMember:
             groups.append('member')
-        if is_leader:
+        if isLeader:
             groups.append('leader')
         return groups
     def add_renderer_globals(event):
@@ -67,16 +67,16 @@ def main(global_config, **settings):
         userID = authenticated_userid(request)
         groups = get_groups(userID, request)
         if 'outcast' not in groups:
-            nickname, timezone_offset = users.unpack_properties(userID, 'nickname', 'timezone_offset')
+            nickname, timezoneOffset = users.unpack_properties(userID, 'nickname', 'timezoneOffset')
         else:
             userID = None
-            nickname, timezone_offset = u'', TIMEZONE_OFFSET_MINUTES
+            nickname, timezoneOffset = u'', TIMEZONE_OFFSET_MINUTES
         event.update(dict(
             SITE_NAME=SITE_NAME,
             SITE_VERSION=SITE_VERSION,
             USER_ID=userID,
             USER_NICKNAME=nickname,
-            USER_WHENIO=WhenIO(timezone_offset),
+            USER_WHENIO=WhenIO(timezoneOffset),
             IS_MEMBER='member' in groups,
             IS_LEADER='leader' in groups))
     # Prepare configuration

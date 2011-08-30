@@ -99,10 +99,10 @@ def login_(request):
     user = db.query(User).filter_by(username=username).first()
     if not user:
         return dict(isOk=0)
-    # If the password is incorrect, increment and return rejection_count
+    # If the password is incorrect, increment and return user.rejection_count
     if not user.check(password):
         user.rejection_count += 1
-        return dict(isOk=0, rejection_count=user.rejection_count)
+        return dict(isOk=0, rejectionCount=user.rejection_count)
     # If there have been too many rejections, expect recaptcha
     if user.rejection_count >= REJECTION_LIMIT:
         rChallenge, rResponse = [params.get(x, '') for x in 'recaptcha_challenge', 'recaptcha_response']
@@ -110,10 +110,10 @@ def login_(request):
         clientIP = environ.get('HTTP_X_REAL_IP', environ.get('HTTP_X_FORWARDED_FOR', environ.get('REMOTE_ADDR')))
         # If the response is not valid, say so
         if not captcha.submit(rChallenge, rResponse, rPrivate, clientIP).is_valid:
-            return dict(isOk=0, rejection_count=user.rejection_count)
+            return dict(isOk=0, rejectionCount=user.rejection_count)
     # Save user
     try:
-        user.timezone_offset = int(params.get('timezone_offset', TIMEZONE_OFFSET_MINUTES))
+        user.timezone_offset = int(params.get('timezoneOffset', TIMEZONE_OFFSET_MINUTES))
     except ValueError:
         user.timezone_offset = TIMEZONE_OFFSET_MINUTES
     user.when_login = datetime.datetime.utcnow()
@@ -253,7 +253,7 @@ def get_properties(userID):
 def unpack_properties(userID, *names):
     'Unpack properties corresponding to userID as specified by names'
     properties = get_properties(userID)
-    propertyNames = ['nickname', 'timezone_offset', 'is_member', 'is_leader', 'code']
+    propertyNames = ['nickname', 'timezoneOffset', 'isMember', 'isLeader', 'code']
     return [properties[propertyNames.index(x)] for x in names]
 
 
@@ -303,7 +303,7 @@ def apply_user_(ticket):
         raise ApplicationError
     # If the ticket is valid,
     if user_:
-        # Apply the change and reset rejection_count
+        # Apply the change and reset user.rejection_count
         userID = user_.user_id
         db.merge(User(
             id=userID,

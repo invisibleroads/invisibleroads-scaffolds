@@ -6,7 +6,7 @@
 td {padding-right:0.5em}
 #resetPack {display:none}
 #resetForm {display:none}
-#timezone_offset {display:none}
+#timezoneOffset {display:none}
 </%def>
 
 <%def name='toolbar()'>
@@ -18,7 +18,7 @@ td {padding-right:0.5em}
 </%def>
 
 <%def name='js()'>
-var rejection_count = 0, $username = $('#username'), $password = $('#password'), $timezone_offset = $('#timezone_offset');
+var rejectionCount = 0, $username = $('#username'), $password = $('#password'), $timezoneOffset = $('#timezoneOffset');
 function login() {
     var errorCount = 0, focused = false;
     function isEmpty($input) {
@@ -44,7 +44,7 @@ function login() {
     var loginData = {
         'username':$username.val(),
         'password':$password.val(),
-        'timezone_offset':$timezone_offset.val()
+        'timezoneOffset':$timezoneOffset.val()
     }
     var $rc = $('#recaptcha_challenge_field'), $rr = $('#recaptcha_response_field');
     if ($rc.length) {
@@ -58,8 +58,8 @@ function login() {
             $('#resetPack').show();
             $('#reset_').show();
             $('#resetForm').hide();
-            rejection_count = data.rejection_count ? data.rejection_count : rejection_count + 1;
-            if (rejection_count >= ${REJECTION_LIMIT}) {
+            rejectionCount = data.rejectionCount ? data.rejectionCount : rejectionCount + 1;
+            if (rejectionCount >= ${REJECTION_LIMIT}) {
                 Recaptcha.create("${request.registry.settings.get('recaptcha.public', '')}", 'recaptcha', {
                     theme: 'red',
                     callback: Recaptcha.focus_response_field
@@ -93,11 +93,11 @@ $('#reset_').click(function() {
 });
 $('#reset').click(reset);
 $('#login').click(login);
-$('#' + $timezone_offset.prop('id') + '_').click(function() {
+$('#' + $timezoneOffset.prop('id') + '_').click(function() {
     $(this).hide();
-    $timezone_offset.show().focus();
+    $timezoneOffset.show().focus();
 });
-$timezone_offset.val(new Date().getTimezoneOffset());
+$timezoneOffset.val(new Date().getTimezoneOffset());
 $username.keydown(function(e) {if (13 == e.which) $password.focus()});
 $password.keydown(function(e) {if (13 == e.which) login()});
 if ($username.val() == '') $username.focus();
@@ -131,7 +131,7 @@ if ($username.val() == '') $username.focus();
 </form>
 <br>
 <a href='/docs' class='hover link off'>Read documentation for ${SITE_NAME} ${SITE_VERSION}</a><br>
-<a id=timezone_offset_ class='hover link off'>Change timezone</a>
-<select id=timezone_offset>
+<a id=timezoneOffset_ class='hover link off'>Change timezone</a>
+<select id=timezoneOffset>
     <%include file='offsets.mako'/>
 </select>
