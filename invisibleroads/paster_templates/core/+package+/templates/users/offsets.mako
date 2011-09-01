@@ -1,4 +1,4 @@
-<% 
+<%!
 import datetime
 %>
 % for offset in xrange(1410, -1, -30):
