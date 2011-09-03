@@ -107,6 +107,7 @@ $.fn.prepareForm = function() {
                 $form.find('.save').prop('disabled', true);
             },
             onResponse:function(data) {
+                $form.find('.save').prop('disabled', false);
                 if (data.isOk) {
                     $form.trigger('onSuccess', [data]);
                 } else {
@@ -116,7 +117,6 @@ $.fn.prepareForm = function() {
                         setTipByName($fieldsWithTips, data.errorByID);
                     }
                 }
-                $form.find('.save').prop('disabled', false);
             }
         }).bind({
             showAdd:hideReplace,

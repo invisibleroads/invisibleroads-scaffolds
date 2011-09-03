@@ -13,8 +13,8 @@ from recaptcha.client import captcha
 from sqlalchemy.orm import joinedload
 from beaker.cache import cache_region, region_invalidate
 
-from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, Unique
-from {{package}}.libraries.tools import make_random_string, make_random_unique_string
+from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, Unique, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
+from {{package}}.libraries.tools import make_random_string, make_random_unique_string, get_remote_ip
 from {{package}}.parameters import *
 
 
@@ -54,7 +54,7 @@ def confirm(request):
     'Confirm changes'
     # Apply changes to user account
     try:
-        user_ = apply_user_(request.matchdict.get('ticket', ''))
+        user_ = apply_user_(request)
     except ApplicationError:
         message = 'Ticket expired'
     else:
@@ -67,7 +67,6 @@ def confirm(request):
             (User_.email == user_.email)))
     # Save message in session
     request.session.flash(message)
-    # Return
     return HTTPFound(location=request.route_path('user_login'))
 
 
@@ -83,7 +82,6 @@ def login(request):
     else:
         # Get the target url directly
         url = request.url
-    # Return
     return dict(url=url, REJECTION_LIMIT=REJECTION_LIMIT)
 
 
@@ -120,7 +118,6 @@ def login_(request):
     user.rejection_count = 0
     # Set cookie
     request.response.headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
-    # Return
     return dict(isOk=1)
 
 
@@ -166,7 +163,6 @@ def update_(request):
     # If the user is removing an SMS address,
     else:
         db.delete(smsAddress)
-    # Return
     return dict(isOk=1, content=render('users/smsAddresses.mako', update(request), request))
 
 
@@ -182,7 +178,7 @@ def mutate(request):
     user.code = make_random_string(CODE_LEN)
     # Refresh cookie
     request.response.headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
-    # Return
+    # Invalidate cache
     region_invalidate(get_properties, None, userID)
     return dict(isOk=1, code=user.code)
 
@@ -225,8 +221,20 @@ def move(request):
         value = int(value)
     except (TypeError, ValueError):
         return dict(isOk=0, message='Could not parse role=%s' % value)
+    # If it is a promotion,
+    if value > targetUser.role:
+        if ROLE_MEMBER == value:
+            verb = 'activated'
+            adjective = 'member'
+        elif ROLE_LEADER == value:
+            verb = 'promoted'
+            adjective = 'leader'
+        get_mailer(request).send_to_queue(Message(
+            recipients=[formataddr((targetUser.nickname, targetUser.email))],
+            subject='Account ' + verb,
+            body='Your account at %s now has %s privileges.' % (request.application_url, adjective)))
     targetUser.role = value
-    # Return
+    # Invalidate cache
     region_invalidate(get_properties, None, targetUserID)
     return dict(isOk=1, content=render('users/users.mako', index(request), request))
 
@@ -280,22 +288,24 @@ def save_user_(request, valueByName, action, user=None):
         ticket=ticket,
         when_expire=datetime.datetime.utcnow() + datetime.timedelta(hours=TICKET_LIFE_HOURS))
     db.add(user_)
-    # Send message
+    # Send confirmation email
     get_mailer(request).send_to_queue(Message(
         recipients=[formataddr((user_.nickname, user_.email))],
-        subject='Confirm {}'.format(action),
-        body=render('users/confirm.mako', {
-            'form': form,
-            'ticket': ticket,
-            'action': action,
-            'TICKET_LIFE_HOURS': TICKET_LIFE_HOURS,
-        }, request)))
-    # Return
+        subject='Confirm ' + action,
+        body=render('users/confirm.mako', dict(
+            form=form,
+            action=action,
+            ticket=ticket,
+            TICKET_LIFE_HOURS=TICKET_LIFE_HOURS,
+        ), request)))
     return dict(isOk=1)
 
 
-def apply_user_(ticket):
+def apply_user_(request):
     'Finalize a change to a user account'
+    ticket = request.matchdict.get('ticket', '')
+    if not ticket:
+        raise ApplicationError
     user_ = db.query(User_).filter(
         (User_.ticket == ticket) & 
         (User_.when_expire >= datetime.datetime.utcnow())).first()
@@ -305,16 +315,28 @@ def apply_user_(ticket):
     if user_:
         # Apply the change and reset user.rejection_count
         userID = user_.user_id
-        db.merge(User(
+        user = User(
             id=userID,
             username=user_.username,
             password_=user_.password_,
             nickname=user_.nickname,
             email=user_.email,
             rejection_count=0,
-            code=make_random_string(CODE_LEN)))
+            code=make_random_string(CODE_LEN))
+        db.merge(user)
+        # If we have a new user requiring activation, notify leaders
+        if not userID:
+            leaderQuery = db.query(User).filter(User.role==ROLE_LEADER)
+            get_mailer(request).send_to_queue(Message(
+                recipients=[formataddr((x.nickname, x.email)) for x in leaderQuery],
+                subject='Activate %s?' % user.nickname,
+                body=render('users/activate.mako', dict(
+                    user=user_,
+                    browser=request.user_agent,
+                    ip=get_remote_ip(request),
+                ), request)))
+        # Invalidate cache
         region_invalidate(get_properties, None, userID)
-    # Return
     return user_
 
 

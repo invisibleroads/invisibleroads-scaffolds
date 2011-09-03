@@ -54,9 +54,7 @@ $form.find('.mutate').click(function() {
 % endif
 $form.prepareForm().bind('onSuccess', function() {
     $(this).find('input').not('.mutate').prop('disabled', true);
-    setTipByName($('#email'), {
-        email:"Please check your email to ${'finalize changes to' if user else 'create'} your account."
-    });
+    setTipByName($('[name=email]'), {email:"Please check your email to ${'finalize changes to' if user else 'create'} your account."});
 }).width($form.find('input').width());
 var $username = $('[name=username]'), $password = $('[name=password]'), $nickname = $('[name=nickname]'), $email = $('[name=email]');
 $username.focusNext($password);
