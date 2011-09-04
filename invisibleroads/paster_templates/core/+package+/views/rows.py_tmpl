@@ -1,6 +1,6 @@
 'A row-based interface'
-from pyramid.view import view_config
 from pyramid.renderers import render
+from pyramid.view import view_config
 from formencode import validators, Schema, Invalid
 
 from {{package}}.models import db, Row

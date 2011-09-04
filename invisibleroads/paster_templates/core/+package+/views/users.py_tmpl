@@ -1,20 +1,19 @@
 'Views for user account management'
 import datetime
-from pyramid.view import view_config
-from pyramid.security import remember, forget, authenticated_userid
 from pyramid.httpexceptions import HTTPFound
 from pyramid.renderers import render
-from pyramid.security import NO_PERMISSION_REQUIRED
+from pyramid.security import remember, forget, authenticated_userid, NO_PERMISSION_REQUIRED
+from pyramid.view import view_config
 from pyramid_mailer import get_mailer
 from pyramid_mailer.message import Message
+from beaker.cache import cache_region, region_invalidate
 from email.utils import formataddr
 from formencode import validators, Schema, All, Invalid
 from recaptcha.client import captcha
 from sqlalchemy.orm import joinedload
-from beaker.cache import cache_region, region_invalidate
 
-from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, Unique, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 from {{package}}.libraries.tools import make_random_string, make_random_unique_string, get_remote_ip
+from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, Unique, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
 from {{package}}.parameters import *
 
 
