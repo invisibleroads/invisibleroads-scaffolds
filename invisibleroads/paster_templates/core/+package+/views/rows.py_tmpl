@@ -32,10 +32,7 @@ def update(request):
     except Invalid, error:
         return dict(isOk=0, errorByID=error.unpack_errors())
     # Merge
-    db.merge(Row(
-        id=form['id'],
-        col1=form['col1'],
-        col2=form['col2']))
+    db.merge(Row(**form))
     # Return
     return dict(isOk=1, content=render('rows/rows.mako', index(request), request))
 
