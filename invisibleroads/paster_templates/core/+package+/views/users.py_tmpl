@@ -1,6 +1,5 @@
 'Views for user account management'
 import datetime
-import transaction
 from pyramid.httpexceptions import HTTPFound
 from pyramid.renderers import render
 from pyramid.security import remember, forget, authenticated_userid, NO_PERMISSION_REQUIRED
@@ -179,7 +178,6 @@ def mutate(request):
     # Refresh cookie
     request.response.headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
     # Invalidate cache
-    transaction.commit()
     region_invalidate(get_properties, None, userID)
     return dict(isOk=1, code=user.code)
 
@@ -236,7 +234,6 @@ def move(request):
             body='Your account at %s now has %s privileges.' % (request.application_url, adjective)))
     targetUser.role = value
     # Invalidate cache
-    transaction.commit()
     region_invalidate(get_properties, None, targetUserID)
     return dict(isOk=1, content=render('users/users.mako', index(request), request))
 
@@ -344,7 +341,6 @@ def apply_user_(request):
                     ip=get_remote_ip(request),
                 ), request)))
         # Invalidate cache
-        transaction.commit()
         region_invalidate(get_properties, None, userID)
     return user_
 
