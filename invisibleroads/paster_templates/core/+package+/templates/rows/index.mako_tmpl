@@ -3,12 +3,6 @@
 
 <%def name='title()'>Rows</%def>
 
-<%def name='toolbar()'>
-% if IS_MEMBER:
-<input id=${tableID}_add type=button value=Add>
-% endif
-</%def>
-
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
 <script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
@@ -25,6 +19,7 @@ var $table = $('#${tableID}').dataTableCustom({
 });
 % if IS_MEMBER:
 var token = '${request.session.get_csrf_token()}';
+$('#${tableID}_filter').append(' <input id=${tableID}_add type=button value=Add>');
 $('#form').prepareTableOverlayForm($table);
 % endif
 </%def>
