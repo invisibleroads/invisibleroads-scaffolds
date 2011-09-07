@@ -65,13 +65,13 @@ $.fn.focusNext = function($field) {
     });
 }
 $.fn.prepareForm = function() {
-    function showReplace($tr) {
+    function showReplace() {
         var $form = $(this), $replace = $form.find('.replace');
         if (!$replace.length) return;
         $replace.siblings('input').prop('disabled', true).hide();
         $replace.show();
     }
-    function hideReplace($tr) {
+    function hideReplace() {
         var $form = $(this), $replace = $form.find('.replace');
         if (!$replace.length) return;
         $replace.hide();
@@ -225,62 +225,50 @@ $.fn.clickToggle = function(options) {
 if (typeof $.fn.dataTable != 'undefined') {
 
 $.fn.prepareTableOverlayForm = function($table, $rows) {
-    var tableID = $table.prop('id');
-    // Get $info or make one if it doesn't exist
-    var $info = $('#info');
-    if (!$info.length) {
-        $info = $('<div>', {id:'info'}).appendTo('body');
-    }
+    var tableID = $table.prop('id'), tableInfo;
     return $(this).prepareOverlayForm().each(function() {
         var $form = $(this), $fields = $form.find('[name]');
         // Get $id or make one if it doesn't exist
         var $id = $form.find('[name=id]');
-        if (!$id.length) {
-            $id = $('<input name=id type=hidden>').appendTo($form);
+        if (!$id.length) $id = $('<input name=id type=hidden>').appendTo($form);
+        // Enable add
+        var $tableAdd = $('#' + tableID + '_add');
+        if ($tableAdd.length) {
+            $tableAdd.unbind().click(function() {
+                $fields.not('[type=submit],[type=button]').val('');
+                $id.val('');
+                $form.trigger('showAdd').overlay().load()
+            });
         }
-        // Define row hover behavior
-        if (typeof $rows == 'undefined') {
-            $rows = $('#' + tableID + '_wrapper tr');
-        }
-        $rows.live({
+        // Enable edit
+        ($rows || $table.find('tr')).live({
             mouseenter:function() {
-                var $tr = $(this), message;
-                if ($tr.find('th').length) {
-                    message = 'add';
-                } else {
-                    var id = $tr.prop('id');
-                    if (!id) return;
-                    message = 'edit';
-                }
-                $info.html('Doubleclick to ' + message);
+                var $tr = $(this), id = $tr.prop('id');
+                var $tableInfo = $('#' + tableID + '_info');
+                if (!id) return;
+                tableInfo = $tableInfo.html();
+                $tableInfo.html('Doubleclick to edit');
                 $(this).css('cursor', 'pointer');
             },
             mouseleave:function() {
-                $info.html('');
+                var $tableInfo = $('#' + tableID + '_info');
+                $tableInfo.html(tableInfo);
                 $(this).css('cursor', 'auto');
             },
             dblclick:function() {
-                var $tr = $(this);
-                if ($tr.find('th').length) {
-                    // Show form for add
-                    $fields.not('[type=submit],[type=button]').val('');
-                    $form.trigger('showAdd', [$tr]);
-                } else {
-                    var id = $tr.prop('id');
-                    if (!id) return;
-                    // Show form for edit
-                    $fields.not('[type=submit],[type=button],[name=id]').each(function() {
-                        var $td = $tr.find('.' + this.name);
-                        var value = $td.attr('rel');
-                        if (typeof value == 'undefined') {
-                            value = $.trim($td.text());
-                        }
-                        this.value = value;
-                    });
-                    $id.val(getNumber(id));
-                    $form.trigger('showEdit', [$tr]);
-                }
-                $form.overlay().load();
+                var $tr = $(this), id = $tr.prop('id');
+                if (!id) return;
+                // Show form for edit
+                $fields.not('[type=submit],[type=button],[name=id]').each(function() {
+                    var $td = $tr.find('.' + this.name);
+                    var value = $td.attr('rel');
+                    if (typeof value == 'undefined') {
+                        value = $.trim($td.text());
+                    }
+                    this.value = value;
+                });
+                $id.val(getNumber(id));
+                $form.trigger('showEdit', [$tr]).overlay().load();
             }
         });
         $form.bind('onSuccess', function(e, data) {
@@ -343,7 +331,7 @@ $.fn.dataTableCustom = function(options) {
             aoColumns:aoColumns, 
             bDestroy:true, 
             bPaginate:false, 
-            oLanguage:{sSearch: 'Filter'}, 
+            oLanguage:{sSearch: ''}, 
             sScrollY:computeTableHeight()
         });
         var tableID = $table.prop('id'), eventType = 'resize.' + tableID;
@@ -352,7 +340,7 @@ $.fn.dataTableCustom = function(options) {
             $dataTable.fnAdjustColumnSizing();
         });
         $table.data('dataTableCustom', {$dataTable:$dataTable, aoColumns:aoColumns, computeTableHeight:computeTableHeight});
-        $('#' + tableID + '_filter input').focus();
+        $('#' + tableID + '_filter input').prop('placeholder', 'Filter results').focus();
     });
 };
 

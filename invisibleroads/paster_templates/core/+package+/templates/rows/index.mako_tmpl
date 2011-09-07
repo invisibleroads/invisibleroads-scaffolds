@@ -1,6 +1,13 @@
 <%inherit file='/base.mako'/>
+<%! tableID = 'table' %>
 
 <%def name='title()'>Rows</%def>
+
+<%def name='toolbar()'>
+% if IS_MEMBER:
+<input id=${tableID}_add type=button value=Add>
+% endif
+</%def>
 
 <%def name='root()'>
 <script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
@@ -10,7 +17,7 @@
 </%def>
 
 <%def name='js()'>
-var $table = $('#table').dataTableCustom({
+var $table = $('#${tableID}').dataTableCustom({
     aoColumns: [
         {sClass:'col1', sType:'string'},
         {sClass:'col2', sType:'string'}
@@ -22,7 +29,7 @@ $('#form').prepareTableOverlayForm($table);
 % endif
 </%def>
 
-<table id=table>
+<table id=${tableID}>
 	<thead>
 		<tr>
 			<th>Column1</th>
