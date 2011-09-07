@@ -24,9 +24,7 @@ var $table = $('#table').dataTableCustom({
 });
 % if IS_LEADER:
 var token = '${request.session.get_csrf_token()}';
-<%!
-from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
-%>
+<%! from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER %>
 $('.when_login:not(th, #row${USER_ID} > td)').clickToggle({
     optionalClass:'member',
     onMessage:'Activate',

@@ -1,6 +1,4 @@
-<%!  
-import whenIO
-%>
+<%! import whenIO %>
 % for user in users:
     <tr id=row${user.id} class='user 
     % if user.is_member:
