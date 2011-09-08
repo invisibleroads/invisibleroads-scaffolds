@@ -12,14 +12,18 @@
 
 <%def name='js()'>
 var $table = $('#${tableID}').dataTableCustom({
-    aoColumns: [
+% if IS_MEMBER:
+    onLoad:function() {
+        $('#${tableID}_filter').append(' <input id=${tableID}_add type=button value=Add>');
+    },
+% endif
+    aoColumns:[
         {sClass:'col1', sType:'string'},
         {sClass:'col2', sType:'string'}
     ]
 });
 % if IS_MEMBER:
 var token = '${request.session.get_csrf_token()}';
-$('#${tableID}_filter').append(' <input id=${tableID}_add type=button value=Add>');
 $('#form').prepareTableOverlayForm($table);
 % endif
 </%def>

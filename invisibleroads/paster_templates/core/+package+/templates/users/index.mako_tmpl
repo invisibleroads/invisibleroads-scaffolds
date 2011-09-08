@@ -16,7 +16,7 @@ td {text-align:center}
 
 <%def name='js()'>
 var $table = $('#table').dataTableCustom({
-    aoColumns: [
+    aoColumns:[
         {sClass:'nickname', sType:'string'},
         {sClass:'role', sType:'rel-numeric'},
         {sClass:'when_login', sType:'rel-string'}

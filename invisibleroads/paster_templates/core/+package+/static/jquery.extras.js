@@ -234,7 +234,7 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
         // Enable add
         var $tableAdd = $('#' + tableID + '_add');
         if ($tableAdd.length) {
-            $tableAdd.unbind().click(function() {
+            $tableAdd.die().live('click', function() {
                 $fields.not('[type=submit],[type=button]').val('');
                 $id.val('');
                 $form.trigger('showAdd').overlay().load()
@@ -311,7 +311,8 @@ $.fn.dataTableCustom = function(options) {
         aoColumns:null,
         computeTableHeight:function() {
             return $('#main').height() - $('#header').height() * 2;
-        }
+        },
+        onLoad:function() {}
     }, options);
     return $(this).each(function() {
         var $table = $(this), pot = $table.data('dataTableCustom'), $dataTable, aaSorting, aoColumns, computeTableHeight;
@@ -319,12 +320,14 @@ $.fn.dataTableCustom = function(options) {
             aaSorting = [];
             aoColumns = options['aoColumns'];
             computeTableHeight = options['computeTableHeight'];
+            onLoad = options['onLoad'];
         } else {
             $dataTable = pot['$dataTable'];
             $dataTable.fnClearTable(false);
             aaSorting = $dataTable.fnSettings().aaSorting;
             aoColumns = pot['aoColumns'];
             computeTableHeight = pot['computeTableHeight'];
+            onLoad = pot['onLoad'];
         }
         $dataTable = $table.dataTable({
             aaSorting:aaSorting, 
@@ -339,8 +342,14 @@ $.fn.dataTableCustom = function(options) {
             $dataTable.parents('.dataTables_scrollBody').height(computeTableHeight());
             $dataTable.fnAdjustColumnSizing();
         });
-        $table.data('dataTableCustom', {$dataTable:$dataTable, aoColumns:aoColumns, computeTableHeight:computeTableHeight});
         $('#' + tableID + '_filter input').prop('placeholder', 'Filter results').focus();
+        $table.data('dataTableCustom', {
+            $dataTable:$dataTable, 
+            aoColumns:aoColumns, 
+            computeTableHeight:computeTableHeight,
+            onLoad:onLoad
+        });
+        onLoad.apply($table[0]);
     });
 };
 
