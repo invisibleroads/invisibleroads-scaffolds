@@ -1,3 +1,7 @@
+<%! 
+from pyramid.httpexceptions import HTTPForbidden
+from urlparse import urlparse 
+%>\
 <!doctype html>
 <html lang=en>
 <head>
@@ -11,31 +15,19 @@
 <div id=header>
 	<div id=toolbar>${self.toolbar()}</div>
 	<div id=navigation>${self.navigation()}
-	<%
-	linkPacks = [
+    <%
+    linkPacks = [
         ('Rows', request.route_path('row_index')),
 		('Users', request.route_path('user_index')),
-	]
-	if USER_ID:
-		linkPacks.append((USER_NICKNAME, request.route_path('user_update')))
-	path = request.path
-	%>
-% for linkName, linkPath in linkPacks:
-	&nbsp;
-	% if linkPath != path:
-		<a href='${linkPath}' class='hover link off'>${linkName}</a>
-	% else:
-		<b>${linkName}</b>
-	% endif
-% endfor
-	&nbsp;
-	% if USER_ID:
-		<a href="${request.route_path('user_logout', _query=dict(url=request.path))}" class='hover link off'>Logout</a>
-	% elif path != request.route_path('user_login') and request.exception.__class__.__name__ != 'Forbidden':
-		<a href="${request.route_path('user_login', _query=dict(url=request.path))}" class='hover link off'>Login</a>
-	% else:
-		<b>Login</b>
-	% endif
+    ]
+    if USER_ID:
+        linkPacks.append((USER_NICKNAME, request.route_path('user_update')))
+        linkPacks.append(('Logout', request.route_path('user_logout', _query=dict(url=request.path))))
+    else:
+        linkPacks.append(('Register', request.route_path('user_register')))
+        linkPacks.append(('Login', request.path if isinstance(request.exception, HTTPForbidden) else request.route_path('user_login', _query=dict(url=request.path))))
+    %>
+    ${format_linkPacks(linkPacks)}
 	</div>
 </div>
 <div id=main>
@@ -69,3 +61,20 @@ ${self.root()}
 <%def name='navigation()'></%def>\
 <%def name='root()'></%def>\
 <%def name='js()'></%def>\
+
+<%def name='format_linkPacks(linkPacks, alignRight=True)'>
+<% path = request.path %>
+% for linkName, linkURL in linkPacks:
+    % if alignRight:
+        &nbsp;\
+    % endif
+    % if urlparse(linkURL).path != path:
+        <a href='${linkURL}' class='hover link off'>${linkName}</a>\
+    % else:
+        <b>${linkName}</b>\
+    % endif
+    % if not alignRight:
+        &nbsp;\
+    % endif
+% endfor
+</%def>
