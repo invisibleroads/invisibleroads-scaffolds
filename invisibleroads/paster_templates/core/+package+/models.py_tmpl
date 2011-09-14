@@ -142,8 +142,8 @@ class SMSAddress(Base, EmailMixin):
     'An SMS address'
     __tablename__ = 'sms_addresses'
     id = Column(Integer, primary_key=True)
-    user_id = Column(ForeignKey('users.id'))
     is_active = Column(Boolean, default=False)
+    user_id = Column(ForeignKey('users.id'))
 
 
 class Row(Base):
@@ -191,20 +191,46 @@ def initialize_sql(settings):
 class Unique(validators.FancyValidator):
     'Validator to ensure that the value of a field is unique'
 
-    def __init__(self, Class, fieldName, errorMessage):
-        'Store class, fieldName, errorMessage'
+    def __init__(self, errorMessage, Class, uniqueFieldName, queryConditional=None):
         super(Unique, self).__init__()
-        self.Class = Class
-        self.fieldName = fieldName
         self.errorMessage = errorMessage
+        self.Class = Class
+        self.uniqueFieldName = uniqueFieldName
+        self.queryConditional = queryConditional
 
-    def _to_python(self, value, classInstance):
+    def _to_python(self, value, state):
         'Check whether the value is unique'
+        className = self.Class.__name__
+        classInstance = getattr(state, className[0].lower() + className[1:])
         # If the classInstance is new or the value changed,
-        if not classInstance or getattr(classInstance, self.fieldName) != value:
+        if not classInstance or getattr(classInstance, self.uniqueFieldName) != value:
             query = db.query(self.Class)
+            if self.queryConditional is not None:
+                query = query.filter(self.queryConditional)
             # If the value exists, raise formencode.Invalid
-            if query.filter(getattr(self.Class, self.fieldName)==value).first():
-                raise Invalid(self.errorMessage, value, classInstance)
+            if query.filter(getattr(self.Class, self.uniqueFieldName)==value).first():
+                raise Invalid(self.errorMessage, value, state)
         # Return
         return value
+
+
+class UniqueLocally(validators.FormValidator):
+    'Validator to ensure that the value of a field is unique within a group'
+
+    __unpackargs__ = ('errorMessage', 'Class', 'uniqueFieldName', 'groupFieldName')
+    validate_partial_form = True
+
+    def validate_partial(self, field_dict, state):
+        for fieldName in self.uniqueFieldName, self.groupFieldName:
+            if fieldName not in field_dict:
+                return
+        self.validate_python(field_dict, state)
+
+    def validate_python(self, field_dict, state):
+        groupFieldValue = field_dict[self.groupFieldName]
+        queryConditional = getattr(self.Class, self.groupFieldName) == groupFieldValue
+        uniqueFieldValue = field_dict[self.uniqueFieldName]
+        try:
+            Unique(self.errorMessage, self.Class, self.uniqueFieldName, queryConditional).to_python(uniqueFieldValue, state)
+        except Invalid:
+            raise Invalid(self.errorMessage, field_dict, state, error_dict={self.uniqueFieldName: self.errorMessage})

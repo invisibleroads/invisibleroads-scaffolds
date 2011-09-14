@@ -274,7 +274,7 @@ def save_user_(request, valueByName, action, user=None):
     'Validate values and send confirmation email if values are okay'
     # Validate form
     try:
-        form = UserForm().to_python(valueByName, user)
+        form = UserForm().to_python(valueByName, UserFormState(user))
     except Invalid, error:
         return dict(isOk=0, errorByID=error.unpack_errors())
     # Prepare ticket
@@ -362,28 +362,21 @@ class UserForm(Schema):
     filter_extra_fields = True
 
     username = All(
-        validators.UnicodeString(
-            min=USERNAME_LEN_MIN,
-            max=USERNAME_LEN_MAX,
-            not_empty=True,
-            strip=True),
-        Unique(User, 'username', 'That username already exists'))
+        validators.UnicodeString(min=USERNAME_LEN_MIN, max=USERNAME_LEN_MAX, not_empty=True, strip=True),
+        Unique('That username already exists', User, 'username'))
     password = All(
-        validators.UnicodeString(
-            min=PASSWORD_LEN_MIN,
-            not_empty=True),
+        validators.UnicodeString(min=PASSWORD_LEN_MIN, not_empty=True),
         SecurePassword())
     nickname = All(
-        validators.UnicodeString(
-            min=NICKNAME_LEN_MIN,
-            max=NICKNAME_LEN_MAX,
-            not_empty=True,
-            strip=True),
-        Unique(User, 'nickname', 'That nickname already exists'))
+        validators.UnicodeString(min=NICKNAME_LEN_MIN, max=NICKNAME_LEN_MAX, not_empty=True, strip=True),
+        Unique('That nickname already exists', User, 'nickname'))
     email = All(
-        validators.UnicodeString(
-            max=EMAIL_LEN_MAX,
-            not_empty=True,
-            strip=True),
+        validators.UnicodeString(max=EMAIL_LEN_MAX, not_empty=True, strip=True),
         validators.Email(),
-        Unique(User, 'email', 'That email is reserved for another account'))
+        Unique('That email is reserved for another account', User, 'email'))
+
+
+class UserFormState(object):
+
+    def __init__(self, user):
+        self.user = user

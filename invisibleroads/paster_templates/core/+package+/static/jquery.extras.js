@@ -167,9 +167,7 @@ $.fn.clickToggle = function(options) {
     }
     function unmask($x) {
         var $content = $x.find('.content');
-        if ($content.length) {
-            $x.html($content.html());
-        }
+        if ($content.length) $x.html($content.html());
     }
     return $(this).live({
         mouseenter:function() {
@@ -184,39 +182,36 @@ $.fn.clickToggle = function(options) {
                     $td.append('<span class=flag>' + message + '</span>');
                 }
             }
-            $(this).css('cursor', 'pointer');
+            $td.css('cursor', 'pointer');
         },
         mouseleave:function() {
             var $td = $(this);
             unmask($td);
-            $(this).css('cursor', 'auto');
+            $td.css('cursor', 'auto');
         },
         click:function() {
             var $td = $(this), $tr = $td.parents('tr');
-            if (!$tr.hasClass(options.requiredClass)) {
-                return;
-            } else {
-                var hasOptional = $tr.hasClass(options.optionalClass)
-                var message = (hasOptional ? options.offMessage : options.onMessage);
-                unmask($td);
-                if (confirm(message + ' ' + $tr.find('.' + options.nameClass).text() + '?')) {
-                    var params = {token:token, id:getID($tr[0])};
-                    params[options.postAttribute] = hasOptional ? options.offValue : options.onValue;
-                    $.post(options.postURL, params, function(data) {
-                        if (data.isOk) {
-                            var $table = $tr.parents('table');
-                            if (typeof data.content != 'undefined') {
-                                $table.find('tbody').html(data.content);
-                            }
-                            if (typeof $table.data('dataTableCustom') != 'undefined') {
-                                $table.dataTableCustom();
-                            }
-                            options.onSuccess.apply($td[0], [data]);
-                        } else {
-                            alert(data.message);
+            if (!$tr.hasClass(options.requiredClass)) return;
+            var hasOptional = $tr.hasClass(options.optionalClass);
+            var message = (hasOptional ? options.offMessage : options.onMessage);
+            unmask($td);
+            if (confirm(message + ' ' + $tr.find('.' + options.nameClass).text() + '?')) {
+                var params = {token:token, id:getID($tr[0])};
+                params[options.postAttribute] = hasOptional ? options.offValue : options.onValue;
+                $.post(options.postURL, params, function(data) {
+                    if (data.isOk) {
+                        var $table = $tr.parents('table');
+                        if (typeof data.content != 'undefined') {
+                            $table.find('tbody').html(data.content);
                         }
-                    });
-                }
+                        if (typeof $table.data('dataTableCustom') != 'undefined') {
+                            $table.dataTableCustom();
+                        }
+                        options.onSuccess.apply($td[0], [data]);
+                    } else {
+                        alert(data.message);
+                    }
+                });
             }
         }
     });
@@ -260,11 +255,8 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
                 if (!id) return;
                 // Show form for edit
                 $fields.not('[type=submit],[type=button],[name=id]').each(function() {
-                    var $td = $tr.find('.' + this.name);
-                    var value = $td.attr('rel');
-                    if (typeof value == 'undefined') {
-                        value = $.trim($td.text());
-                    }
+                    var name = this.name, $td = $tr.find('.' + name), value = $td.attr('rel');
+                    if (typeof value == 'undefined') value = $.trim($td.text());
                     this.value = value;
                 });
                 $id.val(getNumber(id));

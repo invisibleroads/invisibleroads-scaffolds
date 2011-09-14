@@ -4,6 +4,7 @@
 - Updated code to be compatible with Pyramid 1.2a1
 - Added email notification to leaders when a new account requires activation
 - Added email notification to user when account is activated or promoted
+- Added chained validator UniqueLocally
 
 
 1.7.7
