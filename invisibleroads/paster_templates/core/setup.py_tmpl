@@ -11,6 +11,7 @@ requires = [
     'pycrypto',
     'pyramid',
     'pyramid_beaker',
+    'pyramid_debugtoolbar',
     'pyramid_mailer',
     'pyramid_tm',
     'recaptcha-client',

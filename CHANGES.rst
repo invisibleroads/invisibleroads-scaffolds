@@ -1,10 +1,10 @@
 1.7.8
 -----
-- Updated forms to use vertical format
-- Updated code to be compatible with Pyramid 1.2a1
+- Incorporated enhancements from Pyramid 1.2
 - Added email notification to leaders when a new account requires activation
 - Added email notification to user when account is activated or promoted
 - Added chained validator UniqueLocally
+- Updated forms to use vertical format
 
 
 1.7.7

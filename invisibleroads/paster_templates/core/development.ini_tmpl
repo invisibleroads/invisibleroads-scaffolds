@@ -1,16 +1,22 @@
-[app:{{project}}]
+[app:main]
 use = egg:{{project}}
-reload_templates = true
-debug_authorization = false
-debug_notfound = false
-debug_routematch = false
-debug_templates = true
-default_locale_name = en
+
+pyramid.reload_templates = true
+pyramid.debug_authorization = false
+pyramid.debug_notfound = false
+pyramid.debug_routematch = false
+pyramid.debug_templates = true
+pyramid.default_locale_name = en
+pyramid.includes = pyramid_debugtoolbar
+                   pyramid_tm
+
 sqlalchemy.url = sqlite:///%(here)s/development.db
+
 cache.type = memory
 cache.short.expire = 1800
 cache.medium.expire = 7200
 cache.long.expire = 86400
+
 data.path = %(here)s/data
 session.type = file
 session.key = {{project}}
@@ -42,11 +48,6 @@ mail.default_sender = {{project}} <support@example.com>
 ; no_tls = false
 ; queue_path = data/messages
 ; debug_smtp = false
-
-[pipeline:main]
-pipeline =
-    egg:WebError#evalerror
-    {{project}}
 
 [server:main]
 use = egg:Paste#http

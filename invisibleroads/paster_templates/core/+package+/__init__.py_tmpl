@@ -99,7 +99,7 @@ def main(global_config, **settings):
     config.set_session_factory(session_factory_from_settings(settings))
     set_cache_regions_from_settings(settings)
     # Configure static assets
-    config.add_static_view('static', '{{package}}:static')
+    config.add_static_view('static', '{{package}}:static', cache_max_age=3600)
     config.add_view(lambda request: Response(content_type='text/plain', body=robots_txt), name='robots.txt', permission=NO_PERMISSION_REQUIRED)
     # Configure routes
     config.include(users, route_prefix='users')
