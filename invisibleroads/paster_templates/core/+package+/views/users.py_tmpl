@@ -257,10 +257,9 @@ def get_properties(userID):
     return db.query(
         User.nickname, 
         User.timezone_offset, 
-        User.is_member, 
-        User.is_leader, 
-        User.code
-    ).filter(User.id==userID).first()
+        User.is_member,
+        User.is_leader,
+        User.code).filter(User.id==userID).first()
 
 
 def unpack_properties(userID, *names):

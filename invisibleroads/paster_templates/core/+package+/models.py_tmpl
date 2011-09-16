@@ -156,7 +156,7 @@ class Row(Base):
 
 def initialize_sql(settings):
     'Create tables and insert data'
-    modeDebug = asbool(settings['debug_templates'])
+    modeDebug = asbool(settings['pyramid.debug_templates'])
     # Create tables
     engine = engine_from_config(settings, 'sqlalchemy.', poolclass=NullPool if settings['sqlalchemy.url'].startswith('sqlite:///') else QueuePool)
     db.configure(bind=engine)
