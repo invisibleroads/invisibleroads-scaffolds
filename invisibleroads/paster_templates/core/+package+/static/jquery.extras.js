@@ -11,11 +11,19 @@ function setTipByName($fieldsWithTips, tipByName) {
     $fieldsWithTips.each(function() {
         var name = this.name, tip = tipByName[name];
         if (tip) {
-            var $field = $(this);
-            $field.prop('title', '<span class=error>' + tip + '</span>').tooltip().show();
-            if (!focused) {
-                $field.focus().select();
-                focused = true;
+            var $field = $(this), tipsAPI = $field.tooltip(), tipHTML = '<span class=error>' + tip + '</span>';
+            if (tipsAPI.isShown()) {
+                tipsAPI.getTip().html(tipHTML);
+            } else {
+                $field.prop('title', tipHTML);
+            }
+            // Prevent a tooltip appearing offscreen before form is visible
+            if ($field.is(':visible')) {
+                $field.tooltip().show();
+                if (!focused) {
+                    $field.focus().select();
+                    focused = true;
+                }
             }
         }
     });
@@ -90,13 +98,37 @@ $.fn.prepareForm = function() {
                     $field.prop('title', '');
                 }
                 // Position tooltip 10 pixels to the right of the form
-                this.getConf().offset = [0, ($form.offset().left + $form.outerWidth()) - ($field.offset().left + $field.outerWidth()) + 10];
+                this.getConf().offset = [0, 10 - ($field.offset().left + $field.outerWidth()) + ($form.offset().left + $form.outerWidth())];
             },
             onHide:function() {
                 var $field = this.getTrigger();
                 $field.prop('title', tipByName[$field.prop('name')]);
             }
         });
+
+        var $tabs = $form.find('.tabs');
+        if ($tabs.length) {
+            var tabsAPI = $tabs.tabs('.panes > div', {
+                onClick:function(e, i) {
+                    if ($form.is(':visible')) {
+                        $form.find('[name]').not(':visible').each(function() {
+                            $(this).tooltip().hide();
+                        });
+                        var $pane = this.getPanes().eq(i);
+                        $pane.find('[name]').first().focus();
+                    }
+                }
+            }).data('tabs');
+
+            $form.bind('onBeforeError', function(e, data) {
+                for (name in data.errorByID) {
+                    var $field = $('[name=' + name + ']'), $pane = $field.parents('.panes > div');
+                    tabsAPI.click($pane.parent().children().index($pane));
+                    break;
+                }
+            });
+        }
+
         $form.ajaxForm({
             onSubmit:function() {
                 if (!$form.find('[name=token]').length) {
@@ -114,6 +146,7 @@ $.fn.prepareForm = function() {
                     if (data.message) {
                         alert(data.message);
                     } else {
+                        $form.trigger('onBeforeError', [data]);
                         setTipByName($fieldsWithTips, data.errorByID);
                     }
                 }
@@ -132,11 +165,12 @@ $.fn.prepareOverlayForm = function() {
         $form.overlay({
             mask:{color:'#000', loadSpeed:0},
             onLoad:function() {
-                setTipByName($fieldsWithTips, {});
                 $fields.first().focus().select();
             },
             onClose:function() {
-                $('.formTip').hide();
+                $fieldsWithTips.each(function() {
+                    $(this).tooltip().hide();
+                });
             },
             closeOnClick:false
         });
