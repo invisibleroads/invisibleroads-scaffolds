@@ -117,7 +117,7 @@ def load_settings(configurationPath, basePath):
     if not configParser.read(configurationPath):
         raise ApplicationError('Could not open %s' % configurationPath)
     settings = {}
-    for key, value in configParser.items('app:{{project}}'):
+    for key, value in configParser.items('app:main'):
         if 'use' == key:
             if value.startswith('config:'):
                 settings.update(load_settings(value.replace('config:', ''), basePath))

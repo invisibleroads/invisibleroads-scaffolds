@@ -26,7 +26,7 @@ session.lock_dir = %(data.path)s/sessions/lock
 mail.queue_path = %(data.path)s/messages
 
 # Store sensitive information in .development.ini
-; [app:{{project}}]
+; [app:main]
 ; authtkt.secret =
 ; session.secret =
 ; ciphers.secret =

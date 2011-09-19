@@ -1,4 +1,4 @@
-[app:{{project}}]
+[app:main]
 use = config:development.ini
 sqlalchemy.url = sqlite://
 data.path = %(here)s/data

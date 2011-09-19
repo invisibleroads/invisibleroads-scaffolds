@@ -25,7 +25,7 @@ session.lock_dir = %(data.path)s/sessions/lock
 mail.queue_path = %(data.path)s/messages
 
 # Store sensitive information in .production.ini
-; [app:{{project}}]
+; [app:main]
 ; authtkt.secret = {{random_string}}
 ; session.secret = {{random_string}}
 ; ciphers.secret = {{random_string}}
