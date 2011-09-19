@@ -275,13 +275,13 @@ def save_user_(request, valueByName, action, user=None):
     try:
         form = UserForm().to_python(valueByName, UserFormState(user))
     except Invalid, error:
-        return dict(isOk=0, errorByID=error.unpack_errors())
+        return dict(isOk=0, errorByName=error.unpack_errors())
     # Prepare ticket
     try:
         ticket = make_random_unique_string(TICKET_LEN, 
             lambda x: db.query(User_).filter_by(ticket=x).first() == None)
     except RuntimeError:
-        return dict(isOk=0, errorByID={'status': 'Could not generate ticket; please try again later'})
+        return dict(isOk=0, errorByName={'status': 'Could not generate ticket; please try again later'})
     # Prepare user_
     user_ = User_(
         username=form['username'],

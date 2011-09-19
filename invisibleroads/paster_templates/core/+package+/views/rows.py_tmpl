@@ -29,7 +29,7 @@ def update(request):
     try:
         form = RowForm().to_python(dict(params))
     except Invalid, error:
-        return dict(isOk=0, errorByID=error.unpack_errors())
+        return dict(isOk=0, errorByName=error.unpack_errors())
     db.merge(Row(**form))
     return dict(isOk=1, content=render('rows/rows.mako', index(request), request))
 

@@ -2,14 +2,14 @@
 function getTipByName($fieldsWithTips) {
     var tipByName = {};
     $fieldsWithTips.each(function() {
-        tipByName[this.name] = this.title;
+        tipByName[this.name || this.className] = this.title;
     });
     return tipByName;
 }
 function setTipByName($fieldsWithTips, tipByName) {
     var focused = false;
     $fieldsWithTips.each(function() {
-        var name = this.name, tip = tipByName[name];
+        var tip = tipByName[this.name || this.className];
         if (tip) {
             var $field = $(this), tipsAPI = $field.tooltip(), tipHTML = '<span class=error>' + tip + '</span>';
             if (tipsAPI.isShown()) {
@@ -102,7 +102,7 @@ $.fn.prepareForm = function() {
             },
             onHide:function() {
                 var $field = this.getTrigger();
-                $field.prop('title', tipByName[$field.prop('name')]);
+                $field.prop('title', tipByName[$field.prop('name') || $field.prop('className')]);
             }
         });
 
@@ -115,13 +115,13 @@ $.fn.prepareForm = function() {
                             $(this).tooltip().hide();
                         });
                         var $pane = this.getPanes().eq(i);
-                        $pane.find('[name]').first().focus();
+                        $pane.find('input,select,textarea').filter(':visible').first().focus();
                     }
                 }
             }).data('tabs');
 
             $form.bind('onBeforeError', function(e, data) {
-                for (name in data.errorByID) {
+                for (name in data.errorByName) {
                     var $field = $('[name=' + name + ']'), $pane = $field.parents('.panes > div');
                     tabsAPI.click($pane.parent().children().index($pane));
                     break;
@@ -147,7 +147,7 @@ $.fn.prepareForm = function() {
                         alert(data.message);
                     } else {
                         $form.trigger('onBeforeError', [data]);
-                        setTipByName($fieldsWithTips, data.errorByID);
+                        setTipByName($fieldsWithTips, data.errorByName);
                     }
                 }
             }

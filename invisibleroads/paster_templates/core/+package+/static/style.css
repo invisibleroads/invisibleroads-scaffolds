@@ -5,8 +5,6 @@
 #main {position:fixed; top:2em; left:0; right:0; bottom:0; overflow:auto}
 .overlay {display:none}
 .formTip {color:#fff; z-index:10000}
-.formTip .off {color:yellow; background:auto}
-.formTip .on {color:black; background:yellow}
 .flag {color:black; font-weight:bold}
 .flag.inactive {color:gray; background:white}
 .error {font-weight:bold}

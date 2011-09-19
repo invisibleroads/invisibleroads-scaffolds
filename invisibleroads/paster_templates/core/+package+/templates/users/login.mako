@@ -130,7 +130,7 @@ if ($username.val() == '') $username.focus();
 <input id=login type=button value=Login><br>
 </form>
 <br>
-<a href='/docs' class='hover link off'>Read documentation for ${SITE_NAME} ${SITE_VERSION}</a><br>
+<a href='/docs/' class='hover link off'>Read documentation for ${SITE_NAME} ${SITE_VERSION}</a><br>
 <a id=timezoneOffset_ class='hover link off'>Change timezone</a>
 <select id=timezoneOffset>
     <%include file='offsets.mako'/>
