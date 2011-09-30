@@ -27,7 +27,7 @@ Usage
     # Enter workspace
     PROJECTS=$HOME/Projects
     cd $PROJECTS
-    # List available templates
+    # List available scaffolds
     paster create --list-templates
     # Create an application
     paster create -t ir_core
