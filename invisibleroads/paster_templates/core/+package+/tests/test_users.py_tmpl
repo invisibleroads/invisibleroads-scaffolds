@@ -228,7 +228,7 @@ class TestUpdate_(TestUserRoute, TestCase):
         self.requestParams = dict(id=self.smsAddress1['id'], is_active=1)
         self.usersAllowed = self.userDs
 
-    def test_member_can_update_own_sms_addresses(self):
+    def test_members_can_update_own_sms_addresses(self):
         self.login(self.member)
         self.ajax_succeeded()
         self.assertEqual(1, db.query(SMSAddress).get(self.smsAddress1['id']).is_active)
@@ -240,7 +240,7 @@ class TestUpdate_(TestUserRoute, TestCase):
         self.ajax_failed(id=self.smsAddress2['id'], is_active=0)
         self.ajax_failed(id=self.smsAddress2['id'], is_active=None)
 
-    def test_leader_can_update_any_sms_addresses(self):
+    def test_leaders_can_update_any_sms_addresses(self):
         self.login(self.leader)
         self.ajax_succeeded()
         self.ajax_succeeded(id=self.smsAddress2['id'])
@@ -328,7 +328,7 @@ class TestMove(TestUserRoute, TestCase):
         self.requestParams = dict(id=self.member['id'], role=ROLE_LEADER)
         self.usersAllowed = [self.leader]
 
-    def test_user_cannot_change_own_role(self):
+    def test_users_cannot_change_own_role(self):
         spoofedRequest = self.make_spoofedRequest(self.member, self.get_url(self.routeName))
         spoofedRequest.spoof_failed()
         self.login(self.leader)

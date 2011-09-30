@@ -23,7 +23,7 @@ def run(settings):
             format_minutes(parameters.OUTBOX_INTERVAL_MINUTES, minuteStart=10), 
             headerCommand),
         '# Process SMS',
-        '%s * * * * %s; python utilities/sms.py -c production.ini >> sms.log 2>&1' % (
+        '%s * * * * %s; python utilities/sms.py -c production.ini -q >> sms.log 2>&1' % (
             format_minutes(parameters.SMS_INTERVAL_MINUTES, minuteStart=5), 
             headerCommand),
     ]
