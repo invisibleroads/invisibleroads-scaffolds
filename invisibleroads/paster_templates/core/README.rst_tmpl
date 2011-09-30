@@ -21,9 +21,9 @@
     # Run tests with coverage
     nosetests --pdb --pdb-failures
     # Show URL routes
-    paster proutes development.ini {{package}}
+    paster proutes development.ini
     # Run shell
-    paster pshell development.ini {{package}}
+    paster pshell development.ini
 
     # Edit sensitive information
     vim .development.ini
@@ -35,6 +35,40 @@
     # Start production server
     paster serve --daemon production.ini
 
-    # Generate and install crontab
+    # Generate crontab
     python utilities/make_crontab.py -c production.ini
+    # Make sure to test each crontab line manually
     crontab server.crt
+
+
+PostgreSQL
+----------
+::
+
+    su
+        yum -y install postgresql postgresql-devel postgresql-server python-psycopg2
+        service postgresql initdb
+        service postgresql start
+    su
+        passwd postgres
+    createuser -U postgres SET-USERNAME-HERE -S -D -R
+    psql -U postgres -c "alter role SET-USERNAME-HERE with password 'SET-PASSWORD-HERE';"
+    createdb -U postgres -O SET-USERNAME-HERE SET-DATABASE-HERE
+    su - postgres
+        vim data/pg_hba.conf
+            # "local" is for Unix domain socket connections only
+            local   all         all                               md5
+            # IPv4 local connections:
+            host    all         all         127.0.0.1/32          md5
+            # IPv6 local connections:
+            host    all         all         ::1/128               md5
+    su
+        service postgresql restart
+        psql -U postgres -c "alter role postgres with password 'SET-PASSWORD-HERE';"
+        service postgresql restart
+
+    source $PYRAMID_ENV/bin/activate
+    pip install psycopg2
+    cd $PROJECTS/{{project}}
+    vim .development.ini
+        sqlalchemy.url = postgresql+psycopg2://SET-USERNAME-HERE:SET-PASSWORD-HERE@localhost:5432/SET-DATABASE-HERE

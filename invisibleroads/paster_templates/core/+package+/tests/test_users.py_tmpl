@@ -1,279 +1,378 @@
-'Tests for user account management'
 import imapIO
-import unittest
-from webob.request import environ_from_url
-from pyramid.testing import DummyRequest
+import transaction
 from pyramid.authentication import AuthTktCookieHelper
+from pyramid.testing import DummyRequest
+from unittest import TestCase, skipIf
 from urlparse import urlparse
+from webob.request import environ_from_url
 
-from {{package}}.views import users
 from {{package}}.libraries import sms
-from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
-from {{package}}.tests import TestTemplate, settings, get_token
-from {{package}} import parameters
+from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, ROLE_LEADER, ROLE_MEMBER, ROLE_SPECTATOR
+from {{package}}.parameters import *
+from {{package}}.tests import TestRoute, build_dict, SETTINGS, WORD, WORD1, WORD2
+from {{package}}.views.users import format_tokens, save_user_
 
 
-class TestUsers(TestTemplate):
-    'Test views for users'
+class TestUserRoute(TestRoute):
 
-    def test_authentication(self):
-        'Make sure authentication is robust'
-        url = self.get_url('user_index')
-        def get_body(secret, principal, tokens):
-            request = DummyRequest(environ=environ_from_url(url))
-            headers = AuthTktCookieHelper(secret).remember(request, principal, tokens=tokens)
-            key, value = headers[0][1].split(';')[0].split('=')
-            self.app.cookies = {key: value.strip('"')}
-            return self.app.get(url).body
-        user = db.query(User).get(self.userL['id'])
-        tokens = users.format_tokens(user)
-        secret = self.settings['authtkt.secret']
-        params = dict(secret=secret, principal=self.userL['id'], tokens=tokens)
-        # See what happens when we forge cookies poorly
-        self.assert_('Logout' not in get_body(**dict(params, secret='')))
-        self.assert_('Logout' not in get_body(**dict(params, principal=0)))
-        self.assert_('Logout' not in get_body(**dict(params, principal='x')))
-        self.assert_('Logout' not in get_body(**dict(params, tokens=[])))
-        self.assert_('Logout' not in get_body(**dict(params, tokens=['x'])))
-        # Fool authentication successfully
-        self.assert_('Logout' in get_body(**params))
+    def setUp(self):
+        TestRoute.setUp(self)
+        self.urlIndex = self.get_url('user_index')
+        self.urlLogin = self.get_url('user_login')
+        self.urlRegister = self.get_url('user_register')
+        self.urlUpdate = self.get_url('user_update')
 
-    def test_index(self):
-        'Assert that the user index page is visible'
-        url = self.get_url('user_index')
-        # Make sure that the user index page is visible
-        self.assert_('Users</title>' in self.get(url).text)
+    def confirm_ticket(self):
+        'Applies the most recent registration'
+        ticket = db.query(User_.ticket).order_by(User_.when_expire.desc()).first()[0]
+        return self.request_url(self.get_url('user_confirm', ticket=ticket))
 
-    def test_registration(self):
-        'Make sure that registration works'
-        url = self.get_url('user_register')
-        username, password, nickname, email = [self.userL[x].replace('1', 'A') for x in 'username', 'password', 'nickname', 'email']
-        params = dict(username=username, password=password, nickname=nickname, email=email)
-        # Make sure the registration page appears properly
-        self.assert_('Registration' in self.get(url).text)
-        # Register
-        registrationCount1 = db.query(User_).count()
-        self.assert_json(self.post(url, params), 1)
-        # Register with a username that already exists
-        self.assert_json(self.post(url, dict(params, username=self.userL['username'])), 0)
-        # Register with a nickname that already exists
-        self.assert_json(self.post(url, dict(params, nickname=self.userL['nickname'])), 0)
-        # Register with a email that already exists
-        self.assert_json(self.post(url, dict(params, email=self.userL['email'])), 0)
-        # Register with a weak password
-        self.assert_json(self.post(url, dict(params, password='xxx')), 0)
-        # Try different case
-        params = dict(username=username + 'x', password=password + 'x', nickname=nickname + 'x', email=email + 'x')
-        self.assert_json(self.post(url, dict(params, username=username.upper())), 1)
-        self.assert_json(self.post(url, dict(params, nickname=nickname.upper())), 1)
-        self.assert_json(self.post(url, dict(params, email=email.upper())), 1)
-        # Confirm with an invalid ticket
-        self.get(self.get_url('user_confirm', ticket='xxx'))
-        # Confirm registration
-        registrationCount2 = db.query(User_).count()
-        self.assertEqual(registrationCount2 - registrationCount1, +4)
-        self.confirm_ticket(email)
-        # Make sure the user exists
-        self.assertEqual(db.query(User).filter_by(email=email).count(), 1)
-        # Make sure that conflicting registrations have been deleted
-        registrationCount3 = db.query(User_).count()
-        self.assertEqual(registrationCount3 - registrationCount2, -4)
+    def make_spoofedRequest(self, userD, url):
+        userID = userD['id']
+        user = db.query(User).get(userID)
+        secret = self.settings['secret.authtkt']
+        return SpoofedRequest(secret, userID, format_tokens(user), self)
 
-    def test_login(self):
-        'Make sure that login works'
-        url = self.get_url('user_login')
-        url_ = self.get_url('user_update')
-        # Going to a forbidden page displays the login page
-        self.assert_forbidden(url_)
-        # Going directly to the login page stores the target url
-        self.assert_(url_ in self.get(url, dict(url=url_)).text)
-        # Bad credentials fail
-        self.assert_json(self.login(self.userS, username=''), 0)
-        self.assert_json(self.login(self.userS, password=''), 0)
-        self.assert_json(self.login(self.userS, username='xxx'), 0)
-        self.assert_json(self.login(self.userS, password='xxx'), 0)
-        # Good credentials succeed
-        self.assert_json(self.login(self.userS), 1)
-        # Supply invalid timezoneOffset
-        self.assert_json(self.login(self.userS, timezoneOffset='xxx'), 1)
-        # Hit rejection limit
-        for rejectionIndex in xrange(parameters.REJECTION_LIMIT):
-            self.assert_json(self.login(self.userS, password='xxx'), 0)
-        self.assert_json(self.login(self.userS), 0)
 
-    def test_logout(self):
-        'Make sure that logout works'
-        url = self.get_url('user_logout')
-        url_ = self.get_url('user_index')
-        # Logging out redirects whether the user is authenticated or not
-        self.assertEqual(url_, urlparse(self.get(url, dict(url=url_)).location).path)
-        self.login(self.userS)
-        self.assertEqual(url_, urlparse(self.get(url, dict(url=url_)).location).path)
+class TestIndex(TestUserRoute, TestCase):
 
-    def test_update(self):
-        'Make sure that updating credentials works'
-        url = self.get_url('user_update')
-        # Check that we only see the login page if the user is not logged in
-        self.assert_forbidden(url)
-        self.assert_forbidden(url, method='POST')
-        # Check that the update form is filled with the user's credentials
-        self.login(self.userS)
-        body = self.get(url).text
-        self.assert_(self.userS['username'] in body)
-        self.assert_(self.userS['nickname'] in body)
-        self.assert_(self.userS['email'].lower() in body)
-        token = get_token(body)
-        # Updating credentials requires a token
-        username, password, nickname, email = ['0' + self.userS[x] for x in 'username', 'password', 'nickname', 'email']
-        params = dict(token=token, username=username, password=password, nickname=nickname, email=email)
-        self.assert_json(self.post(url, dict(params, token='')), 0)
-        self.assert_json(self.post(url, params), 1)
-        # Make sure the credentials have not changed yet
-        self.assertEqual(db.query(User).filter_by(username=username, nickname=nickname, email=email).count(), 0)
-        # Make sure the credentials have changed after confirmation
-        self.confirm_ticket(email)
-        self.assertEqual(db.query(User).filter_by(username=username, nickname=nickname, email=email).first().check(password), True)
-        # Use all available tickets
-        TICKET_LEN = users.TICKET_LEN 
-        users.TICKET_LEN = 0
-        db.merge(User_(ticket=''))
-        db.flush()
-        user = db.query(User).filter_by(email=email).first()
-        data = users.save_user_(DummyRequest(), params, 'update', user)
-        self.assertEqual(data['isOk'], 0)
-        users.TICKET_LEN = TICKET_LEN
+    routeName = 'user_index'
+    isPublic = True
 
-    @unittest.skipIf(not settings.get('sms.imap.host'), 'not configured')
-    def test_update_smsAddress(self):
-        'Make sure that updating smsAddresses works'
-        url = self.get_url('user_update')
+
+class TestRegister(TestUserRoute, TestCase):
+
+    routeName = 'user_register'
+    isPublic = True
+
+
+class TestRegister_(TestUserRoute, TestCase):
+
+    routeName = 'user_register'
+    requestMethod = 'POST'
+    isPublic = True
+
+    def setUp(self):
+        super(TestRegister_, self).setUp()
+        self.requestParams = dict(username=WORD, password=WORD, nickname=WORD, email=WORD + '@example.com')
+
+    def test_user_usernames_are_unique(self):
+        self.assert_field_rejects_duplicates('username', self.member['username'])
+
+    def test_weak_passwords_are_rejected(self):
+        self.ajax_failed(password=u'xxx')
+
+    def test_user_nicknames_are_unique(self):
+        self.assert_field_rejects_duplicates('nickname', self.member['nickname'])
+
+    def test_user_emails_are_unique(self):
+        self.assert_field_rejects_duplicates('email', self.member['email'])
+
+
+class TestConfirm(TestUserRoute, TestCase):
+
+    routeName = 'user_confirm'
+    urlParams = dict(ticket=' ')
+    isPublic = True
+
+    username = WORD
+    password = WORD
+    nickname = WORD
+    email = WORD + '@example.com'
+    registrationParams = dict(username=username, password=password, nickname=nickname, email=email)
+
+    def tearDown(self):
+        self.clear_registrations()
+
+    def clear_registrations(self):
+        db.query(User).filter_by(email=self.email).delete()
+        db.query(User_).delete()
+        transaction.commit()
+
+    def make_test_user(self, **requestParams):
+        params = dict(self.registrationParams, **requestParams)
+        self.ajax_url(1, self.urlRegister, 'POST', params)
+        self.confirm_ticket()
+        return db.query(User).filter_by(email=params['email']).first()
+
+    def get_test_user(self):
+        return db.query(User).filter_by(email=self.email).first()
+
+    def test_flash_messages_are_displayed(self):
+        def assert_redirection_message(response, message):
+            self.assertEqual(self.urlLogin, urlparse(response.location).path)
+            self.assert_(message in self.request_url(self.urlLogin).body)
+
+        self.ajax_url(1, self.urlRegister, 'POST', self.registrationParams)
+        self.assertEqual(None, self.get_test_user())
+        response = self.confirm_ticket()
+        self.assertNotEqual(None, self.get_test_user())
+        assert_redirection_message(response, 'Account created')
+
+        self.login(self.registrationParams)
+        self.ajax_url(1, self.urlUpdate, 'POST', dict(self.registrationParams, nickname=self.nickname + 'x'))
+        self.assertEqual(self.nickname, self.get_test_user().nickname)
+        response = self.confirm_ticket()
+        self.assertNotEqual(self.nickname, self.get_test_user().nickname)
+        assert_redirection_message(response, 'Account updated')
+
+        response = self.request(dict(ticket='xxx'))
+        assert_redirection_message(response, 'Ticket expired')
+
+    def test_conflicting_registrations_are_deleted(self):
+        maskParams = dict((k, v + 'x') for k, v in self.registrationParams.iteritems())
+        register = lambda **kw: self.ajax_url(1, self.urlRegister, 'POST', dict(maskParams, **kw))
+        def exercise_registration(**kw):
+            register(**kw)
+            if self.supportsCaseInsensitiveUnicode: # pragma: no cover
+                register(**dict((k, v.upper()) for k, v in kw.iteritems()))
+                register(**dict((k, v.lower()) for k, v in kw.iteritems()))
+        exercise_registration(username=self.username)
+        exercise_registration(nickname=self.nickname)
+        exercise_registration(email=self.email)
+        exercise_registration(**self.registrationParams)
+        self.assertNotEqual(0, db.query(User_).count())
+        self.confirm_ticket()
+        self.assertEqual(0, db.query(User_).count())
+
+    def test_new_accounts_are_deactivated(self):
+        self.assertEqual(self.make_test_user().is_member, False)
+
+    def test_changing_credentials_expires_all_user_sessions(self):
+        get_user = lambda: db.query(User).filter_by(username=self.username, nickname=self.nickname, email=self.email).first()
+        self.login(self.member)
+        self.ajax_url(1, self.urlUpdate, 'POST', self.registrationParams)
+        self.assertEqual(None, get_user())
+        self.confirm_ticket()
+        self.assertEqual(True, get_user().check(self.password))
+
+        self.access_denied(self.urlUpdate, 'POST', withToken=True)
+        self.login(self.registrationParams)
+        self.ajax_url(1, self.urlUpdate, 'POST', self.member)
+        self.confirm_ticket()
+        self.assertEqual(None, get_user())
+
+
+class TestLogin(TestUserRoute, TestCase):
+
+    routeName = 'user_login'
+    isPublic = True
+
+    def test_login_page_stores_target_url(self):
+        self.assert_(self.urlIndex in self.request(url=self.urlIndex))
+
+
+class TestLogin_(TestUserRoute, TestCase):
+
+    routeName = 'user_login'
+    requestMethod = 'POST'
+    isPublic = True
+
+    def setUp(self):
+        super(TestLogin_, self).setUp()
+        self.requestParams = dict(username=self.member['username'], password=self.member['password'])
+
+    def test_invalid_params_fail(self):
+        self.ajax_failed(username='')
+        self.ajax_failed(password='')
+        self.ajax_succeeded(timezoneOffset='xxx')
+
+    def test_bad_credentials_fail(self):
+        self.ajax_failed(username='xxx')
+        self.ajax_failed(password='xxx')
+        self.ajax_succeeded()
+
+    def test_recaptcha_required_after_hitting_rejection_limit(self):
+        for rejectionIndex in xrange(REJECTION_LIMIT):
+            self.ajax_failed(password='xxx')
+        self.ajax_failed()
+
+
+class TestLogout(TestUserRoute, TestCase):
+
+    routeName = 'user_logout'
+    isPublic = True
+
+    def test_logging_out_redirects_user(self):
+        self.assertEqual(self.urlIndex, urlparse(self.request(url=self.urlIndex).location).path)
+        self.login(self.leader)
+        self.assertEqual(self.urlIndex, urlparse(self.request(url=self.urlIndex).location).path)
+
+
+class TestUpdate(TestUserRoute, TestCase):
+
+    routeName = 'user_update'
+
+    def setUp(self):
+        super(TestUpdate, self).setUp()
+        self.usersAllowed = self.userDs
+
+    def test_update_form_is_filled(self):
+        self.login(self.leader)
+        text = self.request().text
+        self.assert_(self.leader['username'] in text)
+        self.assert_(self.leader['nickname'] in text)
+        self.assert_(self.leader['email'].lower() in text)
+
+
+class TestUpdate_(TestUserRoute, TestCase):
+
+    routeName = 'user_update'
+    requestMethod = 'POST'
+
+    def setUp(self):
+        super(TestUpdate_, self).setUp()
+        self.smsAddress1 = build_dict(SMSAddress, id=1, email=WORD1 + '@example.com', user_id=self.member['id'])
+        self.smsAddress2 = build_dict(SMSAddress, id=2, email=WORD2 + '@example.com', user_id=self.leader['id'])
+        transaction.commit()
+        self.requestParams = dict(id=self.smsAddress1['id'], is_active=1)
+        self.usersAllowed = self.userDs
+
+    def test_member_can_update_own_sms_addresses(self):
+        self.login(self.member)
+        self.ajax_succeeded()
+        self.assertEqual(1, db.query(SMSAddress).get(self.smsAddress1['id']).is_active)
+        self.ajax_succeeded(is_active=0)
+        self.assertEqual(0, db.query(SMSAddress).get(self.smsAddress1['id']).is_active)
+        self.ajax_succeeded(is_active=None)
+        self.assertEqual(None, db.query(SMSAddress).get(self.smsAddress1['id']))
+        self.ajax_failed(id=self.smsAddress2['id'])
+        self.ajax_failed(id=self.smsAddress2['id'], is_active=0)
+        self.ajax_failed(id=self.smsAddress2['id'], is_active=None)
+
+    def test_leader_can_update_any_sms_addresses(self):
+        self.login(self.leader)
+        self.ajax_succeeded()
+        self.ajax_succeeded(id=self.smsAddress2['id'])
+
+    @skipIf(not SETTINGS['configParser'].has_section('app:sms'), 'not configured')
+    def test_sms_process(self):
         db.query(SMSAddress).delete()
-        userL_code = db.query(User.code).filter_by(id=self.userL['id']).first()[0]
-        userM_code = db.query(User.code).filter_by(id=self.userM['id']).first()[0]
-        userS_code = db.query(User.code).filter_by(id=self.userS['id']).first()[0]
-
-        # Test sms.connect()
-        self.assertRaises(ApplicationError, sms.connect, {})
-        self.assertRaises(ApplicationError, sms.connect, dict(self.settings.items() + 
-            [('sms.imap.host', 'x' + self.settings['sms.imap.host'])]))
-        # Connect to IMAP server
-        imapServer = sms.connect(self.settings)
-        def register_smsAddress(userID, userCode, userEmail):
-            imapServer.revive('inbox', imapIO.build_message(
-                subject='%s-%s' % (userID, userCode), 
-                fromWhom='sms_' + userEmail))
+        transaction.commit()
+        server = sms.connect(SETTINGS)
+        def register_sms(userD, **kw):
+            if 'code' not in userD:
+                userD['code'] = db.query(User).get(userD['id']).code
+            userD = dict(userD, **kw)
+            server.revive('inbox', imapIO.build_message(subject='%(id)s-%(code)s' % userD, fromWhom='sms_%(email)s' % userD))
         # Register an invalid email address
-        register_smsAddress(self.userL['id'], userL_code, '')
+        register_sms(self.leader, email='')
         # Register using an invalid userID or userCode
-        register_smsAddress(-1, userL_code, self.userL['email'])
-        register_smsAddress(self.userL['id'], -1, self.userL['email'])
+        register_sms(self.leader, id=100)
+        register_sms(self.leader, id='xxx')
+        register_sms(self.leader, code='xxx')
         # Register three email addresses
-        register_smsAddress(self.userL['id'], userL_code, self.userL['email'])
-        register_smsAddress(self.userM['id'], userM_code, self.userM['email'])
-        register_smsAddress(self.userS['id'], userS_code, self.userS['email'])
+        register_sms(self.leader)
+        register_sms(self.member)
+        register_sms(self.spectator)
         # Register an address that already exists for the given user
-        register_smsAddress(self.userL['id'], userL_code, self.userL['email'])
+        register_sms(self.leader)
         # Remove an email address
-        register_smsAddress(0, 'xxx', self.userL['email'])
+        register_sms(self.leader, id=0)
         # Process
-        sms.process(self.settings)
+        sms.process(SETTINGS)
         # Make sure we only have two registered SMS address
         self.assertEqual(2, db.query(SMSAddress).count())
-        smsAddressA = db.query(SMSAddress).filter_by(user_id=self.userM['id']).first()
-        smsAddressI = db.query(SMSAddress).filter_by(user_id=self.userS['id']).first()
 
-        # Get token
-        self.login(self.userS)
-        token = get_token(self.get(url).body)
 
-        params = dict(token=token, id=smsAddressI.id, is_active=1)
-        # Activate an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, dict(params, id=smsAddressA.id)), 0)
-        # Activate an smsAddress
-        self.assert_json(self.post(url, params), 1)
-        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], True)
+class TestMutate(TestUserRoute, TestCase):
 
-        params = dict(token=token, id=smsAddressI.id, is_active=0)
-        # Deactivate an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, dict(params, id=smsAddressA.id)), 0)
-        # Deactivate an smsAddress
-        self.assert_json(self.post(url, params), 1)
-        self.assertEqual(db.query(SMSAddress.is_active).filter_by(user_id=self.userS['id']).first()[0], False)
+    routeName = 'user_mutate'
+    requestMethod = 'POST'
 
-        params = dict(token=token, id=smsAddressI.id)
-        # Remove an smsAddress that doesn't belong to the user
-        self.assert_json(self.post(url, dict(params, id=smsAddressA.id)), 0)
-        # Remove an smsAddress that belongs to the user
-        self.assert_json(self.post(url, params), 1)
-        self.assertEqual(db.query(SMSAddress).filter_by(id=smsAddressI.id).count(), 0)
+    def setUp(self):
+        super(TestMutate, self).setUp()
+        self.usersAllowed = self.userDs
 
-    def test_move(self):
-        'Make sure that only leaders can promote or demote other users'
-        url = self.get_url('user_move')
-        # Check that we only see the login page if the user is not logged in
-        self.assert_forbidden(url, method='POST')
-        # Check that only leaders can promote or demote other users
-        for userD in [self.userM, self.userS]:
-            self.login(userD)
-            self.assert_forbidden(url, method='POST')
+    def test_mutating_user_code_expires_other_user_sessions(self):
+        spoofedRequest = self.make_spoofedRequest(self.leader, self.urlIndex)
+        spoofedRequest.spoof_succeeded()
 
-        self.login(self.userL)
-        userID = self.userL['id']
-        token = get_token(self.get(self.get_url('user_index')).body)
-        get_targetUser = lambda: db.query(User).filter_by(id=self.userS['id']).first()
-        targetUser = get_targetUser()
-        params = dict(token=token, id=targetUser.id, role=ROLE_LEADER)
-        # Check that a bad token fails
-        self.assert_json(self.post(url, dict(params, token=token + 'x')), 0)
-        # Check that a bad id fails
-        self.assert_json(self.post(url, dict(params, id=0)), 0)
-        # Check that a bad role fails
-        self.assert_json(self.post(url, dict(params, role='xxx')), 0)
-        # Check that a missing role fails
-        paramsCopy = dict(params)
-        del paramsCopy['role']
-        self.assert_json(self.post(url, paramsCopy), 0)
-        # Check that a leader cannot promote or demote self
-        self.assert_json(self.post(url, dict(params, id=userID)), 0)
-        # Check that a leader can promote or demote other users
-        self.assert_json(self.post(url, dict(params, role=ROLE_LEADER)), 1)
-        targetUser = get_targetUser()
-        self.assertEqual(targetUser.role, ROLE_LEADER)
-        self.assert_json(self.post(url, dict(params, role=ROLE_MEMBER)), 1)
-        targetUser = get_targetUser()
-        self.assertEqual(targetUser.role, ROLE_MEMBER)
-        self.assert_json(self.post(url, dict(params, role=ROLE_SPECTATOR)), 1)
-        targetUser = get_targetUser()
-        self.assertEqual(targetUser.role, ROLE_SPECTATOR)
+        get_userCode = lambda userD: db.query(User.code).filter_by(id=userD['id']).first()[0]
+        userCode = get_userCode(self.leader)
+        self.ajax_succeeded()
+        self.assertNotEqual(userCode, get_userCode(self.leader))
 
-    def test_mutate(self):
-        'Make sure that mutating the user works'
-        url = self.get_url('user_mutate')
-        self.login(self.userS)
-        token = get_token(self.get(self.get_url('user_update')).body)
-        params = dict(token=token)
-        # Check that a bad token fails
-        self.assert_json(self.post(url, dict(params, token=token + 'x')), 0)
-        # Check that we can mutate the user code
-        userCode = db.query(User.code).filter_by(id=self.userS['id']).first()[0]
-        self.assert_json(self.post(url, params), 1)
-        self.assertNotEqual(userCode, db.query(User.code).filter_by(id=self.userS['id']).first()[0])
+        spoofedRequest.spoof_failed()
 
-    def test_reset(self):
-        'Make sure that resetting the password works'
-        url = self.get_url('user_reset')
-        password, email = [self.userS[x] for x in 'password', 'email']
-        # Trying to reset an email that does not exist returns an error
-        self.assert_json(self.post(url, dict(email=email + 'x')), 0)
-        # Resetting the password does not immediately change the password
-        self.assert_json(self.post(url, dict(email=email.upper())), 1)
-        self.assertEqual(db.query(User).filter_by(email=email).first().check(password), True)
-        # Apply change
-        self.confirm_ticket(email)
-        self.assertEqual(db.query(User).filter_by(email=email).first().check(password), False)
 
-    def confirm_ticket(self, email):
-        'Confirm account update ticket'
-        query = db.query(User_.ticket).order_by(User_.when_expire.desc())
-        ticket = query.filter_by(email=email).first()[0]
-        self.get(self.get_url('user_confirm', ticket=ticket))
+class TestReset(TestUserRoute, TestCase):
+
+    routeName = 'user_reset'
+    requestMethod = 'POST'
+    isPublic = True
+
+    def setUp(self):
+        super(TestReset, self).setUp()
+        self.requestParams = dict(email=self.leader['email'].upper())
+
+    def test_invalid_params_fail(self):
+        self.ajax_failed(email='xxx')
+
+    def test_resetting_password_works(self):
+        self.ajax_succeeded()
+        userID = self.leader['id']
+        userPassword = self.leader['password']
+        self.assertEqual(db.query(User).get(userID).check(userPassword), True)
+        self.confirm_ticket()
+        self.assertEqual(db.query(User).get(userID).check(userPassword), False)
+
+
+class TestMove(TestUserRoute, TestCase):
+
+    routeName = 'user_move'
+    requestMethod = 'POST'
+
+    def setUp(self):
+        super(TestMove, self).setUp()
+        self.requestParams = dict(id=self.member['id'], role=ROLE_LEADER)
+        self.usersAllowed = [self.leader]
+
+    def test_user_cannot_change_own_role(self):
+        spoofedRequest = self.make_spoofedRequest(self.member, self.get_url(self.routeName))
+        spoofedRequest.spoof_failed()
+        self.login(self.leader)
+        self.ajax_failed(id='xxx')
+        self.ajax_failed(id=self.leader['id'])
+        self.ajax_failed(role='xxx')
+        self.ajax_succeeded(role=None)
+        self.ajax_succeeded(role=ROLE_SPECTATOR)
+        self.ajax_succeeded(role=ROLE_MEMBER)
+        self.ajax_succeeded(role=ROLE_LEADER)
+        spoofedRequest.spoof_succeeded()
+
+    def test_authentication_is_robust(self):
+        spoofedRequest = self.make_spoofedRequest(self.leader, self.get_url(self.routeName))
+        spoofedRequest.spoof_failed(secret='')
+        spoofedRequest.spoof_failed(principal=0)
+        spoofedRequest.spoof_failed(principal='xxx')
+        spoofedRequest.spoof_failed(tokens=[])
+        spoofedRequest.spoof_failed(tokens=['xxx'])
+        spoofedRequest.spoof_succeeded()
+
+
+class SpoofedRequest(object):
+
+    def __init__(self, secret, principal, tokens, testRoute):
+        self.defaults = dict(secret=secret, principal=principal, tokens=tokens)
+        self.app = testRoute.app
+        self.url = testRoute.get_url(testRoute.routeName)
+        self.request = testRoute.request
+
+    def make_cookies(self, secret, principal, tokens):
+        request = DummyRequest(environ=environ_from_url(self.url))
+        headers = AuthTktCookieHelper(secret).remember(request, principal, tokens=tokens)
+        key, value = headers[0][1].split(';')[0].split('=')
+        return {key: value.strip('"')}
+
+    def spoof(self, isOk=1, **kw):
+        options = dict(self.defaults, **kw)
+        self.app.cookies = self.make_cookies(**options)
+        isAccessible = 'Login</title>' not in self.request().body
+        assert isOk == isAccessible, options
+
+    def spoof_succeeded(self, **kw):
+        self.spoof(1, **kw)
+
+    def spoof_failed(self, **kw):
+        self.spoof(0, **kw)

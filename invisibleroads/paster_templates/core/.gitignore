@@ -3,6 +3,7 @@
 *.db
 *.db-journal
 *.egg-info
+*.log
 *.pyc
 *.swp
 .*.ini
@@ -11,6 +12,4 @@ build
 data
 dist
 docs/_build
-mail.log
-paster.log
 paster.pid

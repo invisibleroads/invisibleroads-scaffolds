@@ -1,16 +1,20 @@
-'Data models'
+"""
+If the object does not exist in the database, do NOT specify a primary key
+with db.add() or db.merge() or you will get a PostgreSQL IntegrityError.
+"""
+import datetime
 import transaction
+from beaker.cache import cache_region
+from cryptacular import bcrypt
+from pyramid.settings import asbool
 from sqlalchemy import Column, ForeignKey, Boolean, Integer, String, Unicode, LargeBinary, DateTime, engine_from_config, func
 from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.ext.declarative import declarative_base
 from zope.sqlalchemy import ZopeTransactionExtension
-from cryptacular import bcrypt
-from formencode import validators, Invalid
-from pyramid.config.settings import asbool
 
-from {{package}}.libraries.tools import encrypt, decrypt, make_random_string
+from {{package}}.libraries.tools import encrypt, decrypt, make_random_string, make_int
 from {{package}}.parameters import *
 
 
@@ -114,7 +118,7 @@ class User(Base, UserMixin):
     timezone_offset = Column(Integer, default=0)
     when_login = Column(DateTime)
     code = Column(String(CODE_LEN), default=lambda: make_random_string(CODE_LEN))
-    sms_addresses = relationship('SMSAddress')
+    sms_addresses = relationship('SMSAddress', cascade='all, delete')
 
     def check(self, password):
         'Return True if we have a matching password'
@@ -150,87 +154,90 @@ class Row(Base):
     'A row'
     __tablename__ = 'rows'
     id = Column(Integer, primary_key=True)
-    col1 = Column(Unicode(64))
-    col2 = Column(Unicode(64))
+    user_id = Column(ForeignKey('users.id'))
+    user = relationship('User')
+    is_active = Column(Boolean, default=False)
+    when_update = Column(DateTime, default=datetime.datetime.utcnow)
+
+    col1_ = Column(Unicode(ROW_TEXT_LEN_MAX))
+    @hybrid_property
+    def col1(self):
+        return CaseInsensitiveUnicode(self.col1_)
+    @col1.setter
+    def col1(self, col1):
+        self.col1_ = col1
+    @col1.comparator
+    def col1(Class):
+        return CaseInsensitiveComparator(Class.col1_)
+
+    col2_ = Column(Unicode(ROW_TEXT_LEN_MAX))
+    @hybrid_property
+    def col2(self):
+        return CaseInsensitiveUnicode(self.col2_)
+    @col2.setter
+    def col2(self, col2):
+        self.col2_ = col2
+    @col2.comparator
+    def col2(Class):
+        return CaseInsensitiveComparator(Class.col2_)
 
 
 def initialize_sql(settings):
     'Create tables and insert data'
-    modeDebug = asbool(settings['pyramid.debug_templates'])
-    # Create tables
-    engine = engine_from_config(settings, 'sqlalchemy.', poolclass=NullPool if settings['sqlalchemy.url'].startswith('sqlite:///') else QueuePool)
+    isSQLiteFile = settings['sqlalchemy.url'].startswith('sqlite:///')
+    engine = engine_from_config(settings, 'sqlalchemy.', poolclass=NullPool if isSQLiteFile else QueuePool)
     db.configure(bind=engine)
     Base.metadata.bind = engine
     Base.metadata.create_all(engine)
-    # If we have no users,
-    if not db.query(User).count():
-        userPacks = [
-            (ROLE_LEADER, u'admin'),
-        ]
-        # If we are in development mode, use different data
-        if modeDebug:
-            userPacks = [
-                (ROLE_LEADER, u'leader'),
-                (ROLE_MEMBER, u'member'),
-                (ROLE_SPECTATOR, u'spectator'),
-            ]
-        # Insert data
-        for role, word in userPacks:
-            userD = dict(
-                username=word, 
-                password=word if modeDebug else make_random_string(PASSWORD_LEN_MAX),
-                nickname=word.title(),
-                email=word + '@example.com',
-                role=role)
-            print '\nUsername  %(username)s\nPassword  %(password)s' % userD
-            db.add(User(**userD))
-        print
+    if not db.query(User.id).first():
+        isDebug = asbool(settings['pyramid.debug_templates'])
+        add_users(isDebug)
         transaction.commit()
 
 
-class Unique(validators.FancyValidator):
-    'Validator to ensure that the value of a field is unique'
+def add_users(isDebug):
+    userPacks = [
+        (ROLE_LEADER, u'admin'),
+    ]
+    if isDebug:
+        userPacks = [
+            (ROLE_LEADER,    u'leader'),
+            (ROLE_MEMBER,    u'member'),
+            (ROLE_SPECTATOR, u'spectator'),
+        ]
+    for role, word in userPacks:
+        username = word
+        password = word if isDebug else make_random_string(PASSWORD_LEN_MAX)
+        print
+        print 'Username  ' + username
+        print 'Password  ' + password
+        db.add(User(
+            username=username,
+            password=password,
+            nickname=word[0].upper() + word[1:],
+            email=word + '@example.com',
+            role=role))
+    print
 
-    def __init__(self, errorMessage, Class, uniqueFieldName, queryConditional=None):
-        super(Unique, self).__init__()
-        self.errorMessage = errorMessage
-        self.Class = Class
-        self.uniqueFieldName = uniqueFieldName
-        self.queryConditional = queryConditional
 
-    def _to_python(self, value, state):
-        'Check whether the value is unique'
-        className = self.Class.__name__
-        classInstance = getattr(state, className[0].lower() + className[1:])
-        # If the classInstance is new or the value changed,
-        if not classInstance or getattr(classInstance, self.uniqueFieldName) != value:
-            query = db.query(self.Class)
-            if self.queryConditional is not None:
-                query = query.filter(self.queryConditional)
-            # If the value exists, raise formencode.Invalid
-            if query.filter(getattr(self.Class, self.uniqueFieldName)==value).first():
-                raise Invalid(self.errorMessage, value, state)
-        # Return
-        return value
+@cache_region('medium')
+def get_user_properties(userID):
+    'Return user properties as a tuple instead of a dictionary to save cache space'
+    return db.query(
+        User.nickname,
+        User.timezone_offset,
+        User.is_member,
+        User.is_leader,
+        User.code).filter(User.id==userID).first() if userID else None
 
 
-class UniqueLocally(validators.FormValidator):
-    'Validator to ensure that the value of a field is unique within a group'
-
-    __unpackargs__ = ('errorMessage', 'Class', 'uniqueFieldName', 'groupFieldName')
-    validate_partial_form = True
-
-    def validate_partial(self, field_dict, state):
-        for fieldName in self.uniqueFieldName, self.groupFieldName:
-            if fieldName not in field_dict:
-                return
-        self.validate_python(field_dict, state)
-
-    def validate_python(self, field_dict, state):
-        groupFieldValue = field_dict[self.groupFieldName]
-        queryConditional = getattr(self.Class, self.groupFieldName) == groupFieldValue
-        uniqueFieldValue = field_dict[self.uniqueFieldName]
-        try:
-            Unique(self.errorMessage, self.Class, self.uniqueFieldName, queryConditional).to_python(uniqueFieldValue, state)
-        except Invalid:
-            raise Invalid(self.errorMessage, field_dict, state, error_dict={self.uniqueFieldName: self.errorMessage})
+def unpack_user_properties(userID, *names):
+    'Unpack properties corresponding to userID as specified by names'
+    properties = get_user_properties(make_int(userID, default=0)) or [
+        u'', 
+        TIMEZONE_OFFSET_MINUTES, 
+        False, 
+        False, 
+        u'']
+    propertyNames = ['nickname', 'timezoneOffset', 'isMember', 'isLeader', 'code']
+    return [properties[propertyNames.index(x)] for x in names]

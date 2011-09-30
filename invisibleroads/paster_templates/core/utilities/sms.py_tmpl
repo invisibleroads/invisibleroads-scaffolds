@@ -1,5 +1,5 @@
 'Command-line script to process SMS messages'
-import script_process
+from script_process import ArgumentParser, initialize
 from {{package}}.libraries import sms
 
 
@@ -11,12 +11,9 @@ def run(settings):
 
 # If we are running standalone,
 if __name__ == '__main__':
-    # Parse
-    argumentParser = script_process.ArgumentParser(
+    argumentParser = ArgumentParser(
         description='Process SMS messages in mailbox')
     args = argumentParser.parse_args()
-    # Run
-    message = run(script_process.initialize(args))
-    # Say
+    message = run(initialize(args, portlock='sms'))
     if args.verbose:
         print message

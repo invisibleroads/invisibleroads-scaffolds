@@ -1,118 +1,171 @@
 # -*- coding: utf-8 -*-
-'Test templates'
 import os
 import re
-import webtest
-import shutil
-import unittest
 import simplejson
 import transaction
-from pyramid.request import Request
+from unittest import TestCase
+from webtest import TestApp
 
-from {{package}} import main, load_settings, ApplicationError
-from {{package}}.models import db, User, ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER, CaseInsensitiveUnicode
-from {{package}}.libraries.tools import make_random_unique_string, get_remote_ip
-
-
-basePath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-configurationPath = os.path.join(basePath, 'test.ini')
-settings = load_settings(configurationPath, basePath)
+from {{package}} import SettingsParser, main
+from {{package}}.models import User, Base, db, ROLE_LEADER, ROLE_MEMBER, ROLE_SPECTATOR
 
 
-class TestTemplate(unittest.TestCase):
+WORD = 'Спасибо'.decode('utf-8')
+WORD1, WORD2, WORD3, WORD4 = [WORD + str(x) for x in xrange(1, 5)]
+TOKEN_SOURCE = 'user_update'
+PATTERN_TOKEN = re.compile(r"token = '(.*)'")
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CONFIGURATION_PATH = os.path.join(BASE_PATH, 'test.ini')
+SETTINGS = SettingsParser(dict(here=BASE_PATH)).load(CONFIGURATION_PATH, storeConfigParser=True)
 
-    router = main({'__file__': configurationPath}, **settings)
-    app = webtest.TestApp(router)
-    settings = router.registry.settings
+
+class TestRoute(object):
+
+    # routeName = ''
+    urlParams = dict()
+    requestMethod = 'GET'
+    requestParams = dict()
+    # usersAllowed = []
+    isPublic = False
+
+    router = main(dict(__file__=CONFIGURATION_PATH, here=BASE_PATH), **SETTINGS)
+    app = TestApp(router)
+    settings = router.registry.settings # Include settings added by main()
 
     def setUp(self):
-        # Initialize functional test framework
-        self.logout()
-        word = 'Спасибо'.decode('utf-8')
-        # Reset testUsers
-        self.userL = dict(role=ROLE_LEADER)
-        self.userM = dict(role=ROLE_MEMBER)
-        self.userS = dict(role=ROLE_SPECTATOR)
-        testUsers = [self.userL, self.userM, self.userS]
-        for userID, userD in enumerate(testUsers, 1):
-            wordNumber = word + str(userID)
-            userD['id'] = userID
-            userD['username'] = wordNumber
-            userD['password'] = wordNumber
-            userD['nickname'] = wordNumber
-            userD['email'] = wordNumber + '@example.com'
-            db.merge(User(**dict(userD, rejection_count=0)))
+        self.supportsCaseInsensitiveUnicode = Base.metadata.bind.name != 'sqlite'
+        self.requiresToken = 'POST' == self.requestMethod and not self.isPublic
+        # Reset users
+        self.leader = dict(role=ROLE_LEADER)
+        self.member = dict(role=ROLE_MEMBER)
+        self.spectator = dict(role=ROLE_SPECTATOR)
+        self.userDs = [
+            self.leader,
+            self.member,
+            self.spectator]
+        for userID, userD in enumerate(self.userDs, 1):
+            word = WORD + str(userID)
+            build_dict(User, userD,
+                id=userID,
+                username=word,
+                password=word,
+                nickname=word,
+                email=word + '@example.com',
+                rejection_count=0)
+        delete_extraneous(User, self.userDs)
         transaction.commit()
 
-    def get_url(self, name, **kwargs):
-        'Return URL for route'
-        return self.router.routes_mapper.generate(name, kwargs)
+    def request(self, urlParams=None, **kw):
+        url = self.get_url(self.routeName, **(urlParams or {}))
+        params = dict(self.requestParams, **kw)
+        return self.request_url(url, self.requestMethod, params, self.requiresToken)
 
-    def get(self, url, params=None):
-        'Send a GET request'
-        return self.app.get(url, unicode_dictionary(params))
+    def request_url(self, url, requestMethod='GET', params=None, withToken=False):
+        'Send an HTTPRequest; parameters with a value of None are excluded'
+        parameters = {}
+        for key, value in (params or {}).iteritems():
+            if value is None:
+                continue
+            try:
+                value = value.encode('utf-8')
+            except (AttributeError, UnicodeDecodeError):
+                pass
+            parameters[key] = value
+        if withToken:
+            parameters['token'] = self.get_token()
+        send = getattr(self.app, requestMethod.lower())
+        return send(url, parameters)
 
-    def post(self, url, params=None):
-        'Send a POST request'
-        return self.app.post(url, unicode_dictionary(params))
-
-    def login(self, userD, **kwargs):
-        'Login using credentials'
-        return self.post(self.get_url('user_login'), dict(userD, **kwargs))
+    def login(self, userD, **kw):
+        url = self.get_url('user_login')
+        return self.request_url(url, 'POST', dict(userD, **kw))
 
     def logout(self):
-        'Logout'
-        return self.post(self.get_url('user_logout'))
+        url = self.get_url('user_logout')
+        return self.request_url(url, 'POST')
 
-    def assert_json(self, response, isOk):
-        'Assert response JSON'
-        data = simplejson.loads(response.text)
-        self.assertEqual(data['isOk'], isOk)
-        return data
+    def access_allowed(self, url, requestMethod, withToken=False):
+        self.access_url(url, requestMethod, withToken, isAllowed=True)
 
-    def assert_forbidden(self, url, isForbidden=True, method='GET'):
-        'Return True if the page is forbidden'
-        body = getattr(self, method.lower())(url).body
-        return self.assertEqual('Login</title>' in body, isForbidden)
+    def access_denied(self, url, requestMethod, withToken=False):
+        self.access_url(url, requestMethod, withToken, isAllowed=False)
+
+    def access_url(self, url, requestMethod, withToken=False, isAllowed=True):
+        body = self.request_url(url, requestMethod, withToken=withToken).body
+        self.assertEqual('Elevated privileges required' in body, not isAllowed)
+
+    def ajax_succeeded(self, **kw):
+        return self.ajax(1, **kw)
+
+    def ajax_failed(self, **kw):
+        return self.ajax(0, **kw)
+
+    def ajax(self, isOk, **kw):
+        response = self.request(**kw)
+        return assert_isOk(isOk, response)
+
+    def ajax_url(self, isOk, url, requestMethod='POST', params=None, withToken=True):
+        response = self.request_url(url, requestMethod, params, withToken)
+        return assert_isOk(isOk, response)
+
+    def assert_field_rejects_duplicates(self, fieldName, duplicateValue, **params):
+        self.ajax_failed(**dict(params, **{fieldName: duplicateValue}))
+        if self.supportsCaseInsensitiveUnicode: # pragma: no cover
+            self.ajax_failed(**dict(params, **{fieldName: duplicateValue.upper()}))
+            self.ajax_failed(**dict(params, **{fieldName: duplicateValue.lower()}))
+
+    def get_url(self, routeName, **urlParams):
+        return self.router.routes_mapper.generate(routeName, dict(self.urlParams, **urlParams))
+
+    def get_token(self):
+        tokenURL = self.get_url(TOKEN_SOURCE)
+        return extract_token(self.request_url(tokenURL).body)
+
+    def test_permissions(self):
+        url = self.get_url(self.routeName, **self.urlParams)
+        if self.isPublic:
+            self.logout()
+            self.access_allowed(url, self.requestMethod, self.requiresToken)
+            return
+        for userD in self.usersAllowed:
+            self.login(userD)
+            self.access_allowed(url, self.requestMethod, self.requiresToken)
+            if self.requiresToken:
+                self.access_denied(url, self.requestMethod)
+        for userD in filter(lambda x: x not in self.usersAllowed, self.userDs):
+            self.login(userD)
+            self.access_denied(url, self.requestMethod, self.requiresToken)
 
 
-class TestMiscellaneous(unittest.TestCase):
-
-    def test_load_settings(self):
-        'Make sure we can load settings properly'
-        self.assertRaises(ApplicationError, load_settings, configurationPath + 'x', basePath)
-
-    def test_make_random_unique_string(self):
-        'Test the limits of make_random_unique_string()'
-        self.assertRaises(RuntimeError, make_random_unique_string, 1, lambda x: False)
-
-    def test_get_remote_ip(self):
-        'Test get_remote_ip()'
-        ip = '127.0.0.1'
-        self.assertEqual(get_remote_ip(Request({'HTTP_X_REAL_IP': ip})), ip)
-        self.assertEqual(get_remote_ip(Request({'HTTP_X_FORWARDED_FOR': ip})), ip)
-        self.assertEqual(get_remote_ip(Request({'REMOTE_ADDR': ip})), ip)
-
-    def test_CaseInsensitiveUnicode(self):
-        'Test CaseInsensitiveUnicode'
-        x = CaseInsensitiveUnicode('xxx')
-        X = CaseInsensitiveUnicode('XXX')
-        self.assertEqual(x < X, False)
-        self.assertEqual(x <= X, True)
-        self.assertEqual(x == X, True)
-        self.assertEqual(x != X, False)
-        self.assertEqual(x > X, False)
-        self.assertEqual(x >= X, True)
-
-
-def unicode_dictionary(dictionary):
-    'Convert the values of the dictionary to unicode'
-    if not dictionary:
-        return {}
-    return dict((key, value.encode('utf-8') if isinstance(value, unicode) else value) for key, value in dictionary.iteritems())
-
-
-def get_token(html):
-    'Extract token from html'
-    match = re.search("token = '(.*)'", html)
+def extract_token(html):
+    match = PATTERN_TOKEN.search(html)
     return match.group(1) if match else ''
+
+
+def assert_isOk(isOk, response):
+    data = simplejson.loads(response.text)
+    assert isOk == data.get('isOk'), data
+    return data
+
+
+def build_dict(TargetClass, targetDict=None, **kw):
+    'Store object safely in database and return contents as dictionary'
+    if not targetDict:
+        targetDict = {}
+    combinedDict = dict(targetDict, **kw)
+    targetID = combinedDict.get('id')
+    target = db.query(TargetClass).get(targetID) if targetID else None
+    if not target:
+        target = TargetClass()
+        db.add(target)
+        db.flush()
+        targetID = target.id
+    targetDict['id'] = targetID
+    for key, value in combinedDict.iteritems():
+        setattr(target, key, value)
+        targetDict[key] = value
+    return targetDict
+
+
+def delete_extraneous(Class, classInstances):
+    db.execute(Class.__table__.delete().where(~Class.id.in_(x['id'] for x in classInstances)))

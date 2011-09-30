@@ -10,44 +10,55 @@ pyramid.default_locale_name = en
 pyramid.includes = pyramid_debugtoolbar
                    pyramid_tm
 
+# SQLite does not support case-insensitivity for non-ascii characters
 sqlalchemy.url = sqlite:///%(here)s/development.db
+# sqlalchemy.url = postgresql+psycopg2://username:password@localhost:5432/database
 
 cache.type = memory
 cache.short.expire = 1800
 cache.medium.expire = 7200
 cache.long.expire = 86400
 
-data.path = %(here)s/data
 session.type = file
 session.key = {{project}}
 session.httponly = true
-session.data_dir = %(data.path)s/sessions/data
-session.lock_dir = %(data.path)s/sessions/lock
-mail.queue_path = %(data.path)s/messages
+session.data_dir = data/sessions/data
+session.lock_dir = data/sessions/lock
 
-# Store sensitive information in .development.ini
+mail.queue_path = data/messages
+mail.default_sender = {{project}} <support@example.com>
+
+sms.email = sms@example.com
+
+# Override sensitive information in .development.ini
 ; [app:main]
-; authtkt.secret =
-; session.secret =
-; ciphers.secret =
+; secret.authtkt =
+; secret.session =
+; secret.ciphers =
 ; recaptcha.public = 
 ; recaptcha.private = 
-sms.email = sms@example.com
-; sms.imap.host = localhost
-; sms.imap.port = 25
-; sms.imap.username =
-; sms.imap.password =
-mail.default_sender = {{project}} <support@example.com>
-; 
+;
 ; [app:qp]
 ; hostname = localhost
-; port = 25
+; port = 587
 ; username =
 ; password =
 ; force_tls = true
 ; no_tls = false
 ; queue_path = data/messages
 ; debug_smtp = false
+; default_sender = {{project}} <support@example.com>
+;
+; [app:sms]
+; email = sms@example.com
+; imap.host = localhost
+; imap.port = 993
+; imap.username =
+; imap.password =
+;
+; [app:portlock] # Ensure that only one instance of the script is running
+; http =         # utilities/make_crontab.py
+; sms =          # utilities/sms.py
 
 [server:main]
 use = egg:Paste#http

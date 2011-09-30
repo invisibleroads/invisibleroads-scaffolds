@@ -9,7 +9,6 @@
 .flag.inactive {color:gray; background:white}
 .error {font-weight:bold}
 form div {margin-bottom:0.5em}
-form td:first-child {padding-right:0.5em}
 form .replace {display:none}
 /* Fonts */
 body {font-family:Helvetica,Arial,sans-serif}

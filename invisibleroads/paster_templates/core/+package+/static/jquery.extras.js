@@ -131,7 +131,7 @@ $.fn.prepareForm = function() {
 
         $form.ajaxForm({
             onSubmit:function() {
-                if (!$form.find('[name=token]').length) {
+                if (typeof token != 'undefined' && !$form.find('[name=token]').length) {
                     try {
                         $form.append('<input name=token type=hidden value="' + token + '">');
                     } catch(e) {}
@@ -161,14 +161,14 @@ $.fn.prepareForm = function() {
 }
 $.fn.prepareOverlayForm = function() {
     return $(this).prepareForm().each(function() {
-        var $form = $(this), $fieldsWithTips = $form.find('[title]'), $fields = $form.find('[name]');
+        var $form = $(this);
         $form.overlay({
             mask:{color:'#000', loadSpeed:0},
             onLoad:function() {
-                $fields.first().focus().select();
+                $form.find('[name]:visible').first().focus().select();
             },
             onClose:function() {
-                $fieldsWithTips.each(function() {
+                $form.find('[title]').each(function() {
                     $(this).tooltip().hide();
                 });
             },

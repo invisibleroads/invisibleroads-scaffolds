@@ -3,12 +3,12 @@ import re
 import imapIO
 import collections
 import transaction
-import ConfigParser
+from ConfigParser import NoSectionError, NoOptionError
 from email.utils import parseaddr
-from sqlalchemy.orm import joinedload
 from formencode import validators, Invalid
+from sqlalchemy.orm import joinedload
 
-from {{package}}.models import db, User, SMSAddress, ApplicationError
+from {{package}}.models import User, SMSAddress, ApplicationError, db
 
 
 pattern_registration = re.compile(r'(\d+)\W+(.*)')
@@ -35,17 +35,19 @@ def process(settings):
 
 def connect(settings):
     'Connect to IMAP server'
+    configParser = settings['configParser']
     try:
-        imapParams = [settings[x] for x in
-            'sms.imap.host', 
-            'sms.imap.port', 
-            'sms.imap.username', 
-            'sms.imap.password']
-    except KeyError, error:
-        raise ApplicationError('Missing %s in configuration file' % error)
+        imapParams = [
+            configParser.get('app:sms', 'imap.host'),
+            configParser.get('app:sms', 'imap.port'),
+            configParser.get('app:sms', 'imap.username'),
+            configParser.get('app:sms', 'imap.password'),
+        ]
+    except (NoSectionError, NoOptionError), error: # pragma: no cover
+        raise ApplicationError(error)
     try:
         imapServer = imapIO.connect(*imapParams)
-    except imapIO.IMAPError, error:
+    except imapIO.IMAPError, error: # pragma: no cover
         raise ApplicationError('Could not connect to IMAP server')
     return imapServer
 

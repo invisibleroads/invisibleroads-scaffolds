@@ -1,45 +1,88 @@
-'A row-based interface'
+'A row-based interface demo'
+import datetime
+from formencode import Schema, Invalid
+from formencode.validators import StringBool, UnicodeString
 from pyramid.renderers import render
+from pyramid.security import authenticated_userid
 from pyramid.view import view_config
-from formencode import validators, Schema, Invalid
+from sqlalchemy.orm import joinedload
 
-from {{package}}.models import db, Row
+from {{package}}.models import Row, User, unpack_user_properties, db
+from {{package}}.parameters import ROW_TEXT_LEN_MAX
+from {{package}}.validators import FormState, IDExists, IDExistsAndBelongsToSameUser, MembersCannotSetTargetUser, MembersCanOmit, Unique
 
 
 def includeme(config):
     config.scan(__name__)
     config.add_route('row_index', '')
     config.add_route('row_update', 'update')
+    config.add_route('row_move', 'move')
 
 
 @view_config(route_name='row_index', renderer='rows/index.mako', request_method='GET', permission='row_index')
 def index(request):
     'List rows'
-    return dict(rows=db.query(Row).all())
+    userID = authenticated_userid(request)
+    isLeader = unpack_user_properties(userID, 'isLeader')[0]
+    rowQuery = db.query(Row).options(joinedload(Row.user))
+    if isLeader:
+        return dict(
+            rows=rowQuery.all(),
+            userPacks=db.query(User.id, User.nickname).order_by(User.nickname).all())
+    else:
+        return dict(
+            rows=rowQuery.all())
 
 
 @view_config(route_name='row_update', renderer='json', request_method='POST', permission='row_update')
 def update(request):
     'Update row'
-    # Prevent download prompt for iframe file uploads
-    request.response.content_type = 'text/plain'
     params = request.params
-    if params.get('token') != request.session.get_csrf_token():
-        return dict(isOk=0, message='Invalid session token')
+    userID = authenticated_userid(request)
     try:
-        form = RowForm().to_python(dict(params))
+        form = RowUpdateForm().to_python(dict(params), FormState(userID))
     except Invalid, error:
         return dict(isOk=0, errorByName=error.unpack_errors())
-    db.merge(Row(**form))
+    db.merge(Row(when_update=datetime.datetime.utcnow(), **form))
     return dict(isOk=1, content=render('rows/rows.mako', index(request), request))
 
 
-class RowForm(Schema):
-    'Row validator'
+@view_config(route_name='row_move', renderer='json', request_method='POST', permission='row_move')
+def move(request):
+    'Change access permissions'
+    params = request.params
+    userID = authenticated_userid(request)
+    formState = FormState(userID)
+    try:
+        form = RowMoveForm().to_python(dict(params), formState)
+    except Invalid, error:
+        return dict(isOk=0, message=error.unpack_errors())
+    targetRow = formState.get(Row, form['id'])
+    targetRow.is_active = form['is_active']
+    return dict(isOk=1, content=render('rows/rows.mako', index(request), request))
+
+
+class RowUpdateForm(Schema):
+
+    allow_extra_fields = True
+    filter_extra_fields = True
+    chained_validators = [
+        MembersCanOmit('user_id', stateName='userID'),
+        MembersCannotSetTargetUser('user_id'),
+        Unique('That string already exists', Row, 'col1'),
+        Unique('That string already exists in your collection', Row, 'col2', 'user_id'),
+    ]
+
+    id = IDExistsAndBelongsToSameUser(Row, min=1, if_empty=None, if_missing=None)
+    user_id = IDExists(User, min=1, not_empty=True, if_missing=None)
+    col1 = UnicodeString(max=ROW_TEXT_LEN_MAX, not_empty=True, strip=True)
+    col2 = UnicodeString(max=ROW_TEXT_LEN_MAX, not_empty=True, strip=True)
+
+
+class RowMoveForm(Schema):
 
     allow_extra_fields = True
     filter_extra_fields = True
 
-    id = validators.Int(min=1, if_missing=None)
-    col1 = validators.UnicodeString(min=3, max=9, not_empty=True, strip=True)
-    col2 = validators.UnicodeString(min=3, max=9, not_empty=True, strip=True)
+    id = IDExistsAndBelongsToSameUser(Row, min=1, not_empty=True)
+    is_active = StringBool(not_empty=True)

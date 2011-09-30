@@ -1,9 +1,5 @@
-*.db*
 *.swp
 *.pyc
 *.egg-info
-.*.ini
-.coverage
-data
 build
 dist

@@ -1,0 +1,124 @@
+from formencode import Invalid
+from formencode.validators import FormValidator, Int
+
+from {{package}}.models import unpack_user_properties, db
+
+
+class FormState(object):
+
+    def __init__(self, userID):
+        self.userID = userID
+        self.cache = {}
+
+    def get(self, TargetClass, targetID):
+        'Return cached targetInstance'
+        key = TargetClass, targetID
+        try:
+            target = self.cache[key]
+        except KeyError:
+            target = db.query(TargetClass).get(targetID) if targetID else None
+            self.cache[key] = target
+        return target
+
+
+class Unique(FormValidator):
+    """
+    Ensure that the value of a field is unique within a group.
+    Use FormState when using this validator.
+    """
+
+    groupFieldName = None
+
+    __unpackargs__ = ('errorMessage', 'TargetClass', 'uniqueFieldName', 'groupFieldName')
+
+    def validate_python(self, field_dict, state):
+        target = state.get(self.TargetClass, field_dict['id'])
+        uniqueFieldValue = field_dict[self.uniqueFieldName]
+        # Check database only if target doesn't exist or uniqueFieldValue differs
+        if not target or getattr(target, self.uniqueFieldName) != uniqueFieldValue:
+            uniqueAttribute = getattr(self.TargetClass, self.uniqueFieldName)
+            uniqueQuery = db.query(uniqueAttribute)
+            if self.groupFieldName:
+                groupFieldValue = field_dict[self.groupFieldName]
+                groupAttribute = getattr(self.TargetClass, self.groupFieldName)
+                uniqueQuery = uniqueQuery.filter(groupAttribute==groupFieldValue)
+            if uniqueQuery.filter(uniqueAttribute==uniqueFieldValue).first():
+                raise Invalid(self.errorMessage, field_dict, state, error_dict={self.uniqueFieldName: self.errorMessage})
+
+
+class CannotChangeOwn(FormValidator):
+
+    __unpackargs__ = ['restrictedFieldName', 'userIDFieldName']
+
+    def validate_python(self, field_dict, state):
+        if state.userID == field_dict[self.userIDFieldName]:
+            message = 'Cannot change your own ' + self.restrictedFieldName
+            raise Invalid(message, field_dict, state, error_dict={self.restrictedFieldName: message})
+
+
+class MembersCannotSetTargetUser(FormValidator):
+
+    __unpackargs__ = ['userIDFieldName']
+
+    def validate_python(self, field_dict, state):
+        userID = state.userID
+        targetUserID = field_dict[self.userIDFieldName]
+        isLeader = unpack_user_properties(userID, 'isLeader')[0]
+        if not isLeader and targetUserID != userID:
+            message = 'Cannot set a target user other than yourself'
+            raise Invalid(message, field_dict, state, error_dict={self.userIDFieldName: message})
+
+
+class MembersCanOmit(FormValidator):
+    """
+    If the field is missing, assume field's value from state.
+    Use FormState when using this validator.
+    """
+
+    __unpackargs__ = ('fieldName', 'stateName')
+
+    def validate_python(self, field_dict, state):
+        userID = state.userID
+        fieldValue = field_dict[self.fieldName]
+        isLeader = unpack_user_properties(userID, 'isLeader')[0]
+        # If the field is missing,
+        if fieldValue is None:
+            if isLeader:
+                message = 'Missing value'
+                raise Invalid(message, field_dict, state, error_dict={self.fieldName: message})
+            else:
+                # Assume field's value from state
+                stateValue = getattr(state, self.stateName)
+                field_dict[self.fieldName] = stateValue
+
+
+class IDExists(Int):
+    """
+    Ensure that the database object exists.
+    Use FormState when using this validator.
+    """
+
+    __unpackargs__ = ['TargetClass']
+
+    def _to_python(self, value, state):
+        targetID = super(IDExists, self)._to_python(value, state)
+        target = state.get(self.TargetClass, targetID)
+        if not target:
+            raise Invalid('Could not find %s.id=%s' % (self.TargetClass.__name__, targetID), value, state)
+        return targetID
+
+
+class IDExistsAndBelongsToSameUser(IDExists):
+    """
+    Ensure that the target object belongs to the user.
+    Use FormState when using this validator.
+    """
+
+    def _to_python(self, value, state):
+        targetID = super(IDExistsAndBelongsToSameUser, self)._to_python(value, state)
+        target = state.get(self.TargetClass, targetID)
+        userID = state.userID
+        isLeader = unpack_user_properties(userID, 'isLeader')[0]
+        if not isLeader and userID != target.user_id:
+            raise Invalid('You can update your information only', value, state)
+        return targetID

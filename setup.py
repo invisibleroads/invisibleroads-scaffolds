@@ -1,4 +1,3 @@
-'Setup script for invisibleroads-templates'
 import os
 
 from setuptools import setup, find_packages
@@ -16,9 +15,9 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 
 setup(
-    name='invisibleroads-templates',
+    name='invisibleroads-scaffolds',
     version='1.7.8',
-    description='Pyramid application templates based on invisibleroads.com',
+    description='Pyramid application scaffolds based on invisibleroads.com',
     long_description=README + '\n\n' +  CHANGES,
     license='MIT',
     classifiers=[
@@ -30,7 +29,7 @@ setup(
     keywords='web wsgi bfg pylons pyramid',
     author='Roy Hyunjin Han',
     author_email='service@invisibleroads.com',
-    url='https://github.com/invisibleroads/invisibleroads-templates',
+    url='https://github.com/invisibleroads/invisibleroads-scaffolds',
     entry_points=entry_points,
     install_requires=['pyramid'],
     packages=find_packages(),

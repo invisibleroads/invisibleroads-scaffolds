@@ -1,39 +1,89 @@
 'Tests for row-based interface demo'
-from {{package}}.views import rows
-from {{package}}.models import db, Row
-from {{package}}.tests import TestTemplate, get_token
+import transaction
+from unittest import TestCase
+
+from {{package}}.models import Row, db
+from {{package}}.tests import TestRoute, build_dict, delete_extraneous, WORD, WORD1, WORD2, WORD3, WORD4
 
 
-class TestRows(TestTemplate):
-    'Test views for rows'
+class TestIndex(TestRoute, TestCase):
 
-    def test_index(self):
-        'Assert that the row index page is visible'
-        url = self.get_url('row_index')
-        # Make sure that the user index page is visible
-        self.assert_('Rows</title>' in self.get(url).text)
+    routeName = 'row_index'
+    isPublic = True
 
-    def test_update(self):
-        'Make sure that updating rows works'
-        url = self.get_url('row_update')
-        # Check that we only see the login page if the user is not a member
-        self.assert_forbidden(url, method='POST')
-        self.login(self.userS)
-        self.assert_forbidden(url, method='POST')
-        # Get token
-        self.login(self.userM)
-        token = get_token(self.get(self.get_url('row_index')).text)
-        params = dict(token=token, id=1, col1='column1', col2='column2')
-        # Updating rows requires a token
-        self.assert_json(self.post(url, dict(params, token='')), 0)
-        # Try different values to cause errors
-        self.assert_json(self.post(url, dict(params, id=0)), 0)
-        self.assert_json(self.post(url, dict(params, id='xxx')), 0)
-        self.assert_json(self.post(url, dict(params, col1='')), 0)
-        self.assert_json(self.post(url, dict(params, col1='x')), 0)
-        self.assert_json(self.post(url, dict(params, col1='x' * 10)), 0)
-        self.assert_json(self.post(url, dict(params, col2='')), 0)
-        self.assert_json(self.post(url, dict(params, col2='x')), 0)
-        self.assert_json(self.post(url, dict(params, col2='x' * 10)), 0)
-        # Update rows successfully
-        self.assert_json(self.post(url, params), 1)
+
+class TestUpdate(TestRoute, TestCase):
+
+    routeName = 'row_update'
+    requestMethod = 'POST'
+
+    def setUp(self):
+        super(TestUpdate, self).setUp()
+        self.row1 = build_dict(Row, col1=WORD1, col2=WORD1, user_id=self.member['id'])
+        self.row2 = build_dict(Row, col1=WORD2, col2=WORD2, user_id=self.spectator['id'])
+        delete_extraneous(Row, [self.row1, self.row2])
+        transaction.commit()
+        self.requestParams = dict(col1=WORD, col2=WORD, user_id=self.member['id'])
+        self.usersAllowed = [self.leader, self.member]
+
+    def test_invalid_params_fail(self):
+        self.login(self.member)
+        self.ajax_failed(id=0)
+        self.ajax_failed(id='xxx')
+        self.ajax_failed(user_id=0)
+        self.ajax_failed(user_id='xxx')
+
+    def test_members_can_add_or_modify_own_rows(self):
+        self.login(self.member)
+        self.ajax_failed(id=self.row2['id'])
+        self.ajax_succeeded(id=self.row1['id'], col1=WORD3, col2=WORD3)
+        self.ajax_succeeded()
+
+    def test_leaders_can_add_or_modify_any_rows(self):
+        self.login(self.leader)
+        self.ajax_succeeded(id=self.row2['id'], col1=WORD3, col2=WORD3)
+        self.ajax_succeeded(id=self.row1['id'], col1=WORD4, col2=WORD4)
+        self.ajax_succeeded()
+
+    def test_members_cannot_set_user_id(self):
+        self.login(self.member)
+        self.ajax_failed(user_id=self.leader['id'])
+
+    def test_leaders_cannot_omit_user_id(self):
+        self.login(self.member)
+        self.ajax_succeeded(id=self.row1['id'], col1=WORD3, col2=WORD3, user_id=None)
+        self.login(self.leader)
+        self.ajax_failed(id=self.row1['id'], col1=WORD4, col2=WORD4, user_id=None)
+
+    def test_col1_is_unique(self):
+        self.login(self.member)
+        self.assert_field_rejects_duplicates('col1', self.row1['col1'])
+
+    def test_col2_is_unique_for_user(self):
+        self.login(self.member)
+        self.assert_field_rejects_duplicates('col2', self.row1['col2'])
+        self.ajax_succeeded(col2=self.row2['col2'])
+
+
+class TestMove(TestRoute, TestCase):
+
+    routeName = 'row_move'
+    requestMethod = 'POST'
+
+    def setUp(self):
+        super(TestMove, self).setUp()
+        self.row1 = build_dict(Row, col1=WORD1, col2=WORD1, user_id=self.member['id'])
+        self.row2 = build_dict(Row, col1=WORD1, col2=WORD1, user_id=self.spectator['id'])
+        transaction.commit()
+        self.requestParams = dict(id=self.row1['id'], is_active=1)
+        self.usersAllowed = [self.leader]
+
+    def test_invalid_params_fail(self):
+        self.login(self.leader)
+        self.ajax_failed(id=0)
+        self.ajax_failed(id='xxx')
+
+    def test_leaders_can_modify_any_rows(self):
+        self.login(self.leader)
+        self.ajax_succeeded(id=self.row2['id'])
+        self.ajax_succeeded()

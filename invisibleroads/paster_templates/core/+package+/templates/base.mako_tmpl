@@ -1,6 +1,7 @@
-<%! 
+<%!
 from pyramid.httpexceptions import HTTPForbidden
-from urlparse import urlparse 
+from urlparse import urlparse
+from {{package}}.parameters import SITE_NAME
 %>\
 <!doctype html>
 <html lang=en>
@@ -31,26 +32,40 @@ from urlparse import urlparse
 	</div>
 </div>
 <div id=main>
-	${next.body()}
+${next.body()}
 </div>
 <script src="${request.static_url('{{package}}:static/jquery-1.6.4.min.js')}"></script>
 ${self.root()}
 <script>
-	function getNumber(x) {return /\d+/.exec(x)[0]}
-	function getID(obj) {return getNumber(obj.id)}
-    $('.hover').live({
-        mouseenter:function() {$(this).removeClass('off').addClass('on')},
-        mouseleave:function() {$(this).removeClass('on').addClass('off')}
-    });
+% if USER_ID:
+var token = '${request.session.get_csrf_token()}';
+% endif
+function getNumber(x) {return /\d+/.exec(x)[0]}
+function getID(obj) {return getNumber(obj.id)}
+$(function() {
     $.ajaxSetup({
-        dataType:'json',
+    % if USER_ID:
+        beforeSend:function(jqXHR, s) {
+            var data = s.data || '';
+            if ('GET' != s.type && !/&token=/.test(data)) {
+                s.data = (data.length ? data + '&' : '') + 'token=' + token;
+                jqXHR.setRequestHeader('Content-Type', s.contentType);
+            }
+        },
+    % endif
         error:function(jqXHR, textStatus, errorThrown) {
             if ('parsererror' == textStatus) {
                 window.location = "${request.route_path('user_login')}?url=" + window.location.pathname;
             }
-        }
+        },
+        dataType:'json'
+    });
+    $('.hover').live({
+        mouseenter:function() {$(this).removeClass('off').addClass('on')},
+        mouseleave:function() {$(this).removeClass('on').addClass('off')}
     });
 	${self.js()}
+});
 </script>
 </body>
 </html>\

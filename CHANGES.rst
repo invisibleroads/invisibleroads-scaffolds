@@ -2,11 +2,15 @@
 -----
 - Incorporated enhancements from Pyramid 1.2
 - Updated forms to use vertical format
+- Reorganized sensitive configuration file format
+- Placed common form validators in validators.py
 - Added email notification to leaders when a new account requires activation
 - Added email notification to user when account is activated or promoted
-- Added chained validator UniqueLocally
 - Added support for form tabs and tooltips
 - Added support for formTips by className as well as name
+- Added port-locking to command-line scripts to ensure singleton instances
+- Added tests for 100% code coverage for PostgreSQL
+- Rewrote testing framework
 
 
 1.7.7

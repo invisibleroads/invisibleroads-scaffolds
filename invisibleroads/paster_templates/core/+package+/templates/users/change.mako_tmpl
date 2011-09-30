@@ -7,6 +7,18 @@ td {padding-right:0.5em}
 .smsAddress {color:gray}
 .smsAddress.active {color:black}
 .formTip {color:black}
+
+.autoCompleteSelection {background:darkblue; color:white}
+#autoCompleteResults {
+    list-style:none; 
+    cursor:pointer; 
+    margin:5px 0; 
+    padding:0; 
+    background:white; 
+    border:thin solid black; 
+    z-index:10000;
+    border-radius:5px;
+}
 </%def>
 
 <%def name='root()'>
@@ -16,13 +28,25 @@ td {padding-right:0.5em}
 </%def>
 
 <%def name='js()'>
+var $form = $('#form');
+$form.prepareForm().bind('onSuccess', function() {
+    $(this).find('input').not('.mutate').prop('disabled', true);
+    setTipByName($('[name=email]'), {
+        email:"Please check your email to ${'finalize changes to' if user else 'create'} your account."
+    });
+}).width($form.find('input').width());
+
+var $username = $('[name=username]'), $password = $('[name=password]'), $nickname = $('[name=nickname]'), $email = $('[name=email]');
+
+$username.focusNext($password);
+$password.focusNext($nickname);
+$nickname.focusNext($email);
+
+% if user:
 $.fn.fixWidth = function() {
     var $x = $(this);
     return $x.width($x.width());
 }
-var $form = $('#form');
-% if user:
-var token = '${request.session.get_csrf_token()}';
 $('#smsAddresses .email').clickToggle({
     optionalClass:'active',
     onMessage:'Activate',
@@ -41,9 +65,7 @@ $('#smsAddresses .trash').clickToggle({
     nameClass:'email'
 });
 $form.find('.mutate').click(function() {
-	$.post("${request.route_path('user_mutate')}", {
-		token:token
-	}, function(data) {
+	$.post("${request.route_path('user_mutate')}", function(data) {
 		if (data.isOk) {
 			$('#userCode').html(data.code);
 		} else {
@@ -52,20 +74,6 @@ $form.find('.mutate').click(function() {
 	});
 });
 % endif
-$form.prepareForm().bind('onSuccess', function() {
-    $(this).find('input').not('.mutate').prop('disabled', true);
-    setTipByName($('[name=email]'), {email:"Please check your email to ${'finalize changes to' if user else 'create'} your account."});
-}).width($form.find('input').width());
-var $username = $('[name=username]'), $password = $('[name=password]'), $nickname = $('[name=nickname]'), $email = $('[name=email]');
-$username.focusNext($password);
-$password.focusNext($nickname);
-$nickname.focusNext($email);
-$email.keydown(function(e) {
-    if (13 == e.which) {
-        $form.submit();
-        return false;
-    }
-});
 if ($username.val() == '') $username.focus();
 </%def>
 

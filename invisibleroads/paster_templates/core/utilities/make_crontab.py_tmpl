@@ -1,21 +1,23 @@
 'Command-line script to generate server crontab file'
 import os
+from ConfigParser import NoSectionError, NoOptionError
 
-import script_process
+from script_process import ArgumentParser, initialize, parse_port
 from {{package}} import parameters
 
 
 def run(settings):
-    'Generate server crontab file'
     basePath = os.path.abspath(settings['here'])
     headerCommand = 'source %s/bin/activate; cd %s' % (
         os.environ['VIRTUAL_ENV'],
         basePath)
+    serverOverrides = get_serverOverrides(settings)
     lines = [
         '# Start server',
-        '%s * * * * %s; paster serve --daemon production.ini >> paster.log 2>&1' % (
+        '%s * * * * %s; paster serve --daemon production.ini %s>> paster.log 2>&1' % (
             format_minutes(parameters.SERVER_INTERVAL_MINUTES, minuteStart=15), 
-            headerCommand),
+            headerCommand,
+            (' '.join(serverOverrides) + ' ') if serverOverrides else ''),
         '# Check outbox',
         '%s * * * * %s; qp --config .production.ini >> qp.log 2>&1' % (
             format_minutes(parameters.OUTBOX_INTERVAL_MINUTES, minuteStart=10), 
@@ -30,6 +32,19 @@ def run(settings):
     return 'Generated %s' % crontabPath
 
 
+def get_serverOverrides(settings):
+    serverOverrides = []
+    configParser = settings['configParser']
+    try:
+        portString = configParser.get('app:portlock', 'http')
+    except (NoSectionError, NoOptionError):
+        pass
+    else:
+        port = parse_port(portString)
+        serverOverrides.append('PORT=%s' % port)
+    return serverOverrides
+
+
 def format_minutes(intervalMinutes, minuteStart=0):
     'Format minutes for crontab'
     if intervalMinutes == 1:
@@ -37,14 +52,10 @@ def format_minutes(intervalMinutes, minuteStart=0):
     return '%s-59/%s' % (minuteStart, intervalMinutes)
 
 
-# If we are running standalone,
 if __name__ == '__main__':
-    # Parse
-    argumentParser = script_process.ArgumentParser(
+    argumentParser = ArgumentParser(
         description='Generate server.crt')
     args = argumentParser.parse_args()
-    # Run
-    message = run(script_process.initialize(args))
-    # Say
+    message = run(initialize(args))
     if args.verbose:
         print message
