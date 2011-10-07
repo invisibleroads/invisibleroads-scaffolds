@@ -16,7 +16,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='invisibleroads-scaffolds',
-    version='1.7.8',
+    version='1.7.9',
     description='Pyramid application scaffolds based on invisibleroads.com',
     long_description=README + '\n\n' +  CHANGES,
     license='MIT',

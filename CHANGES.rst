@@ -1,3 +1,8 @@
+1.7.9
+-----
+- Added validator ItemsExist
+
+
 1.7.8
 -----
 - Incorporated enhancements from Pyramid 1.2
