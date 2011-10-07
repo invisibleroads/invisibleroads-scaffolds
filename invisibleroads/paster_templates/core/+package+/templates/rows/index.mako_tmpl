@@ -74,33 +74,33 @@ $('#form').prepareTableOverlayForm($table
 % endif
 </div>
 <div class=panes>
+<div>
     <div>
-        <div>
-            Unique<br>
-            <input name=col1 title='This string must be unique'>
-        </div>
-        <div>
-            Unique for User<br>
-            <input name=col2 title='This string must be unique for you'>
-        </div>
+        Unique<br>
+        <input name=col1 title='This string must be unique'>
     </div>
+    <div>
+        Unique for User<br>
+        <input name=col2 title='This string must be unique for you'>
+    </div>
+</div>
 
-    % if IS_LEADER:
+% if IS_LEADER:
+<div>
     <div>
-        <div>
-            Owner<br>
-            <select name=user_id title='To whom does it belong?'>
-            % for userID, userNickname in userPacks:
-                <option value=${userID} \
-                % if userID == USER_ID:
-                    selected\
-                % endif
-                >${userNickname}</option>
-            % endfor
-            </select>
-        </div>
+        Owner<br>
+        <select name=user_id title='To whom does it belong?'>
+        % for userID, userNickname in userPacks:
+            <option value=${userID} \
+            % if userID == USER_ID:
+                selected\
+            % endif
+            >${userNickname}</option>
+        % endfor
+        </select>
     </div>
-    % endif
+</div>
+% endif
 </div>
 <input class=save type=submit value=Save title='Press ESC to cancel'>
 </form>

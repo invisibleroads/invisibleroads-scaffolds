@@ -7,6 +7,7 @@ import transaction
 from beaker.cache import cache_region
 from cryptacular import bcrypt
 from pyramid.settings import asbool
+from pyramid.threadlocal import get_current_registry
 from sqlalchemy import Column, ForeignKey, Boolean, Integer, String, Unicode, LargeBinary, DateTime, engine_from_config, func
 from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
@@ -25,7 +26,6 @@ Base = declarative_base()
 
 
 class ApplicationError(Exception):
-    'An application error'
     pass
 
 
@@ -59,7 +59,11 @@ class CaseInsensitiveComparator(Comparator):
 class CaseInsensitiveEncryptComparator(Comparator):
 
     def operate(self, op, other, **kwargs):
-        return op(self.__clause_element__(), encrypt(other.lower()), **kwargs)
+        if hasattr(other, '__iter__'):
+            other = [x.lower() for x in other]
+        else:
+            other = other.lower()
+        return op(self.__clause_element__(), encrypt(other), **kwargs)
 
 
 class EmailMixin(object):
@@ -190,9 +194,13 @@ def initialize_sql(settings):
     Base.metadata.bind = engine
     Base.metadata.create_all(engine)
     if not db.query(User.id).first():
-        isDebug = asbool(settings['pyramid.debug_templates'])
+        isDebug = is_debug(settings)
         add_users(isDebug)
         transaction.commit()
+
+
+def is_debug(settings):
+    return asbool(settings['pyramid.debug_templates'])
 
 
 def add_users(isDebug):
@@ -201,8 +209,8 @@ def add_users(isDebug):
     ]
     if isDebug:
         userPacks = [
-            (ROLE_LEADER,    u'leader'),
-            (ROLE_MEMBER,    u'member'),
+            (ROLE_LEADER, u'leader'),
+            (ROLE_MEMBER, u'member'),
             (ROLE_SPECTATOR, u'spectator'),
         ]
     for role, word in userPacks:

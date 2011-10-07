@@ -7,18 +7,6 @@ td {padding-right:0.5em}
 .smsAddress {color:gray}
 .smsAddress.active {color:black}
 .formTip {color:black}
-
-.autoCompleteSelection {background:darkblue; color:white}
-#autoCompleteResults {
-    list-style:none; 
-    cursor:pointer; 
-    margin:5px 0; 
-    padding:0; 
-    background:white; 
-    border:thin solid black; 
-    z-index:10000;
-    border-radius:5px;
-}
 </%def>
 
 <%def name='root()'>

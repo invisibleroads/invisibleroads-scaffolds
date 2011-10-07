@@ -155,7 +155,7 @@ $.fn.prepareForm = function() {
             showAdd:hideReplace,
             showEdit:showReplace
         }).find('.replace').click(function() {
-            hideReplace.apply($(this).parents('form'), [null]);
+            hideReplace.apply($form, [null]);
         });
     });
 }

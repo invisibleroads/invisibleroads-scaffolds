@@ -29,5 +29,5 @@ tr.even .link.off {color:darkblue; background:#FBF5E6}
 .sorting_asc_disabled {background:url('datatables/sort_asc_disabled.png') no-repeat center right}
 .sorting_desc {background:url('datatables/sort_desc.png') no-repeat center right}
 .sorting_desc_disabled {background:url('datatables/sort_desc_disabled.png') no-repeat center right}
-.dataTables_filter {position:fixed; bottom:0}
-.dataTables_info {position:fixed; bottom:0; right:0}
+.dataTables_filter {position:absolute; bottom:0}
+.dataTables_info {position:absolute; bottom:0; right:0}

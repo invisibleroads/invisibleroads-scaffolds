@@ -1,5 +1,6 @@
 from formencode import Invalid
 from formencode.validators import FormValidator, Int
+from markupsafe import escape
 
 from {{package}}.models import unpack_user_properties, db
 
@@ -28,7 +29,6 @@ class Unique(FormValidator):
     """
 
     groupFieldName = None
-
     __unpackargs__ = ('errorMessage', 'TargetClass', 'uniqueFieldName', 'groupFieldName')
 
     def validate_python(self, field_dict, state):
@@ -90,6 +90,32 @@ class MembersCanOmit(FormValidator):
                 # Assume field's value from state
                 stateValue = getattr(state, self.stateName)
                 field_dict[self.fieldName] = stateValue
+
+
+class ItemsExist(FormValidator):
+    'Make sure that the items in the given heap exist.'
+
+    groupFieldName = None
+    __unpackargs__ = ('TargetClass', 'attributeName', 'heapFieldName', 'groupFieldName')
+
+    def validate_python(self, field_dict, state):
+        get_name = lambda x: getattr(x, self.attributeName)
+        heap = field_dict[self.heapFieldName] or ''
+        itemNames = set(filter(lambda x: x, (line.strip() for line in heap.splitlines())))
+        if itemNames:
+            itemQuery = db.query(self.TargetClass).filter(get_name(self.TargetClass).in_(itemNames))
+            if self.groupFieldName:
+                itemQuery = itemQuery.filter(getattr(self.TargetClass, self.groupFieldName)==field_dict[self.groupFieldName])
+            items = itemQuery.all()
+            unrecognizedNames = list(itemNames.difference(get_name(x) for x in items))
+            if unrecognizedNames:
+                message = 'Unrecognized:<br>%s' % '<br>'.join(escape(x) for x in unrecognizedNames[:3])
+                if len(unrecognizedNames) > 3:
+                    message += '\n...'
+                raise Invalid(message, field_dict, state, error_dict={self.heapFieldName: message})
+        else:
+            items = []
+        field_dict[self.heapFieldName] = items
 
 
 class IDExists(Int):

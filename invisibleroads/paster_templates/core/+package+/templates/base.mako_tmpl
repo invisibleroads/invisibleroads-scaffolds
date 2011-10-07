@@ -55,7 +55,7 @@ $(function() {
     % endif
         error:function(jqXHR, textStatus, errorThrown) {
             if ('parsererror' == textStatus) {
-                window.location = "${request.route_path('user_login')}?url=" + window.location.pathname;
+                window.location = "${request.route_path('user_logout')}?url=" + window.location.pathname;
             }
         },
         dataType:'json'
