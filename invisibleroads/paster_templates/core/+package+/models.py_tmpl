@@ -7,7 +7,6 @@ import transaction
 from beaker.cache import cache_region
 from cryptacular import bcrypt
 from pyramid.settings import asbool
-from pyramid.threadlocal import get_current_registry
 from sqlalchemy import Column, ForeignKey, Boolean, Integer, String, Unicode, LargeBinary, DateTime, engine_from_config, func
 from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
@@ -53,7 +52,11 @@ class CaseInsensitiveUnicode(unicode):
 class CaseInsensitiveComparator(Comparator):
 
     def operate(self, op, other, **kwargs):
-        return op(func.lower(self.__clause_element__()), func.lower(other), **kwargs)
+        if hasattr(other, '__iter__'):
+            other = [x.lower() for x in other]
+        else:
+            other = func.lower(other)
+        return op(func.lower(self.__clause_element__()), other, **kwargs)
 
 
 class CaseInsensitiveEncryptComparator(Comparator):

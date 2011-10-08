@@ -19,7 +19,6 @@ requires = [
     'simplejson',
     'SQLAlchemy',
     'transaction',
-    'WebError',
     'webtest',
     'whenIO',
     'zope.sqlalchemy',
