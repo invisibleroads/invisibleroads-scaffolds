@@ -27,6 +27,7 @@ function setTipByName($fieldsWithTips, tipByName) {
             }
         }
     });
+    return focused;
 }
 // Submit form fields and files
 $.fn.ajaxForm = function(options) {
@@ -147,7 +148,13 @@ $.fn.prepareForm = function() {
                         alert(data.message);
                     } else {
                         $form.trigger('onBeforeError', [data]);
-                        setTipByName($fieldsWithTips, data.errorByName);
+                        if (!setTipByName($fieldsWithTips, data.errorByName)) {
+                            var messages = ['Whoops! Please report this bug.'];
+                            for (var name in data.errorByName) {
+                                messages.push(name + ': ' + data.errorByName[name]);
+                            }
+                            alert(messages.join('\n'));
+                        }
                     }
                 }
             }
