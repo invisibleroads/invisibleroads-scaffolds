@@ -14,9 +14,9 @@ from recaptcha.client import captcha
 from sqlalchemy.orm import joinedload
 
 from {{package}}.libraries.tools import make_random_string, make_random_unique_string, get_remote_ip, make_int
-from {{package}}.models import User, User_, SMSAddress, ApplicationError, get_user_properties, unpack_user_properties, db, ROLE_LEADER, ROLE_MEMBER, ROLE_SPECTATOR
+from {{package}}.models import User, User_, SMSAddress, ApplicationError, db, ROLE_LEADER, ROLE_MEMBER, ROLE_SPECTATOR
 from {{package}}.parameters import *
-from {{package}}.validators import CannotChangeOwn, FormState, IDExists, IDExistsAndBelongsToSameUser, Unique
+from {{package}}.validators import UsersCannotChangeOwn, FormState, IDExists, IDExistsAndBelongsToUser, Unique
 
 
 def includeme(config):
@@ -164,7 +164,7 @@ def mutate(request):
     # Refresh cookie
     request.response.headerlist.extend(remember(request, user.id, tokens=format_tokens(user)))
     # Invalidate cache
-    region_invalidate(get_user_properties, None, userID)
+    region_invalidate(User.get_properties, None, User, userID)
     return dict(isOk=1, code=user.code)
 
 
@@ -210,7 +210,7 @@ def move(request):
             body='Your account at %s now has %s privileges.' % (request.application_url, adjective)))
     targetUser.role = targetRole
     # Invalidate cache
-    region_invalidate(get_user_properties, None, form['id'])
+    region_invalidate(User.get_properties, None, User, form['id'])
     return dict(isOk=1, content=render('users/users.mako', index(request), request))
 
 
@@ -276,15 +276,21 @@ def apply_user_(request):
     db.add(user)
     # If we have a new user requiring activation, notify leaders
     if not userID:
-        leaders = db.query(User).filter(User.role==ROLE_LEADER).all()
-        if leaders:
-            get_mailer(request).send_to_queue(Message(
-                recipients=[formataddr((x.nickname, x.email)) for x in leaders],
-                subject='Activate %s?' % user.nickname,
-                body=render('users/activate.mako', dict(
-                    user=user, browser=request.user_agent, ip=get_remote_ip(request)), request)))
-    region_invalidate(get_user_properties, None, userID)
+        mail_users('Activate %s?' % user.nickname, render('users/activate.mako', dict(user=user, browser=request.user_agent, ip=get_remote_ip(request)), request), request, is_leader=True)
+    region_invalidate(User.get_properties, None, User, userID)
     return user_
+
+
+def mail_users(subject, body, request, **userKeywords):
+    userQuery = db.query(User)
+    if userKeywords:
+        userQuery = userQuery.filter_by(**userKeywords)
+    users = userQuery.all()
+    if users:
+        get_mailer(request).send_to_queue(Message(
+            recipients=[formataddr((x.nickname, x.email)) for x in users],
+            subject=subject, 
+            body=body))
 
 
 class SecurePassword(FancyValidator):
@@ -317,7 +323,7 @@ class UserMoveForm(Schema):
     allow_extra_fields = True
     filter_extra_fields = True
     chained_validators = [
-        CannotChangeOwn('role', userIDFieldName='id'),
+        UsersCannotChangeOwn('role', userIDFieldName='id'),
     ]
 
     id = IDExists(User, min=1, not_empty=True)
@@ -329,5 +335,5 @@ class SMSAddressMoveForm(Schema):
     allow_extra_fields = True
     filter_extra_fields = True
 
-    id = IDExistsAndBelongsToSameUser(SMSAddress, min=1, not_empty=True)
+    id = IDExistsAndBelongsToUser(SMSAddress, min=1, not_empty=True)
     is_active = StringBool(not_empty=True, if_missing=None)

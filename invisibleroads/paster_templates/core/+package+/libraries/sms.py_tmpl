@@ -11,15 +11,15 @@ from sqlalchemy.orm import joinedload
 from {{package}}.models import User, SMSAddress, ApplicationError, db
 
 
-pattern_registration = re.compile(r'(\d+)\W+(.*)')
+PATTERN_REGISTRATION = re.compile(r'(\d+)\W+(.*)')
 
 
 def process(settings):
     'Process messages on IMAP server'
     imapServer = connect(settings)
     countByKey = collections.defaultdict(int)
-    # Walk messages in inbox sorted by arrival time,
-    for email in imapServer.walk('inbox', sortCriterion='ARRIVAL'):
+    # Walk messages in inbox
+    for email in imapServer.walk('inbox', shuffleMessages=False):
         # If the user is trying to register an SMS address,
         if process_registration(email):
             countByKey['Registrations'] += 1
@@ -55,12 +55,12 @@ def connect(settings):
 def process_registration(email):
     'Process an SMS address registration'
     # Get userID and code
-    match = pattern_registration.match(email.subject)
+    match = PATTERN_REGISTRATION.match(email.subject)
     if not match:
         return False
     userID, userCode = match.groups()
     userID = int(userID)
-    fromWhom = parseaddr(email.fromWhom)[1].decode('utf-8')
+    fromWhom = parseaddr(email.fromWhom)[1]
     # Make sure we have a proper email address
     try:
         fromWhom = validators.Email(not_empty=True).to_python(fromWhom)

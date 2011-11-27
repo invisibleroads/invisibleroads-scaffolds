@@ -3,22 +3,15 @@ import os
 from setuptools import setup, find_packages
 
 
-entry_points = """
-[paste.paster_create_template]
-ir_core = invisibleroads.paster_templates:CoreTemplate
-"""
-
-
-here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
-CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
+HERE = os.path.abspath(os.path.dirname(__file__))
+load = lambda x: open(os.path.join(HERE, x)).read()
 
 
 setup(
     name='invisibleroads-scaffolds',
     version='1.7.9',
     description='Pyramid application scaffolds based on invisibleroads.com',
-    long_description=README + '\n\n' +  CHANGES,
+    long_description=load('README.rst') + '\n\n' + load('CHANGES.rst'),
     license='MIT',
     classifiers=[
         'Intended Audience :: Developers',
@@ -30,7 +23,10 @@ setup(
     author='Roy Hyunjin Han',
     author_email='service@invisibleroads.com',
     url='https://github.com/invisibleroads/invisibleroads-scaffolds',
-    entry_points=entry_points,
+    entry_points="""\
+        [paste.paster_create_template]
+        ir_core = invisibleroads.paster_templates:CoreTemplate
+    """,
     install_requires=['pyramid'],
     packages=find_packages(),
     include_package_data=True,

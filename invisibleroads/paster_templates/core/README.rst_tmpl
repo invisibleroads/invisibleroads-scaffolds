@@ -33,7 +33,7 @@
     # Edit sensitive information
     vim .production.ini
     # Start production server
-    paster serve --daemon production.ini
+    paster serve --daemon production.ini PORT=8080
 
     # Generate crontab
     python utilities/make_crontab.py -c production.ini
@@ -72,3 +72,20 @@ PostgreSQL
     cd $PROJECTS/{{project}}
     vim .development.ini
         sqlalchemy.url = postgresql+psycopg2://SET-USERNAME-HERE:SET-PASSWORD-HERE@localhost:5432/SET-DATABASE-HERE
+
+
+gevent
+------
+::
+
+    source $PYRAMID_ENV/bin/activate
+    cd $PROJECTS
+    yum -y install hg libevent-devel
+
+    hg clone https://bitbucket.org/ambroff/greenlet
+    cd greenlet
+    rm -Rf $PYRAMID_ENV/lib/python2.7/site-packages/greenlet*
+    python setup.py install
+
+    pip install --upgrade gevent
+    python utilities/serve.py -c production.ini

@@ -1,3 +1,13 @@
+function alertError(x) {
+    var message = x;
+    if ('object' == typeof x) {
+        var messages = [];
+        for (var name in x)
+            messages.push(name + ': ' + x[name]);
+        message = messages.join('\n');
+    }
+    alert(message);
+}
 // Get and set tooltips
 function getTipByName($fieldsWithTips) {
     var tipByName = {};
@@ -148,13 +158,8 @@ $.fn.prepareForm = function() {
                         alert(data.message);
                     } else {
                         $form.trigger('onBeforeError', [data]);
-                        if (!setTipByName($fieldsWithTips, data.errorByName)) {
-                            var messages = ['Whoops! Please report this bug.'];
-                            for (var name in data.errorByName) {
-                                messages.push(name + ': ' + data.errorByName[name]);
-                            }
-                            alert(messages.join('\n'));
-                        }
+                        if (!setTipByName($fieldsWithTips, data.errorByName))
+                            alertError(data.errorByName);
                     }
                 }
             }
@@ -175,9 +180,7 @@ $.fn.prepareOverlayForm = function() {
                 $form.find('[name]:visible').first().focus().select();
             },
             onClose:function() {
-                $form.find('[title]').each(function() {
-                    $(this).tooltip().hide();
-                });
+                $('.formTip').hide();
             },
             closeOnClick:false
         });
@@ -196,63 +199,72 @@ $.fn.clickToggle = function(options) {
         onValue:1,             
         offMessage:'',          // Display offMessage if row has optionalClass
         offValue:0,         
-        postURL:'',             // Post update to this URL for this attribute
-        postAttribute:'',         
+        requestURL:'',          // Request attribute at url using method
+        requestAttribute:'',         
+        requestMethod:'POST',
         nameClass:'',           // Use text of this column for confirmation prompt
         onSuccess:function(data) {}
     }, options);
-    function mask($x) {
-        var $content = $x.find('.content');
-        if ($content.length) return;
-        $x.html('<span class=content style="display:none">' + $x.html() + '</span>');
+    function mask($td) {
+        $td.css('cursor', 'pointer');
+        if (!$td.find('.flag').length) {
+            var position = $td.position(), $tr = $td.parents('tr'), $flag;
+            if (!$tr.hasClass(options.requiredClass)) {
+                $flag = $('<div class="flag inactive">' + options.requiredMessage + '</div>');
+            } else {
+                var hasOptional = $tr.hasClass(options.optionalClass), 
+                    message = (hasOptional ? options.offMessage : options.onMessage);
+                $flag = $('<div class=flag>' + message + '</div>');
+            }
+            $td.data('color', $td.css('color')).css('color', 'transparent');
+            $flag.css({
+                position:'absolute',
+                top:position.top,
+                left:position.left,
+                width:$td.width(),
+                height:$td.height()
+            }).appendTo($td);
+        }
     }
-    function unmask($x) {
-        var $content = $x.find('.content');
-        if ($content.length) $x.html($content.html());
+    function unmask($td) {
+        $td.css('cursor', 'auto').css('color', $td.data('color')).find('.flag').remove();
     }
     return $(this).live({
-        mouseenter:function() {
-            var $td = $(this), $tr = $td.parents('tr');
-            mask($td);
-            if (!$td.find('.flag').length) {
-                if (!$tr.hasClass(options.requiredClass)) {
-                    $td.append('<span class="flag inactive">' + options.requiredMessage + '</span>');
-                } else {
-                    var hasOptional = $tr.hasClass(options.optionalClass);
-                    var message = (hasOptional ? options.offMessage : options.onMessage);
-                    $td.append('<span class=flag>' + message + '</span>');
-                }
-            }
-            $td.css('cursor', 'pointer');
-        },
-        mouseleave:function() {
-            var $td = $(this);
-            unmask($td);
-            $td.css('cursor', 'auto');
-        },
+        mouseenter:function() {mask($(this))},
+        mouseleave:function() {unmask($(this))},
         click:function() {
             var $td = $(this), $tr = $td.parents('tr');
             if (!$tr.hasClass(options.requiredClass)) return;
             var hasOptional = $tr.hasClass(options.optionalClass);
             var message = (hasOptional ? options.offMessage : options.onMessage);
             unmask($td);
-            if (confirm(message + ' ' + $tr.find('.' + options.nameClass).text() + '?')) {
-                var params = {token:token, id:getID($tr[0])};
-                params[options.postAttribute] = hasOptional ? options.offValue : options.onValue;
-                $.post(options.postURL, params, function(data) {
-                    if (data.isOk) {
-                        var $table = $tr.parents('table');
-                        if (typeof data.content != 'undefined') {
-                            $table.find('tbody').html(data.content);
+            if (options.nameClass ? confirm(message + ' ' + $tr.find('.' + options.nameClass).text() + '?') : true) {
+                var rowID = getID($tr[0]),
+                    requestMethod = options.requestMethod.toLowerCase(),
+                    requestParams = {token:token, id:rowID},
+                    requestURL = options.requestURL.replace(0, rowID);
+                if (options.requestAttribute)
+                    requestParams[options.requestAttribute] = hasOptional ? options.offValue : options.onValue;
+                if (requestMethod) {
+                    $[requestMethod](requestURL, requestParams, function(data) {
+                        if (data.isOk) {
+                            var $table = $tr.parents('table');
+                            if (typeof data.content != 'undefined') {
+                                $table.find('tbody').html(data.content);
+                                if (typeof $table.data('dataTableCustom') != 'undefined')
+                                    $table.dataTableCustom();
+                            }
+                            options.onSuccess.apply($td[0], [data]);
+                        } else {
+                            alertError(data.message);
                         }
-                        if (typeof $table.data('dataTableCustom') != 'undefined') {
-                            $table.dataTableCustom();
-                        }
-                        options.onSuccess.apply($td[0], [data]);
-                    } else {
-                        alert(data.message);
-                    }
-                });
+                    });
+                } else {
+                    var strings = [];
+                    for (key in requestParams)
+                        strings.push(key + '=' + requestParams[key]);
+                    window.location = requestURL + '?' + strings.join('&');
+                }
             }
         }
     });
@@ -263,7 +275,15 @@ if (typeof $.fn.dataTable != 'undefined') {
 $.fn.prepareTableOverlayForm = function($table, $rows) {
     var tableID = $table.prop('id'), tableInfo;
     return $(this).prepareOverlayForm().each(function() {
-        var $form = $(this), $fields = $form.find('[name]');
+        var $form = $(this)
+            .bind('onSuccess', function(e, data) {
+                $table.find('tbody').html(data.content);
+                $table.dataTableCustom();
+            })
+            .bind('onClose', function() {
+                $('#' + tableID + '_filter input').focus();
+            });
+        var $fields = $form.find('[name]');
         // Get $id or make one if it doesn't exist
         var $id = $form.find('[name=id]');
         if (!$id.length) $id = $('<input name=id type=hidden>').appendTo($form);
@@ -303,13 +323,6 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
                 $id.val(getNumber(id));
                 $form.trigger('showEdit', [$tr]).overlay().load();
             }
-        });
-        $form.bind('onSuccess', function(e, data) {
-            $table.find('tbody').html(data.content);
-            $table.dataTableCustom();
-        });
-        $form.bind('onClose', function() {
-            $('#' + tableID + '_filter input').focus();
         });
     });
 }
@@ -356,7 +369,7 @@ $.fn.dataTableCustom = function(options) {
             onLoad = options['onLoad'];
         } else {
             $dataTable = pot['$dataTable'];
-            $dataTable.fnClearTable(false);
+            $dataTable.fnClearTable(0);
             aaSorting = $dataTable.fnSettings().aaSorting;
             aoColumns = pot['aoColumns'];
             computeTableHeight = pot['computeTableHeight'];

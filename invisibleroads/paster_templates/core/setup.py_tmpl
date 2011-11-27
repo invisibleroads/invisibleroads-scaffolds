@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 
 
-requires = [
+REQUIRES = [
     'cryptacular',
     'formencode',
     'imapIO',
@@ -24,25 +24,16 @@ requires = [
     'zope.sqlalchemy',
 ]
 if sys.version_info[:3] < (2,5,0):
-    requires.append('pysqlite')
-
-
-entry_points = """\
-    [paste.app_factory]
-    main = {{package}}:main
-"""
-
-
-here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
-CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
+    REQUIRES.append('pysqlite')
+HERE = os.path.abspath(os.path.dirname(__file__))
+load = lambda x: open(os.path.join(HERE, x)).read()
 
 
 setup(
     name='{{project}}',
     version='0.0',
     description='{{project}}',
-    long_description=README + '\n\n' +  CHANGES,
+    long_description=load('README.rst') + '\n\n' + load('CHANGES.rst'),
     classifiers=[
         "Programming Language :: Python",
         "Framework :: Pylons",
@@ -57,6 +48,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite='{{package}}',
-    install_requires=requires,
-    entry_points = entry_points,
+    install_requires=REQUIRES,
+    entry_points="""\
+        [paste.app_factory]
+        main = {{package}}:main
+    """,
     paster_plugins=['pyramid'])

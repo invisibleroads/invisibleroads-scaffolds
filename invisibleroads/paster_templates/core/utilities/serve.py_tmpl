@@ -1,0 +1,31 @@
+import socket
+from gevent import wsgi
+
+from script_process import ArgumentParser, parse_port, BASE_PATH
+from {{package}} import SettingsParser, main
+
+
+class Proxy(object):
+
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        environ['wsgi.url_scheme'] = environ.get('HTTP_X_FORWARDED_PROTOCOL', 'http')
+        return self.app(environ, start_response)
+
+
+if '__main__' == __name__:
+    argumentParser = ArgumentParser(
+        description='Serve application using gevent')
+    args = argumentParser.parse_args()
+    settings = SettingsParser(dict(here=BASE_PATH)).load(args.configurationPath, storeConfigParser=True)
+    router = main(dict(__file__=args.configurationPath, here=BASE_PATH), **settings)
+    port = parse_port(settings['configParser'].get('app:portlock', 'serve'))
+    if args.verbose:
+        print 'http://localhost:%s' % port
+    try:
+        wsgi.WSGIServer(('', port), Proxy(router)).serve_forever()
+    except socket.error, error:
+        if args.verbose:
+            print error

@@ -1,8 +1,7 @@
 'Command-line script to generate server crontab file'
 import os
-from ConfigParser import NoSectionError, NoOptionError
 
-from script_process import ArgumentParser, initialize, parse_port
+from script_process import ArgumentParser, initialize
 from {{package}} import parameters
 
 
@@ -11,13 +10,11 @@ def run(settings):
     headerCommand = 'source %s/bin/activate; cd %s' % (
         os.environ['VIRTUAL_ENV'],
         basePath)
-    serverOverrides = get_serverOverrides(settings)
     lines = [
         '# Start server',
-        '%s * * * * %s; paster serve --daemon production.ini %s>> paster.log 2>&1' % (
+        '%s * * * * %s; python utilities/serve.py -c production.ini -q >> server.log 2>&1' % (
             format_minutes(parameters.SERVER_INTERVAL_MINUTES, minuteStart=15), 
-            headerCommand,
-            (' '.join(serverOverrides) + ' ') if serverOverrides else ''),
+            headerCommand),
         '# Check outbox',
         '%s * * * * %s; qp --config .production.ini >> qp.log 2>&1' % (
             format_minutes(parameters.OUTBOX_INTERVAL_MINUTES, minuteStart=10), 
@@ -28,21 +25,8 @@ def run(settings):
             headerCommand),
     ]
     crontabPath = os.path.join(basePath, 'server.crt')
-    open(crontabPath, 'wt').write('\n'.join(lines))
+    open(crontabPath, 'wt').write('\n'.join(lines) + '\n')
     return 'Generated %s' % crontabPath
-
-
-def get_serverOverrides(settings):
-    serverOverrides = []
-    configParser = settings['configParser']
-    try:
-        portString = configParser.get('app:portlock', 'http')
-    except (NoSectionError, NoOptionError):
-        pass
-    else:
-        port = parse_port(portString)
-        serverOverrides.append('PORT=%s' % port)
-    return serverOverrides
 
 
 def format_minutes(intervalMinutes, minuteStart=0):

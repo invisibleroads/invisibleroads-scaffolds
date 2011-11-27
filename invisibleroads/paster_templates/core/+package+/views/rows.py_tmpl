@@ -7,9 +7,9 @@ from pyramid.security import authenticated_userid
 from pyramid.view import view_config
 from sqlalchemy.orm import joinedload
 
-from {{package}}.models import Row, User, unpack_user_properties, db
+from {{package}}.models import Row, User, db
 from {{package}}.parameters import ROW_TEXT_LEN_MAX
-from {{package}}.validators import FormState, IDExists, IDExistsAndBelongsToSameUser, MembersCannotSetTargetUser, MembersCanOmit, Unique
+from {{package}}.validators import FormState, IDExists, IDExistsAndBelongsToUser, MembersCannotSetTargetUser, UsersCanOmit, Unique
 
 
 def includeme(config):
@@ -23,7 +23,7 @@ def includeme(config):
 def index(request):
     'List rows'
     userID = authenticated_userid(request)
-    isLeader = unpack_user_properties(userID, 'isLeader')[0]
+    isLeader = User.unpack_properties(userID, 'isLeader')[0]
     rowQuery = db.query(Row).options(joinedload(Row.user))
     if isLeader:
         return dict(
@@ -67,13 +67,13 @@ class RowUpdateForm(Schema):
     allow_extra_fields = True
     filter_extra_fields = True
     chained_validators = [
-        MembersCanOmit('user_id', stateName='userID'),
+        UsersCanOmit('user_id', stateName='userID'),
         MembersCannotSetTargetUser('user_id'),
         Unique('That string already exists', Row, 'col1'),
         Unique('That string already exists in your collection', Row, 'col2', 'user_id'),
     ]
 
-    id = IDExistsAndBelongsToSameUser(Row, min=1, if_empty=None, if_missing=None)
+    id = IDExistsAndBelongsToUser(Row, leadersEditAll=True, min=1, if_empty=None, if_missing=None)
     user_id = IDExists(User, min=1, not_empty=True, if_missing=None)
     col1 = UnicodeString(max=ROW_TEXT_LEN_MAX, not_empty=True, strip=True)
     col2 = UnicodeString(max=ROW_TEXT_LEN_MAX, not_empty=True, strip=True)
@@ -84,5 +84,5 @@ class RowMoveForm(Schema):
     allow_extra_fields = True
     filter_extra_fields = True
 
-    id = IDExistsAndBelongsToSameUser(Row, min=1, not_empty=True)
+    id = IDExistsAndBelongsToUser(Row, leadersEditAll=True, min=1, not_empty=True)
     is_active = StringBool(not_empty=True)

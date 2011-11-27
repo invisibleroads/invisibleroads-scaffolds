@@ -71,7 +71,7 @@ $username.keydown(function(e) {
 $password.keydown(function(e) {if (13 == e.which) login()});
 $('#login').click(login);
 
-$timezoneOffset.val(new Date().getTimezoneOffset()).prev().click(function() {
+$timezoneOffset.val((new Date().getTimezoneOffset() + 1440) % 1440).prev().click(function() {
     $(this).hide();
     $timezoneOffset.show().focus();
 });

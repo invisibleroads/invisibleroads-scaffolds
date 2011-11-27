@@ -9,10 +9,10 @@
 </%def>
 
 <%def name='root()'>
-<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/jquery.tools.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/jquery.extras.min.js')}"></script>
-<link rel=stylesheet href="${request.static_url('{{package}}:static/tools.css')}" />
+<script src="${request.static_path('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery.tools.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery.extras.min.js')}"></script>
+<link rel=stylesheet href="${request.static_path('{{package}}:static/tools.css')}" />
 </%def>
 
 <%def name='js()'>
@@ -29,19 +29,17 @@ var $table = $('#${tableID}').dataTableCustom({
         {sClass:'when_update', sType:'rel-string'}
     ]
 });
-
 % if IS_LEADER:
 $('.when_update:not(th)').clickToggle({
     requiredClass:'row',
     optionalClass:'active',
     onMessage:'Activate',
     offMessage:'Deactivate',
-    postURL:"${request.route_path('row_move')}",
-    postAttribute:'is_active',
+    requestURL:"${request.route_path('row_move')}",
+    requestAttribute:'is_active',
     nameClass:'col1'
 });
 % endif
-
 % if IS_MEMBER:
 $('#form').prepareTableOverlayForm($table
 % if not IS_LEADER:

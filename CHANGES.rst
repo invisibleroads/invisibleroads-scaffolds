@@ -1,7 +1,14 @@
 1.7.9
 -----
-- Added validator ItemsExist
-
+- Added alternate server utilities/serve.py using gevent
+- Added User.unpack_properties to replace unpack_user_properties
+- Added parameter SITE_DOMAIN
+- Added users.mail_users()
+- Fixed timezoneOffset initialization to handle negative offsets
+- Fixed clickToggle() so that flag matches size and color of parent
+- Moved robots.txt into static folder
+- Updated validators
+- Used request.static_path() instead of request.static_url() to support https
 
 1.7.8
 -----
@@ -17,7 +24,6 @@
 - Added tests for 100% code coverage for PostgreSQL
 - Rewrote testing framework
 
-
 1.7.7
 -----
 - Added AJAX style file uploads
@@ -25,7 +31,6 @@
 - Rewrote javascript for table enhancements
 - Updated SMS address management interface in users/change.mako
 - Fixed evaluation of settings['debug_templates']
-
 
 1.7.6
 -----
@@ -35,7 +40,6 @@
 - Added User.is_member and User.is_leader hybrid properties for flexibility
 - Updated code to be compatible with Pyramid 1.1a4
 
-
 1.7.5
 -----
 - Restructured user roles and permissions
@@ -43,7 +47,6 @@
 - Used argparse instead of optparse in utilities/script_process.py
 - Added users.unpack_properties() for more flexible property retrieval
 - Added row-based interface example
-
 
 1.7.4
 -----
@@ -53,7 +56,6 @@
 - Used prop('disabled', true) instead of attr('disabled', 'disabled')
 - Used e.which instead of e.keyCode
 - Upgraded to jQuery 1.6.1
-
 
 1.7.3
 -----
@@ -66,7 +68,6 @@
 - Reverted SMS address registration so that users register by sending an SMS
 - Increased test coverage to 96%
 
-
 1.7.2
 -----
 - Added test for unicode usernames, passwords, nicknames, emails
@@ -78,11 +79,9 @@
 - Added redirect to login page if AJAX request does not return JSON
 - Set poolclass to sqlalchemy.NullPool for SQLite file-based databases
 
-
 1.7.1
 -----
 - Moved whenIO to a separate package in PyPI
-
 
 1.7.0
 -----

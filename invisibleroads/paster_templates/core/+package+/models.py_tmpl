@@ -131,6 +131,33 @@ class User(Base, UserMixin):
         'Return True if we have a matching password'
         return crypt.check(self.password, password)
 
+    @classmethod
+    @cache_region('medium')
+    def get_properties(Class, userID):
+        'Return a tuple instead of a dictionary to save cache space'
+        return db.query(
+            Class.nickname,
+            Class.timezone_offset,
+            Class.is_member,
+            Class.is_leader,
+            Class.code).filter(Class.id==userID).first() if userID else None
+
+    @classmethod
+    def unpack_properties(Class, userID, *names):
+        'Unpack properties corresponding to userID as specified by names'
+        properties = Class.get_properties(make_int(userID, default=0)) or [
+            u'', 
+            TIMEZONE_OFFSET_MINUTES, 
+            False, 
+            False, 
+            u'']
+        return [properties[[
+            'nickname', 
+            'timezoneOffset', 
+            'isMember', 
+            'isLeader', 
+            'code'].index(x)] for x in names]
+
     @hybrid_property
     def is_member(self):
         return self.role >= ROLE_MEMBER 
@@ -197,8 +224,7 @@ def initialize_sql(settings):
     Base.metadata.bind = engine
     Base.metadata.create_all(engine)
     if not db.query(User.id).first():
-        isDebug = is_debug(settings)
-        add_users(isDebug)
+        add_users(settings)
         transaction.commit()
 
 
@@ -206,13 +232,14 @@ def is_debug(settings):
     return asbool(settings['pyramid.debug_templates'])
 
 
-def add_users(isDebug):
+def add_users(settings):
+    isDebug = is_debug(settings)
     userPacks = [
-        (ROLE_LEADER, u'admin'),
+        (ROLE_LEADER, u'support'),
     ]
     if isDebug:
         userPacks = [
-            (ROLE_LEADER, u'leader'),
+            (ROLE_LEADER, u'support'),
             (ROLE_MEMBER, u'member'),
             (ROLE_SPECTATOR, u'spectator'),
         ]
@@ -226,29 +253,6 @@ def add_users(isDebug):
             username=username,
             password=password,
             nickname=word[0].upper() + word[1:],
-            email=word + '@example.com',
+            email=word + '@' + SITE_DOMAIN,
             role=role))
     print
-
-
-@cache_region('medium')
-def get_user_properties(userID):
-    'Return user properties as a tuple instead of a dictionary to save cache space'
-    return db.query(
-        User.nickname,
-        User.timezone_offset,
-        User.is_member,
-        User.is_leader,
-        User.code).filter(User.id==userID).first() if userID else None
-
-
-def unpack_user_properties(userID, *names):
-    'Unpack properties corresponding to userID as specified by names'
-    properties = get_user_properties(make_int(userID, default=0)) or [
-        u'', 
-        TIMEZONE_OFFSET_MINUTES, 
-        False, 
-        False, 
-        u'']
-    propertyNames = ['nickname', 'timezoneOffset', 'isMember', 'isLeader', 'code']
-    return [properties[propertyNames.index(x)] for x in names]

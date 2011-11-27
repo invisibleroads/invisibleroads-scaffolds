@@ -8,8 +8,8 @@ from {{package}}.parameters import SITE_NAME
 <head>
     <meta charset=utf-8 />
 	<title>${SITE_NAME} ${self.title()}</title>
-	<link rel=icon href='${request.static_url('{{package}}:static/favicon.ico')}' />
-	<link rel=stylesheet href='${request.static_url('{{package}}:static/style.css')}' />
+	<link rel=icon href='${request.static_path('{{package}}:static/favicon.ico')}' />
+	<link rel=stylesheet href='${request.static_path('{{package}}:static/style.css')}' />
 	<style>${self.css()}</style>
 </head>
 <body>
@@ -34,7 +34,7 @@ from {{package}}.parameters import SITE_NAME
 <div id=main>
 ${next.body()}
 </div>
-<script src="${request.static_url('{{package}}:static/jquery-1.6.4.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery-1.6.4.min.js')}"></script>
 ${self.root()}
 <script>
 % if USER_ID:

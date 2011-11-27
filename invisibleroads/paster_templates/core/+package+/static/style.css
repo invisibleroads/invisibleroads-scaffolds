@@ -6,7 +6,7 @@
 .overlay {display:none}
 .formTip {color:#fff; z-index:10000}
 .flag {color:black; font-weight:bold}
-.flag.inactive {color:gray; background:white}
+.flag.inactive {color:gray}
 .error {font-weight:bold}
 form div {margin-bottom:0.5em}
 form .replace {display:none}

@@ -14,15 +14,9 @@ from whenIO import WhenIO
 
 from {{package}}.libraries import tools
 from {{package}}.libraries.tools import make_random_string
-from {{package}}.models import User, ApplicationError, initialize_sql, unpack_user_properties
-from {{package}}.views import users, rows
+from {{package}}.models import User, ApplicationError, initialize_sql
 from {{package}}.parameters import *
-
-
-robots_txt = """\
-User-agent: *
-Disallow: /
-"""
+from {{package}}.views import users, rows
 
 
 def main(global_config, **settings):
@@ -43,7 +37,7 @@ def main(global_config, **settings):
     # Prepare configuration
     def get_groups(userID, request):
         'Define server-side permissions associated with the user'
-        isMember, isLeader, code = unpack_user_properties(userID, 'isMember', 'isLeader', 'code')
+        isMember, isLeader, code = User.unpack_properties(userID, 'isMember', 'isLeader', 'code')
         # Check mutation code
         identity = authenticationPolicy.cookie.identify(request)
         if not identity or code != users.parse_tokens(identity['tokens'])[0]:
@@ -65,7 +59,7 @@ def main(global_config, **settings):
         groups = get_groups(userID, request)
         if 'outcast' in groups:
             userID = None
-        nickname, timezoneOffset = unpack_user_properties(userID, 'nickname', 'timezoneOffset')
+        nickname, timezoneOffset = User.unpack_properties(userID, 'nickname', 'timezoneOffset')
         event.update(dict(
             USER_ID=userID,
             USER_NICKNAME=nickname,
@@ -97,7 +91,6 @@ def main(global_config, **settings):
     set_cache_regions_from_settings(settings)
     # Configure static assets
     config.add_static_view('static', '{{package}}:static', cache_max_age=3600)
-    config.add_view(lambda request: Response(content_type='text/plain', body=robots_txt), name='robots.txt', permission=NO_PERMISSION_REQUIRED)
     # Configure routes
     config.include(rows)
     config.include(users, route_prefix='users')

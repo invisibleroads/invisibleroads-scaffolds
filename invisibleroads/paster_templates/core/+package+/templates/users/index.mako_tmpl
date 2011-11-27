@@ -1,5 +1,8 @@
 <%inherit file='/base.mako'/>
-<%! from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER %>
+<%! 
+from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
+tableID = 'table'
+%>
 
 <%def name='title()'>Users</%def>
 
@@ -11,12 +14,12 @@ td {text-align:center}
 </%def>
 
 <%def name='root()'>
-<script src="${request.static_url('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
-<script src="${request.static_url('{{package}}:static/jquery.extras.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery.extras.min.js')}"></script>
 </%def>
 
 <%def name='js()'>
-var $table = $('#table').dataTableCustom({
+var $table = $('#${tableID}').dataTableCustom({
     aoColumns:[
         {sClass:'nickname', sType:'string'},
         {sClass:'role', sType:'rel-numeric'},
@@ -30,8 +33,8 @@ $('.when_login:not(th, #row${USER_ID} > td)').clickToggle({
     onValue:${ROLE_MEMBER},
     offMessage:'Deactivate',
     offValue:${ROLE_SPECTATOR},
-    postURL:"${request.route_path('user_move')}",
-    postAttribute:'role',
+    requestURL:"${request.route_path('user_move')}",
+    requestAttribute:'role',
     nameClass:'nickname'
 });
 $('.role:not(th, #row${USER_ID} > td)').clickToggle({
@@ -42,14 +45,14 @@ $('.role:not(th, #row${USER_ID} > td)').clickToggle({
     onValue:${ROLE_LEADER},
     offMessage:'Demote',
     offValue:${ROLE_MEMBER},
-    postURL:"${request.route_path('user_move')}",
-    postAttribute:'role',
+    requestURL:"${request.route_path('user_move')}",
+    requestAttribute:'role',
     nameClass:'nickname'
 });
 % endif
 </%def>
 
-<table id=table>
+<table id=${tableID}>
 	<thead>
 		<tr>
 			<th>User</th>

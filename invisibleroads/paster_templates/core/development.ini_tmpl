@@ -1,3 +1,6 @@
+[DEFAULT]
+domain = {{project}}.com
+
 [app:main]
 use = egg:{{project}}
 
@@ -16,8 +19,11 @@ sqlalchemy.url = sqlite:///%(here)s/development.db
 
 cache.type = memory
 cache.short.expire = 1800
+cache.short.key_length = 250
 cache.medium.expire = 7200
+cache.medium.key_length = 250
 cache.long.expire = 86400
+cache.long.key_length = 250
 
 session.type = file
 session.key = {{project}}
@@ -26,11 +32,14 @@ session.data_dir = data/sessions/data
 session.lock_dir = data/sessions/lock
 
 mail.queue_path = data/messages
-mail.default_sender = {{project}} <support@example.com>
+mail.default_sender = {{project}} <support@%(domain)s>
 
-sms.email = sms@example.com
+sms.email = sms@%(domain)s
 
 # Override sensitive information in .development.ini
+; [DEFAULT]
+; domain = {{project}}.com
+; 
 ; [app:main]
 ; secret.authtkt =
 ; secret.session =
@@ -47,18 +56,18 @@ sms.email = sms@example.com
 ; no_tls = false
 ; queue_path = data/messages
 ; debug_smtp = false
-; default_sender = {{project}} <support@example.com>
+; default_sender = {{project}} <support@%(domain)s>
 ;
 ; [app:sms]
-; email = sms@example.com
+; email = sms@%(domain)s
 ; imap.host = localhost
 ; imap.port = 993
 ; imap.username =
 ; imap.password =
 ;
-; [app:portlock] # Ensure that only one instance of the script is running
-; http =         # utilities/make_crontab.py
-; sms =          # utilities/sms.py
+; [app:portlock]
+; serve =
+; sms =
 
 [server:main]
 use = egg:Paste#http

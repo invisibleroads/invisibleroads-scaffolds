@@ -49,11 +49,9 @@ class TestUpdate(TestRoute, TestCase):
         self.login(self.member)
         self.ajax_failed(user_id=self.leader['id'])
 
-    def test_leaders_cannot_omit_user_id(self):
-        self.login(self.member)
-        self.ajax_succeeded(id=self.row1['id'], col1=WORD3, col2=WORD3, user_id=None)
+    def test_leaders_can_set_user_id(self):
         self.login(self.leader)
-        self.ajax_failed(id=self.row1['id'], col1=WORD4, col2=WORD4, user_id=None)
+        self.ajax_succeeded(id=self.row1['id'], col1=WORD4, col2=WORD4, user_id=self.member['id'])
 
     def test_col1_is_unique(self):
         self.login(self.member)
