@@ -290,6 +290,7 @@ function autoCompleteProxy($form, fieldName, jsonURL, defaultValue, defaultProxy
                     var id = x[0], name = x[1];
                     return '<span rel=' + id + '>' + name + '</span>';
                 },
+                minCharacterCount:0,
                 sourcePacks:data.items
             }).bind('itemSelect.ac', function(e, li) {
                 $field.val($(li).children('span').attr('rel'));
