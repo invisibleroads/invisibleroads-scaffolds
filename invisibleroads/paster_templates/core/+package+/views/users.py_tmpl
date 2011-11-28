@@ -21,21 +21,28 @@ from {{package}}.validators import UsersCannotChangeOwn, FormState, IDExists, ID
 
 def includeme(config):
     config.scan(__name__)
-    config.add_route('user_index', '')
-    config.add_route('user_register', 'register')
-    config.add_route('user_confirm', 'confirm/{ticket}')
-    config.add_route('user_login', 'login')
-    config.add_route('user_logout', 'logout')
-    config.add_route('user_update', 'update')
-    config.add_route('user_mutate', 'mutate')
-    config.add_route('user_reset', 'reset')
-    config.add_route('user_move', 'move')
+    config.add_route('user_index', 'users')
+    config.add_route('user_json', 'users.json')
+    config.add_route('user_register', 'users/register')
+    config.add_route('user_confirm', 'users/confirm/{ticket}')
+    config.add_route('user_login', 'users/login')
+    config.add_route('user_logout', 'users/logout')
+    config.add_route('user_update', 'users/update')
+    config.add_route('user_mutate', 'users/mutate')
+    config.add_route('user_reset', 'users/reset')
+    config.add_route('user_move', 'users/move')
 
 
 @view_config(route_name='user_index', renderer='users/index.mako', permission='user_index')
 def index(request):
     'List users'
     return dict(users=db.query(User).order_by(User.when_login.desc()).all())
+
+
+@view_config(route_name='user_json', renderer='json', permission='user_index')
+def json(request):
+    'List users in JSON format'
+    return dict(isOk=1, items=db.query(User.id, User.nickname).all())
 
 
 @view_config(route_name='user_register', renderer='users/change.mako', request_method='GET', permission='user_register')

@@ -1,6 +1,7 @@
 1.7.9
 -----
 - Added alternate server utilities/serve.py using gevent
+- Added autoCompleteProxy() to replace select controls that have many options
 - Added User.unpack_properties to replace unpack_user_properties
 - Added parameter SITE_DOMAIN
 - Added users.mail_users()

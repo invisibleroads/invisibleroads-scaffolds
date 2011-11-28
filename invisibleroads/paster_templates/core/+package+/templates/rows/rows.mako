@@ -4,7 +4,7 @@
             active
         % endif
     '>
-		<td>${row.user.nickname}</td>
+        <td rel=${row.user.id}>${row.user.nickname}</td>
 		<td>${row.col1}</td>
 		<td>${row.col2}</td>
         <td>

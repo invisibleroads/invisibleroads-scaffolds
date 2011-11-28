@@ -93,7 +93,7 @@ def main(global_config, **settings):
     config.add_static_view('static', '{{package}}:static', cache_max_age=3600)
     # Configure routes
     config.include(rows)
-    config.include(users, route_prefix='users')
+    config.include(users)
     # Return WSGI app
     return config.make_wsgi_app()
 

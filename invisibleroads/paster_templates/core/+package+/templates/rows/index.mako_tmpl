@@ -12,6 +12,7 @@
 <script src="${request.static_path('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
 <script src="${request.static_path('{{package}}:static/jquery.tools.min.js')}"></script>
 <script src="${request.static_path('{{package}}:static/jquery.extras.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery.autoComplete.min.js')}"></script>
 <link rel=stylesheet href="${request.static_path('{{package}}:static/tools.css')}" />
 </%def>
 
@@ -29,6 +30,15 @@ var $table = $('#${tableID}').dataTableCustom({
         {sClass:'when_update', sType:'rel-string'}
     ]
 });
+
+% if IS_MEMBER:
+var $form = $('#form').prepareTableOverlayForm($table
+% if not IS_LEADER:
+    , $('.user${USER_ID}')
+% endif
+);
+% endif
+
 % if IS_LEADER:
 $('.when_update:not(th)').clickToggle({
     requiredClass:'row',
@@ -39,13 +49,7 @@ $('.when_update:not(th)').clickToggle({
     requestAttribute:'is_active',
     nameClass:'col1'
 });
-% endif
-% if IS_MEMBER:
-$('#form').prepareTableOverlayForm($table
-% if not IS_LEADER:
-    , $('.user${USER_ID}')
-% endif
-);
+autoCompleteProxy($form, 'user_id', "${request.route_path('user_json')}", ${USER_ID}, '${USER_NICKNAME}');
 % endif
 </%def>
 
@@ -87,15 +91,8 @@ $('#form').prepareTableOverlayForm($table
 <div>
     <div>
         Owner<br>
-        <select name=user_id title='To whom does it belong?'>
-        % for userID, userNickname in userPacks:
-            <option value=${userID} \
-            % if userID == USER_ID:
-                selected\
-            % endif
-            >${userNickname}</option>
-        % endfor
-        </select>
+        <input class=user_id title='To whom does it belong?'>
+        <input name=user_id type=hidden>
     </div>
 </div>
 % endif

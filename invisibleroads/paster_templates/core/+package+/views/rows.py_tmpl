@@ -22,16 +22,7 @@ def includeme(config):
 @view_config(route_name='row_index', renderer='rows/index.mako', request_method='GET', permission='row_index')
 def index(request):
     'List rows'
-    userID = authenticated_userid(request)
-    isLeader = User.unpack_properties(userID, 'isLeader')[0]
-    rowQuery = db.query(Row).options(joinedload(Row.user))
-    if isLeader:
-        return dict(
-            rows=rowQuery.all(),
-            userPacks=db.query(User.id, User.nickname).order_by(User.nickname).all())
-    else:
-        return dict(
-            rows=rowQuery.all())
+    return dict(rows=db.query(Row).options(joinedload(Row.user)).all())
 
 
 @view_config(route_name='row_update', renderer='json', request_method='POST', permission='row_update')

@@ -21,12 +21,7 @@ function setTipByName($fieldsWithTips, tipByName) {
     $fieldsWithTips.each(function() {
         var tip = tipByName[this.name || this.className];
         if (tip) {
-            var $field = $(this), tipsAPI = $field.tooltip(), tipHTML = '<span class=error>' + tip + '</span>';
-            if (tipsAPI.isShown()) {
-                tipsAPI.getTip().html(tipHTML);
-            } else {
-                $field.prop('title', tipHTML);
-            }
+            var $field = $(this);
             // Prevent a tooltip appearing offscreen before form is visible
             if ($field.is(':visible')) {
                 $field.tooltip().show();
@@ -38,6 +33,14 @@ function setTipByName($fieldsWithTips, tipByName) {
         }
     });
     return focused;
+}
+function setTip($field, tip) {
+    var tipsAPI = $field.tooltip(), tipHTML = '<span class=error>' + tip + '</span>';
+    if (tipsAPI.isShown()) {
+        tipsAPI.getTip().html(tipHTML);
+    } else {
+        $field.prop('title', tipHTML);
+    }
 }
 // Submit form fields and files
 $.fn.ajaxForm = function(options) {
@@ -177,7 +180,7 @@ $.fn.prepareOverlayForm = function() {
         $form.overlay({
             mask:{color:'#000', loadSpeed:0},
             onLoad:function() {
-                $form.find('[name]:visible').first().focus().select();
+                $form.find('input,select,textarea').filter(':visible').first().focus().select();
             },
             onClose:function() {
                 $('.formTip').hide();
@@ -269,6 +272,33 @@ $.fn.clickToggle = function(options) {
         }
     });
 };
+// Autocomplete field proxies
+function autoCompleteProxy($form, fieldName, jsonURL, defaultValue, defaultProxy) {
+    var $field = $form.find('[name=' + fieldName + ']'), $proxy = $field.prev();
+    $form
+    .bind('showAdd', function() {
+        $field.val(defaultValue);
+        $proxy.val(defaultProxy);
+    })
+    .bind('showEdit', function(e, $tr) {
+        $proxy.val($.trim($tr.find('.' + fieldName).text()));
+    });
+    $.getJSON(jsonURL, function(data) {
+        if (data.isOk) {
+            $proxy.autoComplete({
+                formatResult:function(x) {
+                    var id = x[0], name = x[1];
+                    return '<span rel=' + id + '>' + name + '</span>';
+                },
+                sourcePacks:data.items
+            }).bind('itemSelect.ac', function(e, li) {
+                $field.val($(li).children('span').attr('rel'));
+            });
+        } else {
+            alert(data.message);
+        }
+    });
+}
 
 if (typeof $.fn.dataTable != 'undefined') {
 
