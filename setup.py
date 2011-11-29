@@ -25,7 +25,7 @@ setup(
     url='https://github.com/invisibleroads/invisibleroads-scaffolds',
     entry_points="""\
         [paste.paster_create_template]
-        ir_core = invisibleroads.paster_templates:CoreTemplate
+        ir_core = invisibleroads_scaffolds.paster_templates:CoreTemplate
     """,
     install_requires=['pyramid'],
     packages=find_packages(),

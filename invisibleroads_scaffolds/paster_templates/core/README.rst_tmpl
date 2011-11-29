@@ -49,27 +49,21 @@ PostgreSQL
         yum -y install postgresql postgresql-devel postgresql-server python-psycopg2
         service postgresql initdb
         service postgresql start
+    su - postgres
+        psql -c "alter role postgres with password 'SET-PASSWORD-HERE';"
+        vim data/pg_hba.conf
+            local   all         all                               md5
+            host    all         all         127.0.0.1/32          md5
+            host    all         all         ::1/128               md5
+        createuser SET-USERNAME-HERE -S -D -R
+        psql -c "alter role SET-USERNAME-HERE with password 'SET-PASSWORD-HERE';"
+        createdb -O SET-USERNAME-HERE SET-DATABASE-HERE
     su
         passwd postgres
-    createuser -U postgres SET-USERNAME-HERE -S -D -R
-    psql -U postgres -c "alter role SET-USERNAME-HERE with password 'SET-PASSWORD-HERE';"
-    createdb -U postgres -O SET-USERNAME-HERE SET-DATABASE-HERE
-    su - postgres
-        vim data/pg_hba.conf
-            # "local" is for Unix domain socket connections only
-            local   all         all                               md5
-            # IPv4 local connections:
-            host    all         all         127.0.0.1/32          md5
-            # IPv6 local connections:
-            host    all         all         ::1/128               md5
-    su
         service postgresql restart
-        psql -U postgres -c "alter role postgres with password 'SET-PASSWORD-HERE';"
-        service postgresql restart
-
     source $PYRAMID_ENV/bin/activate
     pip install psycopg2
-    cd $PROJECTS/{{project}}
+    cd $PROJECTS/invisibleroads
     vim .development.ini
         sqlalchemy.url = postgresql+psycopg2://SET-USERNAME-HERE:SET-PASSWORD-HERE@localhost:5432/SET-DATABASE-HERE
 
