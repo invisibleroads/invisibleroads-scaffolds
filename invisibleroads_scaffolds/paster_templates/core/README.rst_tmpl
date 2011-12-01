@@ -11,8 +11,8 @@
     pip install ipython ipdb nose coverage
 
     # Enter repository
-    PROJECTS=$HOME/Projects
-    cd $PROJECTS/{{project}}
+    REPOSITORY=$PYRAMID_ENV/app
+    cd $REPOSITORY
     # Install dependencies
     python setup.py develop
 
@@ -63,7 +63,7 @@ PostgreSQL
         service postgresql restart
     source $PYRAMID_ENV/bin/activate
     pip install psycopg2
-    cd $PROJECTS/invisibleroads
+    cd $REPOSITORY
     vim .development.ini
         sqlalchemy.url = postgresql+psycopg2://SET-USERNAME-HERE:SET-PASSWORD-HERE@localhost:5432/SET-DATABASE-HERE
 
@@ -73,7 +73,7 @@ gevent
 ::
 
     source $PYRAMID_ENV/bin/activate
-    cd $PROJECTS
+    cd REPOSITORY
     yum -y install hg libevent-devel
 
     hg clone https://bitbucket.org/ambroff/greenlet
