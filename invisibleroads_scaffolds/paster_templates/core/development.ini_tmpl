@@ -15,7 +15,6 @@ pyramid.includes = pyramid_debugtoolbar
 
 # SQLite does not support case-insensitivity for non-ascii characters
 sqlalchemy.url = sqlite:///%(here)s/development.db
-# sqlalchemy.url = postgresql+psycopg2://username:password@localhost:5432/database
 
 cache.type = memory
 cache.short.expire = 1800
@@ -41,6 +40,7 @@ sms.email = sms@%(domain)s
 ; domain = {{project}}.com
 ; 
 ; [app:main]
+; sqlalchemy.url = postgresql+psycopg2://username:password@localhost:5432/database
 ; secret.authtkt =
 ; secret.session =
 ; secret.ciphers =

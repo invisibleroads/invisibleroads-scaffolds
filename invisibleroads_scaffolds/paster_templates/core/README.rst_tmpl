@@ -8,12 +8,13 @@
     # Activate isolated environment
     source $PYRAMID_ENV/bin/activate
     # Install packages
-    pip install ipython ipdb nose coverage
+    pip install --upgrade ipython ipdb nose coverage
 
     # Enter repository
     REPOSITORY=$PYRAMID_ENV/app
     cd $REPOSITORY
     # Install dependencies
+    pip install --upgrade cryptacular formencode imapIO pycrypto pyramid pyramid_beaker pyramid_debugtoolbar pyramid_mailer pyramid_tm recaptcha-client simplejson SQLAlchemy transaction webtest whenIO zope.sqlalchemy
     python setup.py develop
 
     # Edit sensitive information
@@ -46,7 +47,7 @@ PostgreSQL
 ::
 
     su
-        yum -y install postgresql postgresql-devel postgresql-server python-psycopg2
+        yum -y install postgresql postgresql-devel postgresql-server
         service postgresql initdb
         service postgresql start
     su - postgres
@@ -62,7 +63,7 @@ PostgreSQL
         passwd postgres
         service postgresql restart
     source $PYRAMID_ENV/bin/activate
-    pip install psycopg2
+    pip install --upgrade psycopg2
     cd $REPOSITORY
     vim .development.ini
         sqlalchemy.url = postgresql+psycopg2://SET-USERNAME-HERE:SET-PASSWORD-HERE@localhost:5432/SET-DATABASE-HERE
@@ -73,7 +74,7 @@ gevent
 ::
 
     source $PYRAMID_ENV/bin/activate
-    cd REPOSITORY
+    cd $REPOSITORY
     yum -y install hg libevent-devel
 
     hg clone https://bitbucket.org/ambroff/greenlet

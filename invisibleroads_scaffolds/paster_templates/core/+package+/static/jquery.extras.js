@@ -22,6 +22,7 @@ function setTipByName($fieldsWithTips, tipByName) {
         var tip = tipByName[this.name || this.className];
         if (tip) {
             var $field = $(this);
+            setTip($field, tip);
             // Prevent a tooltip appearing offscreen before form is visible
             if ($field.is(':visible')) {
                 $field.tooltip().show();

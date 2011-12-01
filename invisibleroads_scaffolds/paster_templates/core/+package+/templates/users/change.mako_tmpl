@@ -18,7 +18,6 @@ td {padding-right:0.5em}
 <%def name='js()'>
 var $form = $('#form');
 $form.prepareForm().bind('onSuccess', function() {
-    $(this).find('input').not('.mutate').prop('disabled', true);
     setTipByName($('[name=email]'), {
         email:"Please check your email to ${'finalize changes to' if user else 'create'} your account."
     });

@@ -5,6 +5,7 @@
 *.egg-info
 *.log
 *.pyc
+*.swo
 *.swp
 .*.ini
 .coverage
