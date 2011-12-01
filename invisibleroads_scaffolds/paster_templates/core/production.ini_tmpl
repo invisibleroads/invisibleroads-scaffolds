@@ -59,6 +59,7 @@ sms.email = sms@%(domain)s
 ;
 ; [app:sms]
 ; email = sms@%(domain)s
+;
 ; imap.host = localhost
 ; imap.port = 993
 ; imap.username =
@@ -66,7 +67,7 @@ sms.email = sms@%(domain)s
 ;
 ; [app:portlock]
 ; serve =
-; sms =
+; digest =
 
 [server:main]
 use = egg:Paste#http

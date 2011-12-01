@@ -331,8 +331,8 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
         ($rows || $table.find('tr')).live({
             mouseenter:function() {
                 var $tr = $(this), id = $tr.prop('id');
-                var $tableInfo = $('#' + tableID + '_info');
                 if (!id) return;
+                var $tableInfo = $('#' + tableID + '_info');
                 tableInfo = $tableInfo.html();
                 $tableInfo.html('Doubleclick to edit');
                 $(this).css('cursor', 'pointer');

@@ -53,16 +53,18 @@ $(function() {
             }
         },
     % endif
+    % if not IS_DEBUG:
         error:function(jqXHR, textStatus, errorThrown) {
             if ('parsererror' == textStatus) {
                 window.location = "${request.route_path('user_logout')}?url=" + window.location.pathname;
             }
         },
+    % endif
         dataType:'json'
     });
     $('.hover').live({
-        mouseenter:function() {$(this).removeClass('off').addClass('on')},
-        mouseleave:function() {$(this).removeClass('on').addClass('off')}
+        mouseenter:function() {$(this).removeClass('off').addClass('on').css('cursor', 'pointer')},
+        mouseleave:function() {$(this).removeClass('on').addClass('off').css('cursor', 'auto')}
     });
 	${self.js()}
 });

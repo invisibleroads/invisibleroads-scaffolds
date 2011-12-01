@@ -139,8 +139,10 @@ if ($username.val() == '') $username.focus();
 <br>
 <a class='hover link off'>Change timezone</a>
 <select id=timezoneOffset>
-    <%include file='offsets.mako'/>
+<%! import datetime %>
+% for offset in xrange(1410, -1, -30):
+    <option value=${offset}>${(datetime.datetime.utcnow() - datetime.timedelta(minutes=offset)).strftime('%I:%M %p')}</option>
+% endfor
 </select>
 </form>
-<% settings = request.registry.settings %>
-<a href='/docs/' class='hover link off'>Read documentation for ${SITE_NAME} ${SITE_VERSION}</a><br>
+<a class='hover link off' href='/docs/'>Read documentation for ${SITE_NAME} ${SITE_VERSION}</a><br>

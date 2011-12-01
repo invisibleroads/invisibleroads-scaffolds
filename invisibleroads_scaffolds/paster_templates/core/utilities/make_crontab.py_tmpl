@@ -2,7 +2,7 @@
 import os
 
 from script_process import ArgumentParser, initialize
-from {{package}} import parameters
+from {{package}}.parameters import *
 
 
 def run(settings):
@@ -12,16 +12,16 @@ def run(settings):
         basePath)
     lines = [
         '# Start server',
-        '%s * * * * %s; python utilities/serve.py -c production.ini -q >> server.log 2>&1' % (
-            format_minutes(parameters.SERVER_INTERVAL_MINUTES, minuteStart=15), 
+        '%s * * * * %s; python utilities/serve.py -c production.ini -q >> serve.log 2>&1' % (
+            format_minutes(SERVE_INTERVAL_MINUTES, minuteStart=15), 
             headerCommand),
         '# Check outbox',
         '%s * * * * %s; qp --config .production.ini >> qp.log 2>&1' % (
-            format_minutes(parameters.OUTBOX_INTERVAL_MINUTES, minuteStart=10), 
+            format_minutes(QP_INTERVAL_MINUTES, minuteStart=10), 
             headerCommand),
         '# Process SMS',
-        '%s * * * * %s; python utilities/sms.py -c production.ini -q >> sms.log 2>&1' % (
-            format_minutes(parameters.SMS_INTERVAL_MINUTES, minuteStart=5), 
+        '%s * * * * %s; python utilities/digest.py -c production.ini -q >> digest.log 2>&1' % (
+            format_minutes(DIGEST_INTERVAL_MINUTES, minuteStart=5), 
             headerCommand),
     ]
     crontabPath = os.path.join(basePath, 'server.crt')

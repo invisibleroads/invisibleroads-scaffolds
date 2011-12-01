@@ -14,6 +14,6 @@ if __name__ == '__main__':
     argumentParser = ArgumentParser(
         description='Process SMS messages in mailbox')
     args = argumentParser.parse_args()
-    message = run(initialize(args, portlock='sms'))
+    message = run(initialize(args, portlock='digest'))
     if args.verbose:
         print message
