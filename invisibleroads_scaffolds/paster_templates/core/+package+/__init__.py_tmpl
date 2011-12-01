@@ -93,8 +93,8 @@ def main(global_config, **settings):
     # Configure static assets
     config.add_static_view('static', '{{package}}:static', cache_max_age=3600)
     # Configure routes
-    config.include(rows)
     config.include(users)
+    config.include(rows)
     # Return WSGI app
     return config.make_wsgi_app()
 
