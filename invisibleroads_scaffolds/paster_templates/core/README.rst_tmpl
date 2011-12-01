@@ -74,13 +74,29 @@ gevent
 ::
 
     source $PYRAMID_ENV/bin/activate
-    cd $REPOSITORY
-    yum -y install hg libevent-devel
+    mkdir $PYRAMID_ENV/opt
 
+    cd $PYRAMID_ENV/opt
+    yum -y install hg libevent-devel
+    # wget https://github.com/downloads/libevent/libevent/libevent-2.0.16-stable.tar.gz
+    # tar xzvf libevent-2.0.16-stable.tar.gz
+    # cd libevent-2.0.16-stable
+    # ./configure --prefix=$HOME
+    # make
+    # make install
+
+    cd $PYRAMID_ENV/opt
     hg clone https://bitbucket.org/ambroff/greenlet
     cd greenlet
+    # wget https://bitbucket.org/ambroff/greenlet/get/77363116e78d.zip
+    # unzip 77363116e78d.zip
+    # cd ambroff-greenlet-77363116e78d/
     rm -Rf $PYRAMID_ENV/lib/python2.7/site-packages/greenlet*
     python setup.py install
 
-    pip install --upgrade gevent
+    pip install gevent
+    # pip install --install-option="-I$HOME/include" --install-option="-L$HOME/lib" gevent
+
+    cd $REPOSITORY
+    # export LD_LIBRARY_PATH=$HOME/lib
     python utilities/serve.py -c production.ini
