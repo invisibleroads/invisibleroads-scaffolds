@@ -14,6 +14,7 @@
     REPOSITORY=$PYRAMID_ENV/app
     cd $REPOSITORY
     # Install dependencies
+    yum -y install gcc gcc-c++
     pip install --upgrade cryptacular formencode imapIO pycrypto pyramid pyramid_beaker pyramid_debugtoolbar pyramid_mailer pyramid_tm recaptcha-client simplejson SQLAlchemy transaction webtest whenIO zope.sqlalchemy
     python setup.py develop
 
