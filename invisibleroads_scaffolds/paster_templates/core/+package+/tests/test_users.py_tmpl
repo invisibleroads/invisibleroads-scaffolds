@@ -10,7 +10,7 @@ from {{package}}.libraries import sms
 from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, ROLE_LEADER, ROLE_MEMBER, ROLE_SPECTATOR
 from {{package}}.parameters import *
 from {{package}}.tests import TestRoute, build_dict, SETTINGS, WORD, WORD1, WORD2
-from {{package}}.views.users import format_tokens, save_user_
+from {{package}}.views.users import format_tokens, save_user_, apply_user_
 
 
 class TestUserRoute(TestRoute):
@@ -22,8 +22,12 @@ class TestUserRoute(TestRoute):
         self.urlRegister = self.get_url('user_register')
         self.urlUpdate = self.get_url('user_update')
 
+    def confirm_registration(self):
+        user_ = db.query(User_).order_by(User_.when_expire.desc()).first()
+        apply_user_(self.get_request_object(environ_from_url(self.urlUpdate), user_agent='xxx'), user_)
+        transaction.commit()
+
     def confirm_ticket(self):
-        'Applies the most recent registration'
         ticket = db.query(User_.ticket).order_by(User_.when_expire.desc()).first()[0]
         return self.request_url(self.get_url('user_confirm', ticket=ticket))
 
@@ -92,22 +96,24 @@ class TestConfirm(TestUserRoute, TestCase):
     def make_test_user(self, **requestParams):
         params = dict(self.registrationParams, **requestParams)
         self.ajax_url(1, self.urlRegister, 'POST', params)
-        self.confirm_ticket()
+        self.confirm_registration()
         return db.query(User).filter_by(email=params['email']).first()
 
     def get_test_user(self):
         return db.query(User).filter_by(email=self.email).first()
 
+    @skipIf('recaptcha.public' not in SETTINGS, 'not configured')
+    def test_recaptcha_required_to_create_account(self):
+        self.ajax_url(1, self.urlRegister, 'POST', self.registrationParams)
+        self.assertEqual(None, self.get_test_user())
+        response = self.confirm_ticket()
+        self.assert_('Checkpoint</title>' in response.body)
+
     def test_flash_messages_are_displayed(self):
         def assert_redirection_message(response, message):
             self.assertEqual(self.urlLogin, urlparse(response.location).path)
             self.assert_(message in self.request_url(self.urlLogin).body)
-
-        self.ajax_url(1, self.urlRegister, 'POST', self.registrationParams)
-        self.assertEqual(None, self.get_test_user())
-        response = self.confirm_ticket()
-        self.assertNotEqual(None, self.get_test_user())
-        assert_redirection_message(response, 'Account created')
+        self.make_test_user()
 
         self.login(self.registrationParams)
         self.ajax_url(1, self.urlUpdate, 'POST', dict(self.registrationParams, nickname=self.nickname + 'x'))
@@ -132,7 +138,7 @@ class TestConfirm(TestUserRoute, TestCase):
         exercise_registration(email=self.email)
         exercise_registration(**self.registrationParams)
         self.assertNotEqual(0, db.query(User_).count())
-        self.confirm_ticket()
+        self.confirm_registration()
         self.assertEqual(0, db.query(User_).count())
 
     def test_new_accounts_are_deactivated(self):
@@ -182,6 +188,7 @@ class TestLogin_(TestUserRoute, TestCase):
         self.ajax_failed(password='xxx')
         self.ajax_succeeded()
 
+    @skipIf('recaptcha.public' not in SETTINGS, 'not configured')
     def test_recaptcha_required_after_hitting_rejection_limit(self):
         for rejectionIndex in xrange(REJECTION_LIMIT):
             self.ajax_failed(password='xxx')
@@ -315,7 +322,7 @@ class TestReset(TestUserRoute, TestCase):
         userID = self.leader['id']
         userPassword = self.leader['password']
         self.assertEqual(db.query(User).get(userID).check(userPassword), True)
-        self.confirm_ticket()
+        self.confirm_registration()
         self.assertEqual(db.query(User).get(userID).check(userPassword), False)
 
 

@@ -4,8 +4,8 @@ from beaker.cache import region_invalidate
 from email.utils import formataddr
 from formencode import Schema, All, Invalid
 from formencode.validators import StringBool, Email, FancyValidator, Int, UnicodeString
-from pyramid.httpexceptions import HTTPFound
-from pyramid.renderers import render
+from pyramid.httpexceptions import HTTPFound, HTTPNotFound
+from pyramid.renderers import render, render_to_response
 from pyramid.security import remember, forget, authenticated_userid, NO_PERMISSION_REQUIRED
 from pyramid.view import view_config
 from pyramid_mailer import get_mailer
@@ -60,20 +60,21 @@ def register_(request):
 @view_config(route_name='user_confirm', permission=NO_PERMISSION_REQUIRED)
 def confirm(request):
     'Confirm changes'
-    # Apply changes to user account
-    try:
-        user_ = apply_user_(request)
-    except ApplicationError:
-        message = 'Ticket expired'
-    else:
+    ticket = request.matchdict.get('ticket', '').strip()
+    user_ = db.query(User_).filter_by(ticket=ticket).filter(User_.when_expire>=datetime.datetime.utcnow()).first() if ticket else None
+    if user_:
+        # If the ticket is for creating an account,
+        if not user_.user_id:
+            try:
+                if not check_captcha(request):
+                    return render_to_response('users/recaptcha.mako', {}, request)
+            except RecaptchaNotConfigured:
+                pass
+        # Apply changes to user account
+        apply_user_(request, user_)
         message = 'Account updated' if user_.user_id else 'Account created'
-        # Delete expired or similar user_
-        db.execute(User_.__table__.delete().where(
-            (User_.when_expire < datetime.datetime.utcnow()) | 
-            (User_.username == user_.username) | 
-            (User_.nickname == user_.nickname) |
-            (User_.email == user_.email)))
-    # Save message in session
+    else:
+        message = 'Ticket expired'
     request.session.flash(message)
     return HTTPFound(location=request.route_path('user_login'), headers=forget(request))
 
@@ -96,8 +97,7 @@ def login(request):
 @view_config(route_name='user_login', renderer='json', request_method='POST', permission=NO_PERMISSION_REQUIRED)
 def login_(request):
     'Process login credentials'
-    # Make shortcuts
-    environ, params, registry = [getattr(request, x) for x in 'environ', 'params', 'registry']
+    params = request.params
     username, password = [params.get(x, u'').strip() for x in 'username', 'password']
     if not username or not password:
         return dict(isOk=0)
@@ -110,13 +110,11 @@ def login_(request):
         user.rejection_count += 1
         return dict(isOk=0, rejectionCount=user.rejection_count)
     # If there have been too many rejections, expect recaptcha
-    if user.rejection_count >= REJECTION_LIMIT:
-        rChallenge, rResponse = [params.get(x, u'') for x in 'recaptcha_challenge', 'recaptcha_response']
-        rPrivate = registry.settings.get('recaptcha.private', '')
-        clientIP = environ.get('HTTP_X_REAL_IP', environ.get('HTTP_X_FORWARDED_FOR', environ.get('REMOTE_ADDR')))
-        # If the response is not valid, say so
-        if not captcha.submit(rChallenge, rResponse, rPrivate, clientIP).is_valid:
+    try:
+        if user.rejection_count >= REJECTION_LIMIT and not check_captcha(request):
             return dict(isOk=0, rejectionCount=user.rejection_count)
+    except RecaptchaNotConfigured:
+        pass
     # Save user
     user.timezone_offset = make_int(params.get('timezoneOffset'), default=TIMEZONE_OFFSET_MINUTES)
     user.when_login = datetime.datetime.utcnow()
@@ -264,14 +262,8 @@ def save_user_(request, valueByName, action, userID=None):
     return dict(isOk=1)
 
 
-def apply_user_(request):
+def apply_user_(request, user_):
     'Finalize a change to a user account'
-    ticket = request.matchdict.get('ticket', '').strip()
-    if not ticket:
-        raise ApplicationError
-    user_ = db.query(User_).filter((User_.ticket==ticket) & (User_.when_expire>=datetime.datetime.utcnow())).first()
-    if not user_:
-        raise ApplicationError
     userID = user_.user_id
     user = db.query(User).get(userID) if userID else User()
     user.username = user_.username
@@ -283,9 +275,19 @@ def apply_user_(request):
     db.add(user)
     # If we have a new user requiring activation, notify leaders
     if not userID:
-        mail_users('Activate %s?' % user.nickname, render('users/activate.mako', dict(user=user, browser=request.user_agent, ip=get_remote_ip(request)), request), request, is_leader=True)
+        mail_users('Activate %s?' % user.nickname, render('users/activate.mako', dict(
+            user=user,
+            browser=request.user_agent,
+            ip=get_remote_ip(request)
+        ), request), request, is_leader=True)
+    # Delete expired or similar user_
+    db.execute(User_.__table__.delete().where(
+        (User_.when_expire < datetime.datetime.utcnow()) | 
+        (User_.username == user_.username) | 
+        (User_.nickname == user_.nickname) |
+        (User_.email == user_.email)))
+    # Invalidate cache
     region_invalidate(User.get_properties, None, User, userID)
-    return user_
 
 
 def mail_users(subject, body, request, **userKeywords):
@@ -298,6 +300,21 @@ def mail_users(subject, body, request, **userKeywords):
             recipients=[formataddr((x.nickname, x.email)) for x in users],
             subject=subject, 
             body=body))
+
+
+def check_captcha(request):
+    'Return True if the captcha is valid'
+    environ, params, registry = [getattr(request, x) for x in 'environ', 'params', 'registry']
+    rChallenge, rResponse = [params.get(x, u'') for x in 'recaptcha_challenge_field', 'recaptcha_response_field']
+    rPrivate = registry.settings.get('recaptcha.private', '')
+    if not rPrivate:
+        raise RecaptchaNotConfigured
+    clientIP = environ.get('HTTP_X_REAL_IP', environ.get('HTTP_X_FORWARDED_FOR', environ.get('REMOTE_ADDR')))
+    return captcha.submit(rChallenge, rResponse, rPrivate, clientIP).is_valid
+
+
+class RecaptchaNotConfigured(Exception):
+    pass
 
 
 class SecurePassword(FancyValidator):

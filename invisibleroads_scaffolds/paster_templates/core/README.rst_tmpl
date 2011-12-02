@@ -14,7 +14,8 @@
     REPOSITORY=$PYRAMID_ENV/app
     cd $REPOSITORY
     # Install dependencies
-    yum -y install gcc gcc-c++
+    su
+        yum -y install gcc gcc-c++
     pip install --upgrade cryptacular formencode imapIO pycrypto pyramid pyramid_beaker pyramid_debugtoolbar pyramid_mailer pyramid_tm recaptcha-client simplejson SQLAlchemy transaction webtest whenIO zope.sqlalchemy
     python setup.py develop
 
@@ -78,7 +79,8 @@ gevent
     mkdir $PYRAMID_ENV/opt
 
     cd $PYRAMID_ENV/opt
-    yum -y install hg libevent-devel
+    su
+        yum -y install hg libevent-devel
     # wget https://github.com/downloads/libevent/libevent/libevent-2.0.16-stable.tar.gz
     # tar xzvf libevent-2.0.16-stable.tar.gz
     # cd libevent-2.0.16-stable

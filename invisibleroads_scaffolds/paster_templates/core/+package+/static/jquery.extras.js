@@ -161,9 +161,11 @@ $.fn.prepareForm = function() {
                     if (data.message) {
                         alert(data.message);
                     } else {
-                        $form.trigger('onBeforeError', [data]);
-                        if (!setTipByName($fieldsWithTips, data.errorByName))
-                            alertError(data.errorByName);
+                        if ($form.triggerHandler('onBeforeError', [data]) != false) {
+                            if (!setTipByName($fieldsWithTips, data.errorByName)) {
+                                alertError(data.errorByName);
+                            }
+                        }
                     }
                 }
             }

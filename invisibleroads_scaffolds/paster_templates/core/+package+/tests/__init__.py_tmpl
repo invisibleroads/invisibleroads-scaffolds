@@ -114,6 +114,11 @@ class TestRoute(object):
             self.ajax_failed(**dict(params, **{fieldName: duplicateValue.upper()}))
             self.ajax_failed(**dict(params, **{fieldName: duplicateValue.lower()}))
 
+    def get_request_object(self, environ, **kw):
+        request = self.router.request_factory(environ, **kw)
+        request.registry = self.router.registry
+        return request
+
     def get_url(self, routeName, **urlParams):
         return self.router.routes_mapper.generate(routeName, dict(self.urlParams, **urlParams))
 

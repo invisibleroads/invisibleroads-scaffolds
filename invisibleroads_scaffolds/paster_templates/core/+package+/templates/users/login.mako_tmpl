@@ -27,10 +27,10 @@ function login() {
         return;
     }
     var params = {'username':$username.val(), 'password':$password.val(), 'timezoneOffset':$timezoneOffset.val()};
-    var $rc = $('#recaptcha_challenge_field'), $rr = $('#recaptcha_response_field');
+    var $rc = $('#recaptcha_challenge_field');
     if ($rc.length) {
-        params['recaptcha_challenge'] = $rc.val();
-        params['recaptcha_response'] = $rr.val();
+        params['recaptcha_challenge_field'] = $rc.val();
+        params['recaptcha_response_field'] = $('#recaptcha_response_field').val();
     }
     $.post("${request.route_path('user_login')}", params, function(data) {
         if (data.isOk) {
@@ -40,12 +40,11 @@ function login() {
             $resetTrigger.show();
             $resetPassword.show();
             rejectionCount = data.rejectionCount ? data.rejectionCount : rejectionCount + 1;
-            if (rejectionCount >= ${REJECTION_LIMIT}) {
-                Recaptcha.create("${request.registry.settings.get('recaptcha.public', '')}", 'recaptcha', {
-                    theme: 'red',
-                    callback: Recaptcha.focus_response_field
-                });
-            }
+        <% rPublic = request.registry.settings.get('recaptcha.public', '') %>
+        % if rPublic:
+            if (rejectionCount >= ${REJECTION_LIMIT})
+                Recaptcha.create('${rPublic}', 'recaptcha', {callback: Recaptcha.focus_response_field});
+        % endif
         }
     });
 }

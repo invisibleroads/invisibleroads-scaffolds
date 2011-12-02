@@ -9,7 +9,7 @@ load = lambda x: open(os.path.join(HERE, x)).read()
 
 setup(
     name='invisibleroads-scaffolds',
-    version='1.7.9',
+    version='1.8.0',
     description='Pyramid application scaffolds based on invisibleroads.com',
     long_description=load('README.rst') + '\n\n' + load('CHANGES.rst'),
     license='MIT',
