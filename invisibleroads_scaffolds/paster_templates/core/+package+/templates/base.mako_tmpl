@@ -34,7 +34,7 @@ from {{package}}.parameters import SITE_NAME
 <div id=main>
 ${next.body()}
 </div>
-<script src="${request.static_path('{{package}}:static/jquery-1.6.4.min.js')}"></script>
+<script src='//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
 ${self.root()}
 <script>
 % if USER_ID:
