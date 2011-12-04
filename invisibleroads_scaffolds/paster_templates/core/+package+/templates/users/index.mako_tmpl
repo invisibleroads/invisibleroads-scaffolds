@@ -19,7 +19,7 @@ td {text-align:center}
 </%def>
 
 <%def name='js()'>
-var $table = $('#${tableID}').dataTableCustom({
+$('#${tableID}').dataTableCustom({
     aoColumns:[
         {sClass:'nickname', sType:'string'},
         {sClass:'role', sType:'rel-numeric'},
@@ -27,7 +27,7 @@ var $table = $('#${tableID}').dataTableCustom({
     ]
 });
 % if IS_LEADER:
-$('.when_login:not(th, #row${USER_ID} > td)').clickToggle({
+clickToggle('.when_login:not(th, #row${USER_ID} > td)', {
     optionalClass:'member',
     onMessage:'Activate',
     onValue:${ROLE_MEMBER},
@@ -37,7 +37,7 @@ $('.when_login:not(th, #row${USER_ID} > td)').clickToggle({
     requestAttribute:'role',
     nameClass:'nickname'
 });
-$('.role:not(th, #row${USER_ID} > td)').clickToggle({
+clickToggle('.role:not(th, #row${USER_ID} > td)', {
     requiredClass:'member',
     requiredMessage:'User deactivated',
     optionalClass:'leader',

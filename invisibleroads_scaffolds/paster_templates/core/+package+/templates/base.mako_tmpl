@@ -62,10 +62,10 @@ $(function() {
     % endif
         dataType:'json'
     });
-    $('.hover').live({
-        mouseenter:function() {$(this).removeClass('off').addClass('on').css('cursor', 'pointer')},
-        mouseleave:function() {$(this).removeClass('on').addClass('off').css('cursor', 'auto')}
-    });
+    $(document).on({
+        mouseenter:function() {$(this).removeClass('off').addClass('on')},
+        mouseleave:function() {$(this).removeClass('on').addClass('off')}
+    }, '.hover');
 	${self.js()}
 });
 </script>

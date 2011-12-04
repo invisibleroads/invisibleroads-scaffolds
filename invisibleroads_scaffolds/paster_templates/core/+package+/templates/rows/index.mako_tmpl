@@ -34,13 +34,13 @@ var $table = $('#${tableID}').dataTableCustom({
 % if IS_MEMBER:
 var $form = $('#form').prepareTableOverlayForm($table
 % if not IS_LEADER:
-    , $('.user${USER_ID}')
+    , '.user${USER_ID}'
 % endif
 );
 % endif
 
 % if IS_LEADER:
-$('.when_update:not(th)').clickToggle({
+clickToggle('.when_update:not(th)', {
     requiredClass:'row',
     optionalClass:'active',
     onMessage:'Activate',

@@ -16,8 +16,8 @@ form .replace {display:none}
 .error {font-weight:bold}
 
 a {text-decoration:none}
-.link.off {color:darkblue; background:white}
-.link.on {color:white; background:darkblue}
+.link.off {color:darkblue; background:white; cursor:auto}
+.link.on {color:white; background:darkblue; cursor:pointer}
 
 table {border-collapse:collapse}
 tr.even {background:#FBF5E6}

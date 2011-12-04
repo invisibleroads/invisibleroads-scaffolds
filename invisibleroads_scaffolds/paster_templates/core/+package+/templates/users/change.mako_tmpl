@@ -17,7 +17,7 @@ td {padding-right:0.5em}
 
 <%def name='js()'>
 var $form = $('#form');
-$form.prepareForm().bind('onSuccess', function() {
+$form.prepareForm().on('onSuccess', function() {
     setTipByName($('[name=email]'), {
         email:"Please check your email to ${'finalize changes to' if user else 'create'} your account."
     });
@@ -33,7 +33,7 @@ $.fn.fixWidth = function() {
     var $x = $(this);
     return $x.width($x.width());
 }
-$('#smsAddresses .email').clickToggle({
+clickToggle('#smsAddresses .email', {
     optionalClass:'active',
     onMessage:'Activate',
     offMessage:'Deactivate',
@@ -44,7 +44,7 @@ $('#smsAddresses .email').clickToggle({
         $('#smsAddresses .email').fixWidth();
     }
 }).fixWidth();
-$('#smsAddresses .trash').clickToggle({
+clickToggle('#smsAddresses .trash', {
     optionalClass:'smsAddress',
     offMessage:'Remove',
     requestURL:"${request.route_path('user_update')}",

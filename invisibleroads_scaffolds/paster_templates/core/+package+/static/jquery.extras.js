@@ -43,7 +43,7 @@ function setTip($field, tip) {
         $field.prop('title', tipHTML);
     }
 }
-// Submit form fields and files
+// Adds AJAX file upload functionality
 $.fn.ajaxForm = function(options) {
     options = $.extend({}, {
         onSubmit:function() {},
@@ -87,6 +87,8 @@ $.fn.focusNext = function($field) {
         }
     });
 }
+// Adds tooltips, tabs, AJAX file upload
+// Assumes that method will only be applied once
 $.fn.prepareForm = function() {
     function showReplace() {
         var $form = $(this), $replace = $form.find('.replace');
@@ -135,7 +137,7 @@ $.fn.prepareForm = function() {
                 }
             }).data('tabs');
 
-            $form.bind('onBeforeError', function(e, data) {
+            $form.on('onBeforeError', function(e, data) {
                 for (name in data.errorByName) {
                     var $field = $('[name=' + name + ']'), $pane = $field.parents('.panes > div');
                     tabsAPI.click($pane.parent().children().index($pane));
@@ -169,7 +171,7 @@ $.fn.prepareForm = function() {
                     }
                 }
             }
-        }).bind({
+        }).on({
             showAdd:hideReplace,
             showEdit:showReplace
         }).find('.replace').click(function() {
@@ -177,6 +179,8 @@ $.fn.prepareForm = function() {
         });
     });
 }
+// Adds overlay on top of prepareForm()
+// Assumes that method will only be applied once
 $.fn.prepareOverlayForm = function() {
     return $(this).prepareForm().each(function() {
         var $form = $(this);
@@ -190,14 +194,16 @@ $.fn.prepareOverlayForm = function() {
             },
             closeOnClick:false
         });
-        $form.bind('onSuccess', function(e, data) {
+        $form.on('onSuccess', function(e, data) {
             $form.overlay().close();
         });
     });
 }
 // Apply click-based table data modification
-$.fn.clickToggle = function(options) {
+// Assumes that method will only be applied once
+function clickToggle(tdSelector, options) {
     options = $.extend({}, {
+        tdSelector:'td',
         requiredClass:'',       // Display requiredMessage if row lacks requiredClass
         requiredMessage:'',
         optionalClass:'',
@@ -235,7 +241,7 @@ $.fn.clickToggle = function(options) {
     function unmask($td) {
         $td.css('cursor', 'auto').css('color', $td.data('color')).find('.flag').remove();
     }
-    return $(this).live({
+    return $(tdSelector).parents('table').on({
         mouseenter:function() {mask($(this))},
         mouseleave:function() {unmask($(this))},
         click:function() {
@@ -273,17 +279,18 @@ $.fn.clickToggle = function(options) {
                 }
             }
         }
-    });
+    }, tdSelector);
 };
 // Autocomplete field proxies
+// Assumes that method will only be applied once
 function autoCompleteProxy($form, fieldName, jsonURL, defaultValue, defaultProxy) {
     var $field = $form.find('[name=' + fieldName + ']'), $proxy = $field.prev();
     $form
-    .bind('showAdd', function() {
+    .on('showAdd', function() {
         $field.val(defaultValue);
         $proxy.val(defaultProxy);
     })
-    .bind('showEdit', function(e, $tr) {
+    .on('showEdit', function(e, $tr) {
         $proxy.val($.trim($tr.find('.' + fieldName).text()));
     });
     $.getJSON(jsonURL, function(data) {
@@ -295,7 +302,7 @@ function autoCompleteProxy($form, fieldName, jsonURL, defaultValue, defaultProxy
                 },
                 minCharacterCount:0,
                 sourcePacks:data.items
-            }).bind('itemSelect.ac', function(e, li) {
+            }).on('itemSelect.ac', function(e, li) {
                 $field.val($(li).children('span').attr('rel'));
             });
         } else {
@@ -306,15 +313,17 @@ function autoCompleteProxy($form, fieldName, jsonURL, defaultValue, defaultProxy
 
 if (typeof $.fn.dataTable != 'undefined') {
 
-$.fn.prepareTableOverlayForm = function($table, $rows) {
+// Add table add and edit support
+// Assumes that method will only be applied once
+$.fn.prepareTableOverlayForm = function($table, trSelector) {
     var tableID = $table.prop('id'), tableInfo;
     return $(this).prepareOverlayForm().each(function() {
         var $form = $(this)
-            .bind('onSuccess', function(e, data) {
+            .on('onSuccess', function(e, data) {
                 $table.find('tbody').html(data.content);
                 $table.dataTableCustom();
             })
-            .bind('onClose', function() {
+            .on('onClose', function() {
                 $('#' + tableID + '_filter input').focus();
             });
         var $fields = $form.find('[name]');
@@ -322,16 +331,20 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
         var $id = $form.find('[name=id]');
         if (!$id.length) $id = $('<input name=id type=hidden>').appendTo($form);
         // Enable add
-        var $tableAdd = $('#' + tableID + '_add');
-        if ($tableAdd.length) {
-            $tableAdd.die().live('click', function() {
+        var tableAddSelector = '#' + tableID + '_add';
+        if ($(tableAddSelector).length) {
+            // Sometimes the add button is tied to the onLoad method of dataTableCustom()
+            // to place the button next to the table filter. However, this means the button
+            // is destroyed and recreated for every call of dataTableCustom(), which means
+            // we must unbind and bind the following event.
+            $(document).off('click', tableAddSelector).on('click', tableAddSelector, function() {
                 $fields.not('[type=submit],[type=button]').val('');
                 $id.val('');
                 $form.trigger('showAdd').overlay().load()
             });
         }
         // Enable edit
-        ($rows || $table.find('tr')).live({
+        $table.on({
             mouseenter:function() {
                 var $tr = $(this), id = $tr.prop('id');
                 if (!id) return;
@@ -357,7 +370,7 @@ $.fn.prepareTableOverlayForm = function($table, $rows) {
                 $id.val(getNumber(id));
                 $form.trigger('showEdit', [$tr]).overlay().load();
             }
-        });
+        }, trSelector || 'tr');
     });
 }
 // Enable sorting by rel
@@ -386,6 +399,7 @@ $.fn.dataTableExt.oSort['rel-string-desc'] = function(a, b) {
     return ((x < y) ? 1 : ((x > y) ? -1 : 0));
 };
 // Apply sorting and filtering
+// Can be applied more than once
 $.fn.dataTableCustom = function(options) {
     options = $.extend({}, {
         aoColumns:null,
@@ -418,7 +432,7 @@ $.fn.dataTableCustom = function(options) {
             sScrollY:computeTableHeight()
         });
         var tableID = $table.prop('id'), eventType = 'resize.' + tableID;
-        $(window).unbind(eventType).bind(eventType, function() {
+        $(window).off(eventType).on(eventType, function() {
             $dataTable.parents('.dataTables_scrollBody').height(computeTableHeight());
             $dataTable.fnAdjustColumnSizing();
         });
