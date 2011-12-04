@@ -1,3 +1,8 @@
+1.8.0
+-----
+- Changed signature for clickToggle(tdSelector, options)
+- Changed signature for $.fn.prepareTableOverlayForm($table, trSelector)
+
 1.7.9
 -----
 - Added alternate server utilities/serve.py using gevent
