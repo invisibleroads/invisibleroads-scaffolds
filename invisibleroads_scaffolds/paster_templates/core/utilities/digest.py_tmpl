@@ -1,12 +1,21 @@
 'Command-line script to process SMS messages'
-from script_process import ArgumentParser, initialize
+from pyramid_mailer.message import Message
+from transaction import commit
+
+from script_process import ArgumentParser, initialize, get_mailer
 from {{package}}.libraries import sms
 
 
 def run(settings):
     'Connect to IMAP server and process messages'
-    countByKey = sms.process(settings)
-    return '\n'.join('%s: %s' % (key, count) for key, count in countByKey.iteritems())
+    addressesByKey = sms.process(settings)
+    mailer = get_mailer(settings['configParser'], 'app:sms')
+    if 'Registrations' in addressesByKey:
+        mailer.send_to_queue(Message(
+            body='Address registered. You must now activate it on the Account Update page.',
+            recipients=addressesByKey['Registrations']))
+    commit()
+    return '\n'.join('%s: %s' % (key, len(addresses)) for key, addresses in addressesByKey.iteritems())
 
 
 # If we are running standalone,

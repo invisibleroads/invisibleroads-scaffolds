@@ -3,7 +3,6 @@ If the object does not exist in the database, do NOT specify a primary key
 with db.add() or db.merge() or you will get a PostgreSQL IntegrityError.
 """
 import datetime
-import transaction
 from beaker.cache import cache_region
 from cryptacular import bcrypt
 from pyramid.settings import asbool
@@ -12,6 +11,7 @@ from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.ext.hybrid import hybrid_property, Comparator
 from sqlalchemy.ext.declarative import declarative_base
+from transaction import commit
 from zope.sqlalchemy import ZopeTransactionExtension
 
 from {{package}}.libraries.tools import encrypt, decrypt, make_random_string, make_int
@@ -225,7 +225,7 @@ def initialize_sql(settings):
     Base.metadata.create_all(engine)
     if not db.query(User.id).first():
         add_users(settings)
-        transaction.commit()
+        commit()
 
 
 def is_debug(settings):

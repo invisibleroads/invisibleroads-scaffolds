@@ -8,7 +8,7 @@
     # Activate isolated environment
     source $PYRAMID_ENV/bin/activate
     # Install packages
-    pip install --upgrade ipython ipdb nose coverage
+    pip install --upgrade ipython ipdb nose coverage distribute
 
     # Enter repository
     REPOSITORY=$PYRAMID_ENV/app

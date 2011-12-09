@@ -1,7 +1,7 @@
 import imapIO
-import transaction
 from pyramid.authentication import AuthTktCookieHelper
 from pyramid.testing import DummyRequest
+from transaction import commit
 from unittest import TestCase, skipIf
 from urlparse import urlparse
 from webob.request import environ_from_url
@@ -25,7 +25,7 @@ class TestUserRoute(TestRoute):
     def confirm_registration(self):
         user_ = db.query(User_).order_by(User_.when_expire.desc()).first()
         apply_user_(self.get_request_object(environ_from_url(self.urlUpdate), user_agent='xxx'), user_)
-        transaction.commit()
+        commit()
 
     def confirm_ticket(self):
         ticket = db.query(User_.ticket).order_by(User_.when_expire.desc()).first()[0]
@@ -91,7 +91,7 @@ class TestConfirm(TestUserRoute, TestCase):
     def clear_registrations(self):
         db.query(User).filter_by(email=self.email).delete()
         db.query(User_).delete()
-        transaction.commit()
+        commit()
 
     def make_test_user(self, **requestParams):
         params = dict(self.registrationParams, **requestParams)
@@ -231,7 +231,7 @@ class TestUpdate_(TestUserRoute, TestCase):
         super(TestUpdate_, self).setUp()
         self.smsAddressL = build_dict(SMSAddress, id=1, email=WORD1 + '@example.com', user_id=self.leader['id'])
         self.smsAddressM = build_dict(SMSAddress, id=2, email=WORD2 + '@example.com', user_id=self.member['id'])
-        transaction.commit()
+        commit()
         self.requestParams = dict(id=self.smsAddressL['id'], is_active=1)
         self.usersAllowed = self.userDs
 
@@ -256,7 +256,7 @@ class TestUpdate_(TestUserRoute, TestCase):
     @skipIf(not SETTINGS['configParser'].has_section('app:sms'), 'not configured')
     def test_sms_process(self):
         db.query(SMSAddress).delete()
-        transaction.commit()
+        commit()
         server = sms.connect(SETTINGS)
         def register_sms(userD, **kw):
             if 'code' not in userD:

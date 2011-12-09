@@ -5,10 +5,12 @@ import sys; sys.path.append(BASE_PATH)
 import argparse
 import socket
 from ConfigParser import NoSectionError, NoOptionError
+from pyramid_mailer.mailer import Mailer
+from pyramid.settings import asbool
 
 from {{package}} import SettingsParser
 from {{package}}.libraries import tools
-from {{package}}.models import initialize_sql
+from {{package}}.models import ApplicationError, initialize_sql
 
 
 EXPAND_PATH = lambda relativePath: os.path.join(BASE_PATH, relativePath)
@@ -67,3 +69,18 @@ def parse_port(portString):
         return int(match.group(1))
     except AttributeError:
         raise ValueError('Could not parse port=%s' % portString)
+
+
+def get_mailer(configParser, configSection):
+    try:
+        return Mailer(
+            host=configParser.get(configSection, 'smtp.host'),
+            port=configParser.get(configSection, 'smtp.port'),
+            username=configParser.get(configSection, 'smtp.username'),
+            password=configParser.get(configSection, 'smtp.password'),
+            tls=asbool(configParser.get(configSection, 'smtp.tls')),
+            ssl=asbool(configParser.get(configSection, 'smtp.ssl')),
+            queue_path=configParser.get('app:qp', 'queue_path'),
+            default_sender=configParser.get(configSection, 'email'))
+    except (NoSectionError, NoOptionError), error:
+        raise ApplicationError(error)

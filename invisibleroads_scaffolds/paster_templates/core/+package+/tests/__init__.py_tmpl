@@ -2,7 +2,7 @@
 import os
 import re
 import simplejson
-import transaction
+from transaction import commit
 from unittest import TestCase
 from webtest import TestApp
 
@@ -53,7 +53,7 @@ class TestRoute(object):
                 email=word + '@example.com',
                 rejection_count=0)
         delete_extraneous(User, self.userDs)
-        transaction.commit()
+        commit()
 
     def request(self, urlParams=None, **kw):
         url = self.get_url(self.routeName, **(urlParams or {}))

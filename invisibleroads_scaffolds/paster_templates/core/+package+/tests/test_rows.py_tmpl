@@ -1,5 +1,5 @@
 'Tests for row-based interface demo'
-import transaction
+from transaction import commit
 from unittest import TestCase
 
 from {{package}}.models import Row, db
@@ -22,7 +22,7 @@ class TestUpdate(TestRoute, TestCase):
         self.row1 = build_dict(Row, col1=WORD1, col2=WORD1, user_id=self.member['id'])
         self.row2 = build_dict(Row, col1=WORD2, col2=WORD2, user_id=self.spectator['id'])
         delete_extraneous(Row, [self.row1, self.row2])
-        transaction.commit()
+        commit()
         self.requestParams = dict(col1=WORD, col2=WORD, user_id=self.member['id'])
         self.usersAllowed = [self.leader, self.member]
 
@@ -72,7 +72,7 @@ class TestMove(TestRoute, TestCase):
         super(TestMove, self).setUp()
         self.row1 = build_dict(Row, col1=WORD1, col2=WORD1, user_id=self.member['id'])
         self.row2 = build_dict(Row, col1=WORD1, col2=WORD1, user_id=self.spectator['id'])
-        transaction.commit()
+        commit()
         self.requestParams = dict(id=self.row1['id'], is_active=1)
         self.usersAllowed = [self.leader]
 

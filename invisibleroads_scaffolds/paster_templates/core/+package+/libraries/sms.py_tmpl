@@ -2,11 +2,11 @@
 import re
 import imapIO
 import collections
-import transaction
 from ConfigParser import NoSectionError, NoOptionError
 from email.utils import parseaddr
 from formencode import validators, Invalid
 from sqlalchemy.orm import joinedload
+from transaction import commit
 
 from {{package}}.models import User, SMSAddress, ApplicationError, db
 
@@ -17,20 +17,18 @@ PATTERN_REGISTRATION = re.compile(r'(\d+)\W+(.*)')
 def process(settings):
     'Process messages on IMAP server'
     imapServer = connect(settings)
-    countByKey = collections.defaultdict(int)
+    addressesByKey = collections.defaultdict(list)
     # Walk messages in inbox
     for email in imapServer.walk('inbox', shuffleMessages=False):
         # If the user is trying to register an SMS address,
         if process_registration(email):
-            countByKey['Registrations'] += 1
+            addressesByKey['Registrations'].append(email.fromWhom)
         # Mark email as deleted
         email.deleted = True
-        countByKey['Messages'] += 1
     # Finalize
-    transaction.commit()
+    commit()
     imapServer.expunge()
-    # Return
-    return countByKey
+    return addressesByKey
 
 
 def connect(settings):
