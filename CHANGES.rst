@@ -1,5 +1,6 @@
 1.8.0
 -----
+- Added SMSAddress registration confirmation
 - Changed signature for clickToggle(tdSelector, options)
 - Changed signature for $.fn.prepareTableOverlayForm($table, trSelector)
 
