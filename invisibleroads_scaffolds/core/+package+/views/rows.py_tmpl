@@ -33,6 +33,7 @@ def index(request):
 @view_config(route_name='row_update', renderer='json', request_method='POST', permission='row_update')
 def update(request):
     'Update row'
+    request.response.content_type = 'text/plain' # Prevent download prompt
     params = request.params
     userID = authenticated_userid(request)
     try:
