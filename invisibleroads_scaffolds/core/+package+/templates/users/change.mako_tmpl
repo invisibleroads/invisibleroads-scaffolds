@@ -1,0 +1,101 @@
+<%inherit file='/base.mako'/>
+
+<%def name='title()'>Account ${'Update' if user else 'Creation'}</%def>
+
+<%def name='css()'>
+td {padding-right:0.5em}
+.smsAddress {color:gray}
+.smsAddress.active {color:black}
+.formTip {color:black}
+</%def>
+
+<%def name='root()'>
+<script src="${request.static_path('{{package}}:static/jquery.tools.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery.extras.min.js')}"></script>
+</%def>
+
+<%def name='js()'>
+var $form = $('#form');
+$form.prepareForm().on('onSuccess', function() {
+    $('#main').html("Please check your email to ${'finalize changes to' if user else 'create'} your account.");
+}).width($form.find('input:visible').width());
+
+var $username = $('[name=username]'), $password = $('[name=password]'), $nickname = $('[name=nickname]'), $email = $('[name=email]');
+$username.focusNext($password);
+$password.focusNext($nickname);
+$nickname.focusNext($email);
+
+% if user:
+$.fn.fixWidth = function() {
+    var $x = $(this);
+    return $x.width($x.width());
+}
+
+$('#smsAddresses')
+.cellToggle('.email', {
+    optionalClass:'active',
+    onMessage:'Activate',
+    offMessage:'Deactivate',
+    requestURL:"${request.route_path('user_update')}",
+    requestAttribute:'is_active',
+    nameClass:'email',
+    onSuccess:function(data) {
+        $('#smsAddresses .email').fixWidth();
+    }
+})
+.cellToggle('.trash', {
+    optionalClass:'smsAddress',
+    offMessage:'Remove',
+    requestURL:"${request.route_path('user_update')}",
+    nameClass:'email'
+}).fixWidth();
+
+$form.find('.mutate').click(function() {
+	$.post("${request.route_path('user_mutate')}", function(data) {
+		if (data.isOk) {
+			$('#userCode').html(data.code);
+		} else {
+            alert(data.message);
+		}
+	});
+});
+% endif
+
+if ($username.val() == '') $username.focus();
+</%def>
+
+<%def name='toolbar()'>
+${'Update your account' if user else 'Create an account'}
+</%def>
+
+<form id=form action="${request.route_path('user_update' if user else 'user_create')}" method=post>
+<div>
+    Username<br>
+    <input name=username autocomplete=off value="${user.username if user else ''}" title='What you use to login'>
+</div>
+<div>
+    Password<br>
+    <input name=password type=password autocomplete=off title='So you have some privacy'>
+</div>
+<div>
+    Nickname<br>
+    <input name=nickname autocomplete=off value="${user.nickname if user else ''}" title='How others see you'>
+</div>
+<div>
+    Email<br>
+    <input name=email autocomplete=off value="${user.email if user else ''}" title='To confirm changes to your account'>
+</div>
+<input class=save type=submit value=${'Update' if user else 'Create'} title='Send confirmation'>
+% if user:
+<input class=mutate type=button value=Mutate title='Invalidate other sessions for your security'>
+% endif
+</form>
+
+% if user:
+<p>For SMS alerts, send a text message to ${request.registry.settings['sms.email']} with ${user.id}-<span id=userCode>${user.code}</span> as the subject.</p>
+<table id=smsAddresses>
+    <tbody>
+        <%include file='smsAddresses.mako'/>
+    </tbody>
+</table>
+% endif

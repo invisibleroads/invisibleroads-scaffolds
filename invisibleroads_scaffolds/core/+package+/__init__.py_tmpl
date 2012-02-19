@@ -1,0 +1,165 @@
+'Pyramid WSGI configuration'
+import os
+import logging; log = logging.getLogger(__name__)
+from ConfigParser import ConfigParser, NoSectionError, NoOptionError
+from pyramid.authentication import AuthTktAuthenticationPolicy
+from pyramid.authorization import ACLAuthorizationPolicy
+from pyramid.config import Configurator
+from pyramid.events import BeforeRender
+from pyramid.httpexceptions import HTTPFound
+from pyramid.response import Response
+from pyramid.security import Everyone, Authenticated, Allow, Deny, authenticated_userid, ALL_PERMISSIONS, NO_PERMISSION_REQUIRED
+from pyramid_beaker import session_factory_from_settings, set_cache_regions_from_settings
+from whenIO import WhenIO
+
+from {{package}}.libraries import tools
+from {{package}}.libraries.tools import make_random_string
+from {{package}}.models import User, ApplicationError, initialize_sql, is_debug
+from {{package}}.parameters import *
+from {{package}}.views import users, openIDs
+from {{package}}.views import rows
+
+
+def main(global_config, **settings):
+    'Return a Pyramid WSGI application'
+    settings.update({ 
+        'mako.default_filters': 'h',
+        'mako.directories': '{{package}}:templates',
+        'cache.regions': 'short, medium, long',
+    })
+    # Load sensitive settings
+    settings.update(SettingsParser(global_config).load(make_sensitivePath(global_config['__file__'])))
+    try:
+        tools.SECRET = settings['secret.ciphers']
+    except KeyError: # pragma: no cover
+        pass
+    # Prepare configuration
+    def get_groups(userID, request):
+        'Define server-side permissions associated with the user'
+        isMember, isLeader, code = User.unpack_properties(userID, 'isMember', 'isLeader', 'code')
+        # Check mutation code
+        identity = authenticationPolicy.cookie.identify(request)
+        if not identity or code != users.parse_tokens(identity['tokens'])[0]:
+            return ['outcast']
+        # Check csrf token
+        if userID and 'POST' == request.method and request.session.get_csrf_token() != request.params.get('token'):
+            return ['outcast']
+        # Get groups
+        groups = []
+        if isMember:
+            groups.append('member')
+        if isLeader:
+            groups.append('leader')
+        return groups
+    def add_renderer_globals(event):
+        'Define client-side permissions associated with user'
+        request = event['request']
+        userID = authenticated_userid(request)
+        groups = get_groups(userID, request)
+        if 'outcast' in groups:
+            userID = None
+        nickname, timezoneOffset = User.unpack_properties(userID, 'nickname', 'timezoneOffset')
+        event.update(dict(
+            USER_ID=userID,
+            USER_NICKNAME=nickname,
+            USER_WHENIO=WhenIO(timezoneOffset),
+            IS_MEMBER='member' in groups,
+            IS_LEADER='leader' in groups,
+            IS_DEBUG=is_debug(settings)))
+    if not settings.get('secret.authtkt'): # pragma: no cover
+        settings['secret.authtkt'] = make_random_string(SECRET_LEN)
+    authenticationPolicy = AuthTktAuthenticationPolicy(settings['secret.authtkt'],
+        callback=get_groups, http_only=True)
+    config = Configurator(
+        settings=settings,
+        authentication_policy=authenticationPolicy,
+        authorization_policy=ACLAuthorizationPolicy(),
+        root_factory='{{package}}.RootFactory')
+    config.add_subscriber(add_renderer_globals, BeforeRender)
+    # Configure transaction manager
+    config.include('pyramid_tm')
+    # Configure mailer
+    try:
+        os.makedirs(os.path.dirname(settings['mail.queue_path']))
+    except OSError: # pragma: no cover
+        pass
+    config.include('pyramid_mailer')
+    # Configure sessions and caching
+    if not settings.get('secret.session'): # pragma: no cover
+        settings['secret.session'] = make_random_string(SECRET_LEN)
+    config.set_session_factory(session_factory_from_settings(settings))
+    set_cache_regions_from_settings(settings)
+    # Configure static assets
+    config.add_static_view('static', '{{package}}:static', cache_max_age=3600)
+    # Configure routes
+    config.include(rows)
+    config.include(users)
+    config.include(openIDs)
+    # Configure database
+    models.PACKAGE_FOLDER = settings['package.folder']
+    initialize_sql(settings)
+    # Return WSGI app
+    return config.make_wsgi_app()
+
+
+def make_sensitivePath(filePath):
+    fileFolder, fileName = os.path.split(filePath)
+    return os.path.join(fileFolder, '.' + fileName)
+
+
+class SettingsParser(ConfigParser):
+
+    def load(self, filePath, storeConfigParser=False):
+        """
+        Load settings, including sensitive settings from hidden files.
+        Understands "use = config:xxx.ini" but may loop infinitely if
+        there are circular references. Returns dictionary of settings.
+        """
+        isMissing = not self.read(filePath)
+        isSensitive = os.path.basename(filePath).startswith('.')
+        if isMissing and isSensitive:
+            log.warn('Could not open %s' % filePath)
+        try:
+            value = self.get('app:main', 'use')
+        except (NoSectionError, NoOptionError):
+            pass
+        else:
+            if value.startswith('config:'):
+                self.load(value.replace('config:', ''))
+                self.read(filePath) # Overlay current configuration on top of inner configuration
+        if not isSensitive:
+            self.load(make_sensitivePath(filePath))
+        settings = {}
+        try:
+            settings.update(self.items('app:main'))
+        except NoSectionError:
+            pass
+        def save_setting(key, section, option):
+            try:
+                settings[key] = self.get(section, option)
+            except (NoSectionError, NoOptionError):
+                pass
+        save_setting('mail.queue_path', 'app:qp', 'queue_path')
+        save_setting('mail.default_sender', 'app:qp', 'default_sender')
+        save_setting('sms.email', 'app:sms', 'email')
+        if storeConfigParser:
+            settings['configParser'] = self
+        return settings
+
+
+class RootFactory(object):
+    'Permission definitions'
+    __acl__ = [ 
+        (Deny, 'outcast', ALL_PERMISSIONS),
+        (Allow, Everyone, 'user_index'),
+        (Allow, Everyone, 'user_create'),
+        (Allow, Authenticated, 'user_update'),
+        (Allow, Authenticated, 'user_mutate'),
+        (Allow, 'leader', 'user_move'),
+        (Allow, Everyone, 'row_index'),
+        (Allow, 'member', 'row_update'),
+        (Allow, 'leader', 'row_move'),
+    ]
+
+    def __init__(self, request):
+        pass

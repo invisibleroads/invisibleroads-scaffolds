@@ -1,8 +1,13 @@
 1.8.0
 -----
+- Added openID support
 - Added SMSAddress registration confirmation
-- Changed signature for clickToggle(tdSelector, options)
+- Added UploadsCached validator
+- Added utilities/update.sh
+- Changed signature for cellToggle(tdSelector, options)
 - Changed signature for $.fn.prepareTableOverlayForm($table, trSelector)
+- Fixed IE compatibility issues
+- Replaced jquery.autoComplete.min.js with jquery.tokenInput.min.js
 
 1.7.9
 -----

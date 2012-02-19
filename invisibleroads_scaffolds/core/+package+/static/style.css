@@ -1,0 +1,40 @@
+body {font-family:Helvetica,Arial,sans-serif}
+input {font-family:inherit}
+select {font-family:inherit}
+textarea {font-family:inherit}
+#header {position:fixed; top:0; left:0; right:0; height:2em}
+#toolbar {position:absolute; top:0; left:0}
+#navigation {position:absolute; top:0; right:0; text-align:right}
+#main {position:fixed; top:2em; left:0; right:0; bottom:0; overflow:auto}
+
+form div {margin-bottom:0.5em}
+form .replace {display:none}
+.formTip {color:#fff; z-index:10000}
+.flag {color:black; font-weight:bold}
+.flag.inactive {color:gray}
+.white {color:white}
+.error {font-weight:bold}
+
+a {text-decoration:none}
+.link.off {color:darkblue; background:white; cursor:auto}
+.link.on {color:white; background:darkblue; cursor:pointer}
+
+table {border-collapse:collapse}
+tr.even {background:#FBF5E6}
+tr.even .flag.inactive {color:gray; background:#FBF5E6}
+tr.even .link.off {color:darkblue; background:#FBF5E6}
+.sorting {background:url('datatables/sort_both.png') no-repeat center right}
+.sorting_asc {background:url('datatables/sort_asc.png') no-repeat center right}
+.sorting_asc_disabled {background:url('datatables/sort_asc_disabled.png') no-repeat center right}
+.sorting_desc {background:url('datatables/sort_desc.png') no-repeat center right}
+.sorting_desc_disabled {background:url('datatables/sort_desc_disabled.png') no-repeat center right}
+.dataTables_filter {position:absolute; bottom:0}
+.dataTables_info {position:absolute; bottom:0; right:0}
+
+.tabs {margin:0 !important; padding:0; height:30px; border-bottom:1px solid #666}
+.tabs a {float:left; font-size:13px; display:block; padding:5px 10px; text-decoration:none; border:1px solid #666; border-bottom:0px; height:18px; background-color:#efefef; color:#777; margin-right:2px; position:relative; top:1px; outline:0; cursor:pointer}
+.tabs a:hover {background-color:#F7F7F7; color:#333}
+.tabs a.current {background-color:#ddd; border-bottom:1px solid #ddd; color:#000; cursor:default}
+.panes > div {display:none; border:1px solid #666; border-width:0 1px 1px 1px; padding:10px; background-color:#ddd}
+.tooltip {display:none}
+.overlay {display:none; z-index:9999; background:#fff; padding:5px}

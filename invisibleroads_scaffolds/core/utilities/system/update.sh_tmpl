@@ -1,0 +1,26 @@
+#!/bin/bash
+PYRAMID_ENV=/srv/www/{{package}}.com
+crontab -l > ~/crontab.bak
+crontab -r
+cd $PYRAMID_ENV/app
+utilities/system/stop.sh
+git pull
+source $PYRAMID_ENV/bin/activate
+read -p 'Reinstall dependencies? ' -n 1 -r; echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    su -c 'yum -y update'
+    rm -Rf $PYRAMID_ENV/lib/python2.7/site-packages/*
+    rm -Rf ~/.pip
+    virtualenv $PYRAMID_ENV
+    pip install --upgrade ipython ipdb nose coverage gevent sphinx
+    python setup.py develop
+fi
+echo Updating documentation...
+cd $PYRAMID_ENV/app/docs
+make html
+echo Launching processes...
+cd $PYRAMID_ENV/app
+vim .production.ini
+python utilities/make_crontab.py -c production.ini
+crontab server.crt
+utilities/system/start.sh

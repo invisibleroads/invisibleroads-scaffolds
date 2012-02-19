@@ -1,0 +1,75 @@
+'Command-line script to generate server crontab file'
+import os
+import stat
+
+from script import ArgumentParser, initialize
+from {{package}}.parameters import *
+
+
+def run(settings):
+    basePath = os.path.abspath(settings['here'])
+    environmentPath = os.environ['VIRTUAL_ENV']
+    headers = [
+        'export LD_LIBRARY_PATH=%s/lib' % environmentPath,
+        'source %s/bin/activate' % environmentPath,
+        'cd %s' % basePath,
+    ]
+    packs = [
+        ('Check outbox', 
+         'qp --config .production.ini', 
+         'qp', QP_INTERVAL_MINUTES, 0),
+        ('Process SMS', 
+         'python utilities/digest.py -c production.ini', 
+         'digest', DIGEST_INTERVAL_MINUTES, 0),
+        ('Start server', 
+         'python utilities/serve.py -c production.ini', 
+         'serve', SERVE_INTERVAL_MINUTES, 5),
+    ]
+    targetPath = os.path.join(basePath, 'server.crt')
+    open(targetPath, 'wt').write(format_crontab('; '.join(headers), packs))
+    print targetPath
+
+    targetPath = os.path.join(basePath, 'utilities/system/start.sh')
+    open(targetPath, 'wt').write(format_start('\n'.join(headers), packs))
+    print targetPath
+    os.chmod(targetPath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+
+def format_crontab(header, packs):
+    lines = []
+    for pack in packs:
+        comment, command, commandName, timeInterval, timeOffset = pack
+        lines.extend([
+            '# %s' % comment,
+            ' '.join([
+                format_minutes(timeInterval, timeOffset) + ' * * * *',
+                header + '; ' + format_command(pack)
+            ]),
+        ])
+    return '\n'.join(lines) + '\n'
+
+
+def format_start(header, packs):
+    lines = [header]
+    for pack in packs:
+        lines.append(format_command(pack) + ' &')
+    return '\n'.join(lines)
+
+
+def format_command(pack):
+    comment, command, commandName, timeInterval, timeOffset = pack
+    return '%s >> logs/%s.log 2>&1' % (command, commandName)
+
+
+def format_minutes(intervalMinutes, minuteStart=0):
+    'Format minutes for crontab'
+    if intervalMinutes == 1:
+        return '*'
+    return '%s-59/%s' % (minuteStart, intervalMinutes)
+
+
+if __name__ == '__main__':
+    argumentParser = ArgumentParser(
+        description='Generate server.crt')
+    args = argumentParser.parse_args()
+    run(initialize(args))

@@ -1,5 +1,4 @@
 import os
-
 from setuptools import setup, find_packages
 
 
@@ -21,11 +20,11 @@ setup(
     ],
     keywords='web wsgi bfg pylons pyramid',
     author='Roy Hyunjin Han',
-    author_email='service@invisibleroads.com',
+    author_email='starsareblueandfaraway@gmail.com',
     url='https://github.com/invisibleroads/invisibleroads-scaffolds',
     entry_points="""\
-        [paste.paster_create_template]
-        ir_core = invisibleroads_scaffolds.paster_templates:CoreTemplate
+        [pyramid.scaffold]
+        ir_core = invisibleroads_scaffolds:CoreTemplate
     """,
     install_requires=['pyramid'],
     packages=find_packages(),

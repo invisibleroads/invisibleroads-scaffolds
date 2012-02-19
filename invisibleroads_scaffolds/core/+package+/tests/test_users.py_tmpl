@@ -1,0 +1,394 @@
+import imapIO
+from pyramid.authentication import AuthTktCookieHelper
+from pyramid.testing import DummyRequest
+from transaction import commit
+from unittest import TestCase, skipIf
+from urlparse import urlparse
+from webob.request import environ_from_url
+
+from {{package}}.libraries import sms
+from {{package}}.models import db, User, User_, SMSAddress, ApplicationError, ROLE_LEADER, ROLE_MEMBER, ROLE_SPECTATOR
+from {{package}}.parameters import *
+from {{package}}.tests import TestRoute, build_dict, SETTINGS, WORD, WORD1, WORD2
+from {{package}}.views.users import format_tokens, get_json, save_user_, apply_user_
+
+
+class TestUserRoute(TestRoute):
+
+    def setUp(self):
+        super(TestUserRoute, self).setUp()
+        self.urlIndex = self.get_url('user_index')
+        self.urlLogin = self.get_url('user_login')
+        self.urlCreate = self.get_url('user_create')
+        self.urlUpdate = self.get_url('user_update')
+
+    def confirm_creation(self):
+        user_ = db.query(User_).order_by(User_.when_expire.desc()).first()
+        apply_user_(self.get_request_object(environ_from_url(self.urlUpdate), user_agent='xxx'), user_)
+        commit()
+
+    def confirm_ticket(self, withRecaptcha=True):
+        if not withRecaptcha:
+            self.patch(self.settings, 'recaptcha.private', '')
+        ticket = db.query(User_.ticket).order_by(User_.when_expire.desc()).first()[0]
+        return self.request_url(self.get_url('user_confirm', {'ticket': ticket}))
+
+    def make_spoofedRequest(self, userD):
+        userID = userD['id']
+        user = db.query(User).get(userID)
+        secret = self.settings['secret.authtkt']
+        return SpoofedRequest(secret, userID, format_tokens(user), self)
+
+
+class TestIndex(TestUserRoute, TestCase):
+
+    routeName = 'user_index'
+    isPublic = True
+
+
+class TestCreate(TestUserRoute, TestCase):
+
+    routeName = 'user_create'
+    isPublic = True
+
+
+class TestCreate_(TestUserRoute, TestCase):
+
+    routeName = 'user_create'
+    requestMethod = 'POST'
+    requestParams = dict(
+        username=WORD, 
+        password=WORD, 
+        nickname=WORD, 
+        email=WORD + '@example.com')
+    isPublic = True
+
+    def test_user_usernames_are_unique(self):
+        self.assert_field_rejects_duplicates('username', self.member['username'])
+
+    def test_weak_passwords_are_rejected(self):
+        self.ajax_failed(password=u'xxx')
+
+    def test_user_nicknames_are_unique(self):
+        self.assert_field_rejects_duplicates('nickname', self.member['nickname'])
+
+    def test_user_emails_are_unique(self):
+        self.assert_field_rejects_duplicates('email', self.member['email'])
+
+
+class TestConfirm(TestUserRoute, TestCase):
+
+    routeName = 'user_confirm'
+    urlParams = dict(ticket=' ')
+    isPublic = True
+
+    username = WORD
+    password = WORD
+    nickname = WORD
+    email = WORD + '@example.com'
+    creationParams = dict(username=username, password=password, nickname=nickname, email=email)
+
+    def tearDown(self):
+        super(TestConfirm, self).tearDown()
+        self.clear_creations()
+
+    def clear_creations(self):
+        db.query(User).filter_by(email=self.email).delete()
+        db.query(User_).delete()
+        commit()
+
+    def make_test_user(self, **requestParams):
+        params = dict(self.creationParams, **requestParams)
+        self.ajax_url(1, self.urlCreate, 'POST', params)
+        self.confirm_creation()
+        return db.query(User).filter_by(email=params['email']).first()
+
+    def get_test_user(self):
+        return db.query(User).filter_by(email=self.email).first()
+
+    @skipIf('recaptcha.public' not in SETTINGS, 'not configured')
+    def test_recaptcha_required_to_create_account(self):
+        self.ajax_url(1, self.urlCreate, 'POST', self.creationParams)
+        self.assertEqual(None, self.get_test_user())
+        response = self.confirm_ticket(withRecaptcha=True)
+        self.assert_('Checkpoint</title>' in response.body)
+
+    def test_flash_messages_are_displayed(self):
+        def assert_redirection_message(response, message):
+            self.assertEqual(self.urlLogin, urlparse(response.location).path)
+            self.assert_(message in self.request_url(self.urlLogin).body)
+        self.make_test_user()
+
+        self.login(self.creationParams)
+        self.ajax_url(1, self.urlUpdate, 'POST', dict(self.creationParams, nickname=self.nickname + 'x'))
+        self.assertEqual(self.nickname, self.get_test_user().nickname)
+        response = self.confirm_ticket(withRecaptcha=False)
+        self.assertNotEqual(self.nickname, self.get_test_user().nickname)
+        assert_redirection_message(response, 'Account updated')
+
+        response = self.request(dict(ticket='xxx'))
+        assert_redirection_message(response, 'Ticket expired')
+
+    def test_conflicting_creations_are_deleted(self):
+        maskParams = dict((k, v + 'x') for k, v in self.creationParams.iteritems())
+        create = lambda **kw: self.ajax_url(1, self.urlCreate, 'POST', dict(maskParams, **kw))
+        def exercise_creation(**kw):
+            create(**kw)
+            if self.supportsCaseInsensitiveUnicode: # pragma: no cover
+                create(**dict((k, v.upper()) for k, v in kw.iteritems()))
+                create(**dict((k, v.lower()) for k, v in kw.iteritems()))
+        exercise_creation(username=self.username)
+        exercise_creation(nickname=self.nickname)
+        exercise_creation(email=self.email)
+        exercise_creation(**self.creationParams)
+        self.assertNotEqual(0, db.query(User_).count())
+        self.confirm_creation()
+        self.assertEqual(0, db.query(User_).count())
+
+    def test_new_accounts_are_deactivated(self):
+        self.assertEqual(self.make_test_user().is_member, False)
+
+    def test_changing_credentials_expires_all_user_sessions(self):
+        get_user = lambda: db.query(User).filter_by(username=self.username, nickname=self.nickname, email=self.email).first()
+        self.login(self.member)
+        self.ajax_url(1, self.urlUpdate, 'POST', self.creationParams)
+        self.assertEqual(None, get_user())
+        self.confirm_ticket(withRecaptcha=False)
+        self.assertEqual(True, get_user().check(self.password))
+
+        self.access_denied(self.urlUpdate, 'POST', withToken=True)
+        self.login(self.creationParams)
+        self.ajax_url(1, self.urlUpdate, 'POST', self.member)
+        self.confirm_ticket(withRecaptcha=False)
+        self.assertEqual(None, get_user())
+
+
+class TestLogin(TestUserRoute, TestCase):
+
+    routeName = 'user_login'
+    isPublic = True
+
+    def test_login_page_stores_target_url(self):
+        self.assert_(self.urlIndex in self.request(url=self.urlIndex))
+
+
+class TestLogin_(TestUserRoute, TestCase):
+
+    routeName = 'user_login'
+    requestMethod = 'POST'
+    isPublic = True
+
+    def setUp(self):
+        super(TestLogin_, self).setUp()
+        self.requestParams = dict(username=self.member['username'], password=self.member['password'])
+
+    def test_invalid_params_fail(self):
+        self.ajax_failed(username='')
+        self.ajax_failed(password='')
+        self.ajax_succeeded(timezoneOffset='xxx')
+
+    def test_bad_credentials_fail(self):
+        self.ajax_failed(username='xxx')
+        self.ajax_failed(password='xxx')
+        self.ajax_succeeded()
+
+    @skipIf('recaptcha.public' not in SETTINGS, 'not configured')
+    def test_recaptcha_required_after_hitting_rejection_limit(self):
+        for rejectionIndex in xrange(REJECTION_LIMIT):
+            self.ajax_failed(password='xxx')
+        self.ajax_failed()
+
+
+class TestLogout(TestUserRoute, TestCase):
+
+    routeName = 'user_logout'
+    isPublic = True
+
+    def test_logging_out_redirects_user(self):
+        self.assertEqual(self.urlIndex, urlparse(self.request(url=self.urlIndex).location).path)
+        self.login(self.leader)
+        self.assertEqual(self.urlIndex, urlparse(self.request(url=self.urlIndex).location).path)
+
+
+class TestUpdate(TestUserRoute, TestCase):
+
+    routeName = 'user_update'
+
+    def setUp(self):
+        super(TestUpdate, self).setUp()
+        self.usersAllowed = self.userDs
+
+    def test_update_form_is_filled(self):
+        self.login(self.leader)
+        text = self.request().text
+        self.assert_(self.leader['username'] in text)
+        self.assert_(self.leader['nickname'] in text)
+        self.assert_(self.leader['email'].lower() in text)
+
+
+class TestUpdate_(TestUserRoute, TestCase):
+
+    routeName = 'user_update'
+    requestMethod = 'POST'
+
+    def setUp(self):
+        super(TestUpdate_, self).setUp()
+        self.smsAddressL = build_dict(SMSAddress, id=1, email=WORD1 + '@example.com', user_id=self.leader['id'])
+        self.smsAddressM = build_dict(SMSAddress, id=2, email=WORD2 + '@example.com', user_id=self.member['id'])
+        commit()
+        self.requestParams = dict(id=self.smsAddressL['id'], is_active=1)
+        self.usersAllowed = self.userDs
+
+    def test_users_can_update_own_sms_addresses(self):
+        get_smsAddress = lambda smsAddressID: db.query(SMSAddress).get(smsAddressID)
+        userPacks = [
+            (self.leader, self.smsAddressL, self.smsAddressM),
+            (self.member, self.smsAddressM, self.smsAddressL),
+        ]
+        for userD, smsAddress1, smsAddress2 in userPacks:
+            self.login(userD)
+            self.ajax_succeeded(id=smsAddress1['id'])
+            self.assertEqual(1, get_smsAddress(smsAddress1['id']).is_active)
+            self.ajax_succeeded(id=smsAddress1['id'], is_active=0)
+            self.assertEqual(0, get_smsAddress(smsAddress1['id']).is_active)
+            self.ajax_succeeded(id=smsAddress1['id'], is_active=None)
+            self.assertEqual(None, get_smsAddress(smsAddress1['id']))
+            self.ajax_failed(id=smsAddress2['id'])
+            self.ajax_failed(id=smsAddress2['id'], is_active=0)
+            self.ajax_failed(id=smsAddress2['id'], is_active=None)
+
+    @skipIf(not SETTINGS['configParser'].has_section('app:sms'), 'not configured')
+    def test_sms_process_works(self):
+        db.query(SMSAddress).delete()
+        commit()
+        server = sms.connect(SETTINGS)
+        def register_sms(userD, **kw):
+            if 'code' not in userD:
+                userD['code'] = db.query(User).get(userD['id']).code
+            userD = dict(userD, **kw)
+            server.revive('inbox', imapIO.build_message(subject='%(id)s-%(code)s' % userD, fromWhom='sms_%(email)s' % userD))
+        # Register an invalid email address
+        register_sms(self.leader, email='')
+        # Register using an invalid userID or userCode
+        register_sms(self.leader, id=100)
+        register_sms(self.leader, id='xxx')
+        register_sms(self.leader, code='xxx')
+        # Register three email addresses
+        register_sms(self.leader)
+        register_sms(self.member)
+        register_sms(self.spectator)
+        # Register an address that already exists for the given user
+        register_sms(self.leader)
+        # Remove an email address
+        register_sms(self.leader, id=0)
+        # Process
+        sms.process(SETTINGS)
+        # Make sure we only have two registered SMS address
+        self.assertEqual(2, db.query(SMSAddress).count())
+
+
+class TestMutate(TestUserRoute, TestCase):
+
+    routeName = 'user_mutate'
+    requestMethod = 'POST'
+
+    def setUp(self):
+        super(TestMutate, self).setUp()
+        self.usersAllowed = self.userDs
+
+    def test_mutating_user_code_expires_other_user_sessions(self):
+        spoofedRequest = self.make_spoofedRequest(self.leader)
+        spoofedRequest.spoof_succeeded()
+
+        get_userCode = lambda userD: db.query(User.code).filter_by(id=userD['id']).first()[0]
+        userCode = get_userCode(self.leader)
+        self.ajax_succeeded()
+        self.assertNotEqual(userCode, get_userCode(self.leader))
+
+        spoofedRequest.spoof_failed()
+
+
+class TestReset(TestUserRoute, TestCase):
+
+    routeName = 'user_reset'
+    requestMethod = 'POST'
+    isPublic = True
+
+    def setUp(self):
+        super(TestReset, self).setUp()
+        self.requestParams = dict(email=self.leader['email'].upper())
+
+    def test_invalid_params_fail(self):
+        self.ajax_failed(email='xxx')
+
+    def test_resetting_password_works(self):
+        self.ajax_succeeded()
+        userID = self.leader['id']
+        userPassword = self.leader['password']
+        self.assertEqual(db.query(User).get(userID).check(userPassword), True)
+        self.confirm_creation()
+        self.assertEqual(db.query(User).get(userID).check(userPassword), False)
+
+
+class TestMove(TestUserRoute, TestCase):
+
+    routeName = 'user_move'
+    requestMethod = 'POST'
+
+    def setUp(self):
+        super(TestMove, self).setUp()
+        self.requestParams = dict(id=self.member['id'], role=ROLE_LEADER)
+        self.usersAllowed = [self.leader]
+
+    def test_users_cannot_change_own_role(self):
+        spoofedRequest = self.make_spoofedRequest(self.member)
+        spoofedRequest.spoof_failed()
+        self.login(self.leader)
+        self.ajax_failed(id='xxx')
+        self.ajax_failed(id=self.leader['id'])
+        self.ajax_failed(role='xxx')
+        self.ajax_succeeded(role=None)
+        self.ajax_succeeded(role=ROLE_SPECTATOR)
+        self.ajax_succeeded(role=ROLE_MEMBER)
+        self.ajax_succeeded(role=ROLE_LEADER)
+        spoofedRequest.spoof_succeeded()
+
+    def test_authentication_is_robust(self):
+        spoofedRequest = self.make_spoofedRequest(self.leader)
+        spoofedRequest.spoof_failed(secret='')
+        spoofedRequest.spoof_failed(principal=0)
+        spoofedRequest.spoof_failed(principal='xxx')
+        spoofedRequest.spoof_failed(tokens=[])
+        spoofedRequest.spoof_failed(tokens=['xxx'])
+        spoofedRequest.spoof_succeeded()
+
+
+class SpoofedRequest(object):
+
+    def __init__(self, secret, principal, tokens, testRoute):
+        self.defaults = dict(secret=secret, principal=principal, tokens=tokens)
+        self.app = testRoute.app
+        self.url = testRoute.get_url(testRoute.routeName)
+        self.request = testRoute.request
+
+    def make_cookies(self, secret, principal, tokens):
+        request = DummyRequest(environ=environ_from_url(self.url))
+        headers = AuthTktCookieHelper(secret).remember(request, principal, tokens=tokens)
+        key, value = headers[0][1].split(';')[0].split('=')
+        return {key: value.strip('"')}
+
+    def spoof(self, isOk=1, **kw):
+        options = dict(self.defaults, **kw)
+        self.app.cookies = self.make_cookies(**options)
+        isAccessible = 'Login</title>' not in self.request().body
+        assert isOk == isAccessible, options
+
+    def spoof_succeeded(self, **kw):
+        self.spoof(1, **kw)
+
+    def spoof_failed(self, **kw):
+        self.spoof(0, **kw)
+
+
+def test_get_json():
+    get_json(db.query(User).all())

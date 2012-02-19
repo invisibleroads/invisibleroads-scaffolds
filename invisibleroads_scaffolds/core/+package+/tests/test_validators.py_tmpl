@@ -1,0 +1,146 @@
+import os
+from archiveIO import TemporaryFolder
+from formencode import Invalid
+from unittest import TestCase
+
+from {{package}} import validators
+from {{package}}.models import User, SMSAddress
+from {{package}}.tests import EasyPatch, get_id
+from {{package}}.validators import *
+
+
+class TestFormState(TestCase):
+
+    def test_get_works(self):
+        formState = FormState(1)
+        formState.get(User, None)
+        formState.get(User, 1)
+
+
+class TestUnique(EasyPatch, TestCase):
+
+    def test_validator_works(self):
+        validator = Unique('xxx', User, 'username', 'role')
+        field_dict = {'username': 'xxx'}
+        formState = FormState(1)
+        formState.role = 1
+        self.patch(validators, 'db', FakeDB(results=[User()]))
+        self.assertRaises(Invalid, validator.validate_python, field_dict, formState)
+
+
+class TestNonLeadersCannotSetTargetUser(TestCase):
+
+    def test_validator_works(self):
+        validator = NonLeadersCannotSetTargetUser('user_id')
+        field_dict = {'user_id': 0}
+        formState = FormState(get_id(User, is_leader=False))
+        self.assertRaises(Invalid, validator.validate_python, field_dict, formState)
+
+
+class TestUsersCanOmit(TestCase):
+
+    def test_validator_works(self):
+        userID = 'xxx'
+        validator = UsersCanOmit('user_id', 'user_id')
+        field_dict = {'user_id': None}
+        formState = FormState(userID)
+        validator.validate_python(field_dict, formState)
+        self.assertEqual(field_dict['user_id'], userID)
+
+
+class TestUsersCannotChangeOwn(TestCase):
+
+    def test_validator_works(self):
+        validator = UsersCannotChangeOwn('xxx', 'user_id')
+        field_dict = {'user_id': 1}
+        formState = FormState(1)
+        self.assertRaises(Invalid, validator.validate_python, field_dict, formState)
+
+
+class TestItemsExist(TestCase):
+
+    def test_validator_works(self):
+        validator = ItemsExist(User, 'users', 'role')
+        field_dict = {'users': ''}
+        formState = FormState(1)
+        validator.validate_python(field_dict, formState)
+        self.assertEqual(field_dict['users'], [])
+
+        field_dict = {'users': '0'}
+        formState.role = 1
+        validator.queryConditional = User.id > 0
+        self.assertRaises(Invalid, validator.validate_python, field_dict, formState)
+
+
+class TestUploadsCached(TestCase):
+
+    def test_validator_works(self):
+        userID = 1
+        uploadKey = 'testFile'
+        uploadPath = 'README.rst'
+        validator = UploadsCached()
+        formState = FormState(userID)
+
+        # Initialize uploadID
+        field_dict = {'a': '', uploadKey: type('', (object,), {'file': open(uploadPath), 'filename': 'xxx'})}
+        validator.validate_python(field_dict, formState)
+        # Increment uploadID
+        field_dict = {uploadKey: type('', (object,), {'file': open(uploadPath), 'filename': 'xxx'})}
+        validator.validate_python(field_dict, formState)
+        # Use uploadID
+        field_dict = {uploadKey: formState.uploadIDByName[uploadKey]}
+        validator.validate_python(field_dict, formState)
+        upload = field_dict[uploadKey]
+
+        with TemporaryFolder() as temporaryFolder:
+            targetPath = os.path.join(temporaryFolder, upload.filename)
+            upload.save(targetPath)
+            self.assertEqual(open(targetPath).read(), open(uploadPath).read())
+
+        field_dict = {uploadKey: -1}
+        self.assertRaises(Invalid, validator.validate_python, field_dict, formState)
+
+
+class TestIDExists(TestCase):
+
+    def test_bad_params_fail(self):
+        userID = get_id(User)
+        userState = FormState(userID)
+        method = IDExists(User).to_python
+        self.assertRaises(Invalid, method, 100, userState)
+        self.assertEqual(userID, method(userID, userState))
+
+
+class TestIDExistsAndBelongsToUser(TestCase):
+
+    def test_leadersEditAll_works(self):
+        leaderID = get_id(User, is_leader=True)
+        leaderState = FormState(leaderID)
+        memberID = get_id(User, is_leader=False, is_member=True)
+        memberState = FormState(memberID)
+        spectatorID = get_id(User, is_member=False)
+        spectatorState = FormState(spectatorID)
+        smsAddressID = get_id(SMSAddress, user_id=spectatorID)
+        method = IDExistsAndBelongsToUser(SMSAddress, leadersEditAll=False).to_python
+        self.assertRaises(Invalid, method, smsAddressID, leaderState)
+        self.assertRaises(Invalid, method, smsAddressID, memberState)
+        self.assertEqual(smsAddressID, method(smsAddressID, spectatorState))
+        method = IDExistsAndBelongsToUser(SMSAddress, leadersEditAll=True).to_python
+        self.assertEqual(smsAddressID, method(smsAddressID, leaderState))
+        self.assertRaises(Invalid, method, smsAddressID, memberState)
+        self.assertEqual(smsAddressID, method(smsAddressID, spectatorState))
+
+
+class FakeDB(object):
+
+    def __init__(self, results):
+        self.results = results
+
+    def query(self, *args, **kw):
+        return self
+
+    def filter(self, *args, **kw):
+        return self
+
+    def first(self):
+        return self.results[0]

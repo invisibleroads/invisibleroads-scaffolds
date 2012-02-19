@@ -1,0 +1,96 @@
+{{project}}
+================================
+::
+
+    # Prepare isolated environment
+    PYRAMID_ENV=$HOME/Projects/pyramid-env
+    virtualenv $PYRAMID_ENV 
+    # Activate isolated environment
+    source $PYRAMID_ENV/bin/activate
+    # Install packages
+    pip install --upgrade ipython ipdb nose coverage distribute
+
+    # Enter repository
+    REPOSITORY=$PYRAMID_ENV/app
+    cd $REPOSITORY
+    # Install dependencies
+    su
+        yum -y install gcc gcc-c++
+    pip install --upgrade cryptacular formencode imapIO pycrypto pyramid pyramid_beaker pyramid_debugtoolbar pyramid_mailer pyramid_tm python-openid recaptcha-client simplejson SQLAlchemy transaction waitress webtest whenIO zope.sqlalchemy
+    python setup.py develop
+
+    # Edit sensitive information
+    vim .test.ini
+    # Run tests with coverage
+    nosetests --pdb --pdb-failures
+    # Show URL routes
+    proutes development.ini
+    # Run shell
+    pshell development.ini
+
+    # Edit sensitive information
+    vim .development.ini
+    # Start development server
+    pserve --reload development.ini
+
+    # Edit sensitive information
+    vim .production.ini
+    # Start production server
+    pserve --daemon production.ini PORT=8080
+
+    # Generate crontab
+    python utilities/make_crontab.py -c production.ini
+    # Make sure to test each crontab line manually
+    crontab server.crt
+
+
+PostgreSQL
+----------
+::
+
+    su
+        yum -y install postgresql postgresql-devel postgresql-server
+        service postgresql initdb
+        service postgresql start
+    su - postgres
+        psql -c "alter role postgres with password 'SET-PASSWORD-HERE';"
+        vim data/pg_hba.conf
+            local   all         all                               md5
+            host    all         all         127.0.0.1/32          md5
+            host    all         all         ::1/128               md5
+        createuser SET-USERNAME-HERE -S -D -R
+        psql -c "alter role SET-USERNAME-HERE with password 'SET-PASSWORD-HERE';"
+        createdb -O SET-USERNAME-HERE SET-DATABASE-HERE
+    su
+        passwd postgres
+        service postgresql restart
+    source $PYRAMID_ENV/bin/activate
+    pip install --upgrade psycopg2
+    cd $REPOSITORY
+    vim .development.ini
+        sqlalchemy.url = postgresql+psycopg2://SET-USERNAME-HERE:SET-PASSWORD-HERE@localhost:5432/SET-DATABASE-HERE
+
+
+gevent
+------
+::
+
+    source $PYRAMID_ENV/bin/activate
+    mkdir $PYRAMID_ENV/opt
+
+    cd $PYRAMID_ENV/opt
+    su
+        yum -y install hg libevent-devel
+    # wget https://github.com/downloads/libevent/libevent/libevent-2.0.16-stable.tar.gz
+    # tar xzvf libevent-2.0.16-stable.tar.gz
+    # cd libevent-2.0.16-stable
+    # ./configure --prefix=$HOME
+    # make
+    # make install
+
+    pip install gevent
+    # pip install --install-option="-I$HOME/include" --install-option="-L$HOME/lib" gevent
+
+    cd $REPOSITORY
+    # export LD_LIBRARY_PATH=$HOME/lib
+    python utilities/serve.py -c production.ini

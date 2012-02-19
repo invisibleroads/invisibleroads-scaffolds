@@ -1,0 +1,17 @@
+<%! from {{package}}.parameters import TICKET_LIFE_HOURS %>\
+<% url = request.route_url('user_confirm', ticket=ticket) %>\
+We received your ${action} request for the following credentials.
+
+Username: ${form['username']}
+% if 'reset' == action:
+Password: ${form['password']}
+% endif
+
+Please open the link below to complete your ${action}.
+% if isHTML:
+<a href=${url}>${url}</a>
+% else:
+${url}
+% endif
+
+This ticket expires in ${TICKET_LIFE_HOURS} hour${'' if TICKET_LIFE_HOURS == 1 else 's'}.

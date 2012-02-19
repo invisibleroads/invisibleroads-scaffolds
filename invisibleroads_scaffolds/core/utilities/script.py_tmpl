@@ -1,0 +1,100 @@
+'Classes and functions for command-line utilities'
+import re
+import os; BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import sys; sys.path.append(BASE_PATH)
+import argparse
+import socket
+from ConfigParser import NoSectionError, NoOptionError
+from pyramid_mailer.mailer import Mailer
+from pyramid.settings import asbool
+from urllib import urlencode
+
+from {{package}} import SettingsParser, main
+from {{package}}.models import ApplicationError
+
+
+EXPAND_PATH = lambda relativePath: os.path.join(BASE_PATH, relativePath)
+SOCKET = socket.socket()
+PATTERN_PORT = re.compile(r'(\d+)')
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    'ArgumentParser with default arguments'
+
+    def __init__(self, *args, **kwargs):
+        super(ArgumentParser, self).__init__(*args, **kwargs)
+        self.add_argument('-c', 
+            default=EXPAND_PATH('development.ini'),
+            dest='configurationPath', 
+            help='use the specified configuration file',
+            metavar='PATH')
+        self.add_argument('-q',
+            action='store_false',
+            default=True,
+            dest='verbose',
+            help='be quiet')
+
+
+def initialize(args, portlock=''):
+    'Connect to database and return configuration settings'
+    if args.verbose:
+        print 'Using %s' % args.configurationPath
+    settings = SettingsParser(dict(here=BASE_PATH)).load(args.configurationPath, storeConfigParser=True)
+    if portlock:
+        configSection = 'app:portlock'
+        configParser = settings['configParser']
+        try:
+            portString = configParser.get(configSection, portlock)
+        except (NoSectionError, NoOptionError):
+            print ('To ensure that only one instance of this script is running, '
+                   "specify a unique port number for '%s' in '%s'" % (portlock, configSection))
+        else:
+            port = parse_port(portString)
+            try:
+                SOCKET.bind(('', port))
+            except socket.error:
+                sys.exit(1)
+    settings['router'] = main(dict(__file__=args.configurationPath, here=BASE_PATH), **settings)
+    return settings
+
+
+def make_request(router, requestMethod='GET', params=None):
+    registry = router.registry
+    settings = registry.settings
+    request = router.request_factory({
+        'HTTP_HOST': settings['domain'],
+        'REQUEST_METHOD': requestMethod,
+        'wsgi.url_scheme': settings['wsgi.url_scheme'],
+    })
+    request.registry = registry
+    if params:
+        queryString = urlencode(params)
+        if 'GET' == requestMethod:
+            request.environ['QUERY_STRING'] = queryString
+        else:
+            request.body = queryString
+    return request
+
+
+def parse_port(portString):
+    'Convert string to integer while ignoring other text such as comments'
+    match = PATTERN_PORT.search(portString)
+    try:
+        return int(match.group(1))
+    except AttributeError:
+        raise ValueError('Could not parse port=%s' % portString)
+
+
+def get_mailer(configParser, configSection):
+    try:
+        return Mailer(
+            host=configParser.get(configSection, 'smtp.host'),
+            port=configParser.get(configSection, 'smtp.port'),
+            username=configParser.get(configSection, 'smtp.username'),
+            password=configParser.get(configSection, 'smtp.password'),
+            tls=asbool(configParser.get(configSection, 'smtp.tls')),
+            ssl=asbool(configParser.get(configSection, 'smtp.ssl')),
+            queue_path=configParser.get('app:qp', 'queue_path'),
+            default_sender=configParser.get(configSection, 'email'))
+    except (NoSectionError, NoOptionError), error:
+        raise ApplicationError(error)

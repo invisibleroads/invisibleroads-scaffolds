@@ -1,0 +1,130 @@
+from formencode import Invalid
+from openid.consumer import consumer
+from unittest import TestCase
+
+from {{package}}.tests import TestRoute
+from {{package}}.views import openIDs
+
+
+EXAMPLE_URL = 'http://example.com'
+
+
+class TestStart(TestRoute, TestCase):
+
+    routeName = 'openID_start'
+    isPublic = True
+
+    def test_start_works(self):
+        self.patch(openIDs, 'prepare_openIDRequest', lambda x: x)
+        def make_get_consumer(x):
+            def get_consumer(request):
+                class Consumer(object):
+                    def begin(self, openIDURL):
+                        return x(openIDURL)
+                return Consumer()
+            return get_consumer
+        openIDURL = EXAMPLE_URL
+
+        def begin(openIDURL):
+            raise consumer.DiscoveryFailure('', None)
+        self.patch(openIDs, 'get_consumer', make_get_consumer(begin))
+        self.request(openIDURL=openIDURL)
+
+        def begin(openIDURL):
+            pass
+        self.patch(openIDs, 'get_consumer', make_get_consumer(begin))
+        self.request(openIDURL=openIDURL)
+
+        def begin(openIDURL):
+            class OpenIDRequest(object):
+                def shouldSendRedirect(self):
+                    return True
+                def redirectURL(self, rootURL, callbackURL):
+                    return EXAMPLE_URL
+            return OpenIDRequest()
+        self.patch(openIDs, 'get_consumer', make_get_consumer(begin))
+        self.request(openIDURL=openIDURL)
+
+        def begin(openIDURL):
+            class OpenIDRequest(object):
+                def shouldSendRedirect(self):
+                    return False
+                def htmlMarkup(self, rootURL, callbackURL):
+                    pass
+            return OpenIDRequest()
+        self.patch(openIDs, 'get_consumer', make_get_consumer(begin))
+        self.request(openIDURL=openIDURL)
+
+    def test_prepare_openIDRequest(self):
+        class OpenIDRequest(object):
+            def addExtension(self, x):
+                pass
+        openIDs.prepare_openIDRequest(OpenIDRequest())
+
+
+class TestFinish(TestRoute, TestCase):
+
+    routeName = 'openID_finish'
+    isPublic = True
+
+    def test_finish_works(self):
+        self.patch(openIDs, 'process_openIDResponse', lambda x: (u'xxx', u'yyy', 'zzz@example.com'))
+        def make_get_consumer(x):
+            def get_consumer(request):
+                class Consumer(object):
+                    def complete(self, params, returnURL):
+                        return x(params, returnURL)
+                return Consumer()
+            return get_consumer
+
+        def complete(params, returnURL):
+            return type('', (object,), dict(status=consumer.FAILURE))
+        self.patch(openIDs, 'get_consumer', make_get_consumer(complete))
+        self.request()
+
+        def complete(params, returnURL):
+            return type('', (object,), dict(status=consumer.SUCCESS))
+        self.patch(openIDs, 'get_consumer', make_get_consumer(complete))
+        self.request()
+
+    def test_process_openIDResponse(self):
+        class SRegResponse(object):
+            @classmethod
+            def fromSuccessResponse(Class, openIDResponse):
+                return {'email': 'xxx@example.com', 'fullname': 'yyy'}
+        class FetchResponse(object):
+            @classmethod
+            def fromSuccessResponse(Class, openIDResponse):
+                pass
+        self.patch(openIDs, 'SRegResponse', SRegResponse)
+        self.patch(openIDs, 'FetchResponse', FetchResponse)
+        openIDs.process_openIDResponse(None)
+
+        class SRegResponse(object):
+            @classmethod
+            def fromSuccessResponse(Class, openIDResponse):
+                pass
+        class FetchResponse(object):
+            @classmethod
+            def fromSuccessResponse(Class, openIDResponse):
+                return {openIDs.AX_EMAIL: ['xxx@example.com']}
+        self.patch(openIDs, 'SRegResponse', SRegResponse)
+        self.patch(openIDs, 'FetchResponse', FetchResponse)
+        self.patch(openIDs, 'extract_nickname', lambda x: 'zzz')
+        openIDs.process_openIDResponse(None)
+
+    def test_extract_nickname(self):
+        class XXX(object):
+            def __init__(self, data):
+                self.data = data
+            def get(self, x):
+                return self.data[x]
+        openIDs.extract_nickname(XXX({openIDs.AX_FIRSTNAME: ['xxx'], openIDs.AX_LASTNAME: ['yyy']}))
+        openIDs.extract_nickname(XXX({openIDs.AX_FULLNAME: ['xxx yyy']}))
+        openIDs.extract_nickname(XXX({openIDs.AX_NICKNAME: ['zzz']}))
+        openIDs.extract_nickname(XXX({}))
+
+    def test_make_unique_user(self):
+        self.assertRaises(Invalid, openIDs.make_unique_user, 'xxx', 'yyy', 'zzz')
+        self.patch(openIDs, 'make_random_string', lambda x: 'aaaaaa')
+        openIDs.make_unique_user('xxx', 'yyy', 'zzz@example.com')

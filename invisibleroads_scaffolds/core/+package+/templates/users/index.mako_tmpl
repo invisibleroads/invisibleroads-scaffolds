@@ -1,0 +1,68 @@
+<%inherit file='/base.mako'/>
+<%! 
+from {{package}}.models import ROLE_SPECTATOR, ROLE_MEMBER, ROLE_LEADER
+tableID = 'table'
+%>
+
+<%def name='title()'>Users</%def>
+
+<%def name='css()'>
+td {text-align:center}
+.user {color:gray}
+.user.member {color:black}
+.user.leader {color:black}
+</%def>
+
+<%def name='root()'>
+<script src="${request.static_path('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery.extras.min.js')}"></script>
+</%def>
+
+<%def name='js()'>
+var $table = $('#${tableID}').dataTableCustom({
+    aoColumns:[
+        {sClass:'nickname', sType:'string'},
+        {sClass:'role', sType:'rel-numeric'},
+        {sClass:'when_login', sType:'rel-string'}
+    ]
+});
+
+% if IS_LEADER:
+$table
+.cellToggle('.when_login:not(th, #user${USER_ID} > td)', {
+    optionalClass:'member',
+    onMessage:'Activate',
+    onValue:${ROLE_MEMBER},
+    offMessage:'Deactivate',
+    offValue:${ROLE_SPECTATOR},
+    requestURL:"${request.route_path('user_move')}",
+    requestAttribute:'role',
+    nameClass:'nickname'
+})
+.cellToggle('.role:not(th, #user${USER_ID} > td)', {
+    requiredClass:'member',
+    requiredMessage:'User deactivated',
+    optionalClass:'leader',
+    onMessage:'Promote',
+    onValue:${ROLE_LEADER},
+    offMessage:'Demote',
+    offValue:${ROLE_MEMBER},
+    requestURL:"${request.route_path('user_move')}",
+    requestAttribute:'role',
+    nameClass:'nickname'
+});
+% endif
+</%def>
+
+<table id=${tableID}>
+	<thead>
+		<tr>
+			<th>User</th>
+            <th>Role</th>
+			<th>Last Login</th>
+		</tr>
+	</thead>
+	<tbody>
+        <%include file='users.mako'/>
+	</tbody>
+</table>

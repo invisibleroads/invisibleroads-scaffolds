@@ -1,0 +1,183 @@
+'Views for openID integration'
+import datetime
+import logging; log = logging.getLogger(__name__)
+import re
+from formencode import Invalid
+from markupsafe import escape
+from openid.consumer import consumer
+from openid.extensions.ax import AttrInfo, FetchRequest, FetchResponse
+from openid.extensions.sreg import SRegRequest, SRegResponse
+from openid.store.filestore import FileOpenIDStore
+from openid.store.sqlstore import SQLiteStore, PostgreSQLStore, MySQLStore
+from pyramid.httpexceptions import HTTPFound
+from pyramid.response import Response as HTTPResponse
+from pyramid.security import remember, NO_PERMISSION_REQUIRED
+from pyramid.view import view_config
+from traceback import format_exc
+
+from {{package}}.libraries.tools import make_random_string, make_unique_string
+from {{package}}.models import User, ApplicationError, db
+from {{package}}.parameters import *
+from {{package}}.validators import FormState
+from {{package}}.views.users import UserUpdateForm, format_tokens
+
+
+AX_EMAIL = 'http://axschema.org/contact/email'
+AX_FIRSTNAME = 'http://axschema.org/namePerson/first'
+AX_LASTNAME = 'http://axschema.org/namePerson/last'
+AX_FULLNAME = 'http://axschema.org/namePerson'
+AX_NICKNAME = 'http://axschema.org/namePerson/friendly'
+PATTERN_EMAIL = re.compile(r'(.*)@.*')
+
+
+def includeme(config):
+    config.scan(__name__)
+    config.add_route('openID_start', 'openIDs/start')
+    config.add_route('openID_finish', 'openIDs/finish')
+
+
+@view_config(route_name='openID_start', permission=NO_PERMISSION_REQUIRED)
+def start(request):
+    'Start openID authentication process'
+    params = request.params
+    openIDURL = params.get('openIDURL')
+    if not openIDURL:
+        return HTTPResponse('Parameter expected: openIDURL')
+    openIDConsumer = get_consumer(request)
+    try:
+        openIDRequest = openIDConsumer.begin(openIDURL)
+    except consumer.DiscoveryFailure, error:
+        return HTTPResponse('Discovery failed: %s' % escape(error))
+    if not openIDRequest:
+        return HTTPResponse('Not an openID provider: %s' % escape(openIDURL))
+    openIDRequest = prepare_openIDRequest(openIDRequest)
+    # Redirect
+    request.session['targetURL'] = params.get('targetURL', '')
+    rootURL = request.host_url
+    callbackURL = request.route_url('openID_finish')
+    if openIDRequest.shouldSendRedirect():
+        return HTTPFound(location=openIDRequest.redirectURL(rootURL, callbackURL))
+    return HTTPResponse(openIDRequest.htmlMarkup(rootURL, callbackURL))
+
+
+@view_config(route_name='openID_finish', permission=NO_PERMISSION_REQUIRED)
+def finish(request):
+    'Finish openID authentication process'
+    targetURL = request.session.pop('targetURL', '/')
+    openIDConsumer = get_consumer(request)
+    openIDResponse = openIDConsumer.complete(request.params, request.path_url)
+    openIDStatus = openIDResponse.status
+    try:
+        if consumer.SUCCESS != openIDStatus:
+            raise ApplicationError(openIDResponse.message)
+        username, nickname, email = process_openIDResponse(openIDResponse)
+        user = db.query(User).filter_by(email=email).first()
+        if not user:
+            user = make_unique_user(username, nickname, email)
+            db.add(user)
+            db.flush()
+    except:
+        if consumer.CANCEL != openIDStatus:
+            log.debug(format_exc())
+        request.session.flash('OpenID authentication failed')
+        return HTTPFound(location=request.route_path('user_login') + '?url=' + targetURL)
+    # Save user
+    user.when_login = datetime.datetime.utcnow()
+    user.rejection_count = 0
+    # Set cookie
+    headers = remember(request, user.id, tokens=format_tokens(user))
+    return HTTPFound(location=targetURL, headers=headers)
+
+
+def get_consumer(request):
+    try:
+        openIDStore = {
+            'sqlite': SQLiteStore,
+            'postgresql': PostgreSQLStore,
+            'mysql': MySQLStore,
+        }[db.bind.name](db.bind.raw_connection())
+    except KeyError: # pragma: no cover
+        openIDStore = FileOpenIDStore('data/openIDs')
+    try:
+        openIDStore.createTables()
+    except: # pragma: no cover
+        pass
+    return consumer.Consumer(request.session, openIDStore)
+
+
+def prepare_openIDRequest(openIDRequest):
+    'Specify attributes'
+    # Prepare sregRequest
+    sregRequest = SRegRequest(required=['email', 'fullname'])
+    openIDRequest.addExtension(sregRequest)
+    # Prepare axRequest
+    axRequest = FetchRequest()
+    axRequest.add(AttrInfo(AX_EMAIL, required=True))
+    axRequest.add(AttrInfo(AX_FIRSTNAME, required=True))
+    axRequest.add(AttrInfo(AX_LASTNAME, required=True))
+    axRequest.add(AttrInfo(AX_FULLNAME, required=True))
+    axRequest.add(AttrInfo(AX_NICKNAME, required=True))
+    openIDRequest.addExtension(axRequest)
+    # Return
+    return openIDRequest
+
+
+def process_openIDResponse(openIDResponse):
+    'Extract attributes'
+    sregResponse = SRegResponse.fromSuccessResponse(openIDResponse)
+    axResponse = FetchResponse.fromSuccessResponse(openIDResponse)
+    if sregResponse:
+        email = sregResponse['email']
+        nickname = sregResponse['fullname']
+    else:
+        email = axResponse.get(AX_EMAIL)[0]
+        nickname = extract_nickname(axResponse)
+    username = PATTERN_EMAIL.match(email).group(1)
+    return username, nickname, email
+
+
+def extract_nickname(axResponse):
+    try:
+        return ('%s %s' % (axResponse.get(AX_FIRSTNAME)[0], axResponse.get(AX_LASTNAME)[0])).strip()
+    except KeyError:
+        pass
+    try:
+        return axResponse.get(AX_FULLNAME)[0]
+    except KeyError:
+        pass
+    try:
+        return axResponse.get(AX_NICKNAME)[0]
+    except KeyError:
+        pass
+    return 'Anonymous'
+
+
+def make_unique_user(username, nickname, email):
+    'Make unique user'
+    valueByName = dict(
+        username=make_unique_string(
+            username, 
+            USERNAME_LEN_MIN, 
+            USERNAME_LEN_MAX, 
+            lambda x: not db.query(User.id).filter_by(username=x).first()),
+        password=make_random_string(PASSWORD_LEN_MAX), 
+        nickname=make_unique_string(
+            nickname, 
+            NICKNAME_LEN_MIN,
+            NICKNAME_LEN_MAX,
+            lambda x: not db.query(User.id).filter_by(nickname=x).first()),
+        email=email)
+    userID = None
+    try:
+        form = UserUpdateForm().to_python(dict(valueByName, id=userID), FormState(userID))
+    except Invalid, error:
+        errorByName = error.unpack_errors()
+        # Ignore password errors
+        try:
+            del errorByName['password']
+        except KeyError:
+            pass
+        # If we still have errors, raise exception
+        if errorByName:
+            raise error
+    return User(**valueByName)

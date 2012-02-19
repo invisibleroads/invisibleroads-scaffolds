@@ -1,0 +1,162 @@
+<%! from {{package}}.parameters import SITE_NAME, SITE_VERSION %>\
+<%inherit file='/base.mako'/>
+
+<%def name='title()'>Login</%def>
+
+<%def name='css()'>
+.openIDProvider {background:url(${request.static_path('{{package}}:static/openID-providers.png')}); width:100px; height:60px; float:left; border:2px white solid}
+.openIDProvider:hover {cursor:pointer; border:2px black dashed}
+#openIDStackExchange {background-position:0px 0px}
+#openIDGoogle {background-position:0px -60px}
+#openIDYahoo {background-position:0px -120px}
+#loginForm {clear:both}
+#resetPassword {display:none}
+#resetPassword span {display:none}
+</%def>
+
+<%def name='toolbar()'>
+% if request.route_path('user_login') != request.path:
+Elevated privileges required
+% else:
+${', '.join(request.session.pop_flash()) or 'Click a logo to use an existing account'}
+% endif
+</%def>
+
+<%def name='root()'>
+<script src='https://www.google.com/recaptcha/api/js/recaptcha_ajax.js'></script>
+</%def>
+
+<%def name='js()'>
+var urlByName = {
+    'StackExchange':'https://openid.stackexchange.com',
+    'Google':'https://google.com/accounts/o8/id',
+    'Yahoo':'http://yahoo.com'
+};
+$('.openIDProvider').click(function() {
+    var name = /openID(.*)/.exec(this.id)[1];
+    $('[name=openIDURL]').val(urlByName[name]);
+    $('#openIDForm').submit();
+});
+
+var $loginForm = $('#loginForm'), 
+    $username = $loginForm.find('[name=username]'),
+    $password = $loginForm.find('[name=password]'), 
+    $timezoneOffset = $('#timezoneOffset'),
+    rejectionCount = 0;
+function login() {
+    if (hasErrors($loginForm)) {
+        $resetPassword.hide();
+        return;
+    }
+    var params = {'username':$username.val(), 'password':$password.val(), 'timezoneOffset':$timezoneOffset.val()};
+    var $rc = $('#recaptcha_challenge_field');
+    if ($rc.length) {
+        params['recaptcha_challenge_field'] = $rc.val();
+        params['recaptcha_response_field'] = $('#recaptcha_response_field').val();
+    }
+    $.post("${request.route_path('user_login')}", params, function(data) {
+        if (data.isOk) {
+            window.location = "${url}";
+        } else {
+            $resetForm.hide();
+            $resetTrigger.show();
+            $resetPassword.show();
+            rejectionCount = data.rejectionCount ? data.rejectionCount : rejectionCount + 1;
+        <% rPublic = request.registry.settings.get('recaptcha.public', '') %>
+        % if rPublic:
+            if (rejectionCount >= ${REJECTION_LIMIT})
+                Recaptcha.create('${rPublic}', 'recaptcha', {callback: Recaptcha.focus_response_field});
+        % endif
+        }
+    });
+}
+function hasErrors($form) {
+    var focused = false;
+    $form.find('[name]').each(function() {
+        var name = this.name, message = '';
+        if (this.value == '') {
+            message = 'Whoops! You forgot something.'
+            if (!focused) {
+                focused = true;
+                $(this).focus();
+            }
+        }
+        $('#' + name + '_').html('<span class=error>' + message + '</span>');
+    });
+    return focused;
+}
+$username.keydown(function(e) {
+    $resetPassword.hide();
+    if (13 == e.which) $password.focus();
+});
+$password.keydown(function(e) {if (13 == e.which) login()});
+$('#login').click(login);
+$timezoneOffset.val((new Date().getTimezoneOffset() + 1440) % 1440);
+
+var $resetPassword = $('#resetPassword'), 
+    $resetTrigger = $resetPassword.find('a'), 
+    $resetForm = $resetPassword.find('span'), 
+    $resetInputs = $resetPassword.find('input'),
+    $resetEmail = $resetInputs.eq(0),
+    $resetButton = $resetInputs.eq(1);
+function reset() {
+    var email = $.trim($resetEmail.val());
+    if (!email) {
+        showResetFeedback('Please enter an email address');
+        return;
+    }
+    $resetInputs.prop('disabled', true);
+    $.post("${request.route_path('user_reset')}", {
+        'email':email
+    }, function(data) {
+        showResetFeedback(data.isOk ? 'Please check your mailbox' : 'Email not found');
+    });
+}
+function showResetFeedback(message) {
+    $('#password_').html('<span class=error>' + message + '</span>');
+    $resetInputs.removeAttr('disabled');
+    $resetEmail.select().focus();
+}
+$resetTrigger.click(function() {
+    $(this).hide();
+    $resetForm.show();
+    $resetEmail.val('you@example.com').keydown(function(e) {if (13 == e.which) reset()}).select().focus();
+});
+$resetButton.click(reset);
+
+if ($username.val() == '') $username.focus();
+</%def>
+
+<form id=openIDForm action="${request.route_path('openID_start')}" method=post>
+<a class=openIDProvider id=openIDStackExchange></a>
+<a class=openIDProvider id=openIDGoogle></a>
+<a class=openIDProvider id=openIDYahoo></a>
+<input name=openIDURL type=hidden>
+<input name=targetURL value='${url}' type=hidden>
+</form>
+
+<form id=loginForm>
+<div>
+    Username<br>
+    <input name=username autocomplete=off>
+    <span id=username_></span>
+    <span id=resetPassword>
+        <a class='hover link off'>Did you forget your login?</a>
+        <span>
+            <input autocomplete=off>
+            <input type=button value=Reset>
+        </span>
+    </span>
+</div>
+<div>
+    Password<br>
+    <input name=password type=password autocomplete=off>
+    <span id=password_></span>
+</div>
+<div id=recaptcha></div>
+<input id=timezoneOffset type=hidden>
+<input id=login type=button value=Login>
+</form>
+<br>
+<a class='hover link off' href="${request.route_path('user_create')}">Create an account</a><br>
+<a class='hover link off' href='/docs/'>Read documentation for ${SITE_NAME} ${SITE_VERSION}</a><br>

@@ -1,0 +1,15 @@
+#!/bin/bash
+PYRAMID_ENV=/srv/www/{{package}}.com
+source $PYRAMID_ENV/bin/activate
+
+cd $PYRAMID_ENV/app
+kill `ps x | grep utilities/serve.py | grep -v grep | awk '{print $1}'`
+python utilities/serve.py -c production.ini >> logs/serve.log 2>&1 &
+
+read -p 'Refresh docs? ' -n 1 -r; echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    pushd $PYRAMID_ENV/docs
+    rm -Rf _build
+    make html
+    popd
+fi

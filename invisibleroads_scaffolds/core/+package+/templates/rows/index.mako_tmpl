@@ -1,0 +1,118 @@
+<%inherit file='/base.mako'/>
+<%! 
+tableID = 'table' 
+from {{package}}.views import users as usersView
+%>
+
+<%def name='title()'>Rows</%def>
+
+<%def name='css()'>
+.row {color:gray}
+.row.active {color:black}
+</%def>
+
+<%def name='root()'>
+<script src="${request.static_path('{{package}}:static/datatables/jquery.dataTables.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery.tools.min.js')}"></script>
+<script src="${request.static_path('{{package}}:static/jquery.extras.min.js')}"></script>
+% if IS_LEADER:
+<script src="${request.static_path('{{package}}:static/jquery.tokenInput.min.js')}"></script>
+<link rel=stylesheet href="${request.static_path('{{package}}:static/jquery.tokenInput.css')}" />
+% endif
+</%def>
+
+<%def name='js()'>
+var $table = $('#${tableID}').dataTableCustom({
+% if IS_MEMBER:
+    onLoad:function() {
+        $('#${tableID}_filter').append(' <input id=${tableID}_add type=button value=Add>');
+    },
+% endif
+    aoColumns:[
+        {sClass:'user_id', sType:'string'},
+        {sClass:'col1', sType:'string'},
+        {sClass:'col2', sType:'string'},
+        {sClass:'when_update', sType:'rel-string'}
+    ]
+});
+var $form = $('#form');
+
+% if IS_LEADER:
+$table
+.cellToggle('.when_update:not(th)', {
+    requiredClass:'row',
+    optionalClass:'active',
+    onMessage:'Activate',
+    offMessage:'Deactivate',
+    requestURL:"${request.route_path('row_move')}",
+    requestAttribute:'is_active',
+    nameClass:'col1'
+});
+var userPacks = ${usersView.get_json(users) | n};
+$form.find('[name=user_id]').tokenInput(userPacks, {
+    animateDropdown:false,
+    hintText:'',
+    noResultsText:'',
+    preventDuplicates:true,
+    searchDelay:0,
+    searchingText:'',
+    tokenDelimiter:' ',
+    tokenLimit:1,
+    zindex:9999
+});
+% endif
+
+% if IS_MEMBER:
+$form.prepareTableOverlayForm($table
+% if not IS_LEADER:
+    , '.user${USER_ID}'
+% endif
+);
+% endif
+</%def>
+
+<table id=${tableID}>
+	<thead>
+		<tr>
+			<th>Owner</th>
+			<th>Unique</th>
+            <th>Unique for User</th>
+            <th>Updated</th>
+		</tr>
+	</thead>
+	<tbody>
+        <%include file='rows.mako'/>
+	</tbody>
+</table>
+
+% if IS_MEMBER:
+<form id=form class=overlay action="${request.route_path('row_update')}" method=post>
+<div class=tabs>
+    <a href='#main'>Main</a>
+% if IS_LEADER:
+    <a href='#admin'>Admin</a>
+% endif
+</div>
+<div class=panes>
+<div>
+    <div>
+        Unique<br>
+        <input name=col1 title='This string must be unique'>
+    </div>
+    <div>
+        Unique for User<br>
+        <input name=col2 title='This string must be unique for you'>
+    </div>
+</div>
+% if IS_LEADER:
+<div>
+    <div>
+        Owner<br>
+        <input id=user_id name=user_id title='To whom does it belong?'>
+    </div>
+</div>
+% endif
+</div>
+<input class=save type=submit value=Save title='Press ESC to cancel'>
+</form>
+% endif

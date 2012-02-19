@@ -11,11 +11,11 @@ Installation
 
     # Prepare isolated environment
     PYRAMID_ENV=$HOME/Projects/pyramid-env
-    virtualenv --no-site-packages $PYRAMID_ENV 
+    virtualenv $PYRAMID_ENV 
     # Activate isolated environment
     source $PYRAMID_ENV/bin/activate
     # Install packages
-    pip install ipython ipdb nose coverage invisibleroads-scaffolds
+    pip install --upgrade ipython ipdb nose coverage distribute invisibleroads-scaffolds
 
 
 Usage
@@ -28,6 +28,6 @@ Usage
     PROJECTS=$HOME/Projects
     cd $PROJECTS
     # List available scaffolds
-    paster create --list-templates
+    pcreate --list-templates
     # Create an application
-    paster create -t ir_core
+    pcreate -t ir_core example
