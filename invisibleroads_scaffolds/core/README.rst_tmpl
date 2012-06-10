@@ -16,7 +16,7 @@
     # Install dependencies
     su
         yum -y install gcc gcc-c++
-    pip install --upgrade cryptacular formencode imapIO pycrypto pyramid pyramid_beaker pyramid_debugtoolbar pyramid_mailer pyramid_tm python-openid recaptcha-client simplejson SQLAlchemy transaction waitress webtest whenIO zope.sqlalchemy
+    pip install --upgrade archiveIO cryptacular formencode imapIO pycrypto pyramid pyramid_beaker pyramid_debugtoolbar pyramid_mailer pyramid_tm python-openid recaptcha-client simplejson SQLAlchemy transaction waitress webtest whenIO zope.sqlalchemy
     python setup.py develop
 
     # Edit sensitive information
